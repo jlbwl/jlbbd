@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>金卢比智能表单 v8.6 (全模块实时搜索增强版)</title>
+<title>金卢比智能表单 V2.0</title>
 
 <meta name="theme-color" content="#2563eb">
 <meta name="mobile-web-app-capable" content="yes">
@@ -814,7 +814,7 @@ th {
 </div>
 <div class="container" id="mainApp" style="display:none;">
     <div class="sidebar">
-        <div class="sidebar-title">💎 金卢比 Ultimate</div>
+        <div class="sidebar-title"><img src="https://www.jianguoyun.com/p/DTDkO-gQyraSDhjWnKcGIAA" alt="logo" style="width:24px;height:24px;vertical-align:middle;margin-right:6px;border-radius:4px;"> 金卢比 Ultimate</div>
         <div class="sidebar-nav">
             <button class="sidebar-btn active" onclick="switchView('dashboard')"><span>📊</span> 数据看板</button>
             <button class="sidebar-btn" onclick="switchView('todo')"><span>📋</span> 今日待办</button>
@@ -829,7 +829,7 @@ th {
     </div>
     <div class="main-content">
         <div class="top-toolbar">
-            <div class="app-title"><span>💎</span> 金卢比 Ultimate <span style="font-size:12px; color:var(--text-sub); font-weight:normal; margin-left:10px;">v8.6 Local+</span></div>
+            <div class="app-title"><img src="https://www.jianguoyun.com/p/DTDkO-gQyraSDhjWnKcGIAA" alt="logo" style="width:20px;height:20px;vertical-align:middle;margin-right:6px;border-radius:3px;"> 金卢比 Ultimate <span style="font-size:12px; color:var(--text-sub); font-weight:normal; margin-left:10px;">V2.0 Local+</span></div>
             <div class="toolbar-actions"><span id="userRoleBadge" class="status-tag status-settled">ADMIN</span><button class="btn btn-outline btn-sm" onclick="toggleTheme()">🌙</button></div>
         </div>
         <div id="view-dashboard" class="view-section active">
@@ -1574,7 +1574,7 @@ const App = {
      * @property {boolean} adminOnlyPresets - 是否仅管理员可管理客户预设
      */
     config: { 
-        password: '123456', 
+        password: '5183', 
         riskLimit: 10000, 
         theme: 'light', 
         adminOnlyPresets: false 
@@ -1811,7 +1811,7 @@ const BackupManager = {
     downloadBackup() {
         if(!confirm('即将下载包含所有数据的加密备份文件。\n请妥善保管此文件，不要泄露给他人。\n是否继续？')) return;
         try {
-            const fullData = { version: '8.0', timestamp: new Date().toISOString(), data: App.data, recycleBin: App.recycleBin, logs: App.logs, presets: App.presets, channelHistory: App.channelHistory, smartMemory: App.smartMemory, forms: App.forms, config: App.config };
+            const fullData = { version: '2.0', timestamp: new Date().toISOString(), data: App.data, recycleBin: App.recycleBin, logs: App.logs, presets: App.presets, channelHistory: App.channelHistory, smartMemory: App.smartMemory, forms: App.forms, config: App.config };
             const jsonString = JSON.stringify(fullData);
             const password = prompt('请输入您的登录密码以加密备份文件:', '');
             if(!password) return;
@@ -2089,7 +2089,7 @@ function updatePaginationControls() {
     if(nextBtn) nextBtn.disabled = App.pagination.currentPage >= totalPages;
 }
 function checkLogin() {
-    const input = document.getElementById('passwordInput').value, role = document.getElementById('loginRole').value, defaultPwd = '123456';
+    const input = document.getElementById('passwordInput').value, role = document.getElementById('loginRole').value, defaultPwd = '5183';
     if(input === defaultPwd || input === App.config.password) { App.currentUser = { role: role, loginTime: new Date() }; sessionStorage.setItem('jlb_session', JSON.stringify(App.currentUser)); App.enterApp(); }
     else { document.getElementById('loginError').style.display = 'block'; }
 }

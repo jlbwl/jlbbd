@@ -9,16 +9,16 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="version" content="1.1.0">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2/dist/browser-image-compression.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/zh.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/rangePlugin.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+<meta name="version" content="1.1.1">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" crossorigin="anonymous">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/zh.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/plugins/rangePlugin.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" crossorigin="anonymous"></script>
 <script>
 // 防抖函数
 function debounce(func, wait) {
@@ -961,11 +961,13 @@ th {
     <div class="login-box">
         <h2>🔐 安全验证</h2>
         <p style="margin-bottom:15px; color:var(--text-sub); font-size:13px;">请选择角色登录</p>
-        <select id="loginRole"><option value="admin">管理员 (全权限)</option><option value="operator">操作员 (仅录入/编辑)</option><option value="guest">观察员 (仅查看)</option></select>
-        <input type="password" id="passwordInput" placeholder="密码" onkeydown="if(event.key==='Enter') checkLogin()">
-        <button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="checkLogin()">进入系统</button>
-        <p id="loginError" style="color:var(--danger-color); font-size:12px; margin-top:10px; display:none;">密码错误</p>
-        <div style="margin-top:15px; display:flex; justify-content:center; gap:10px;"><button class="btn btn-outline btn-sm" onclick="toggleTheme()">🌙 切换主题</button></div>
+        <form onsubmit="checkLogin(); return false;">
+            <select id="loginRole"><option value="admin">管理员 (全权限)</option><option value="operator">操作员 (仅录入/编辑)</option><option value="guest">观察员 (仅查看)</option></select>
+            <input type="password" id="passwordInput" placeholder="密码" onkeydown="if(event.key==='Enter') checkLogin()">
+            <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">进入系统</button>
+            <p id="loginError" style="color:var(--danger-color); font-size:12px; margin-top:10px; display:none;">密码错误</p>
+            <div style="margin-top:15px; display:flex; justify-content:center; gap:10px;"><button type="button" class="btn btn-outline btn-sm" onclick="toggleTheme()">🌙 切换主题</button></div>
+        </form>
     </div>
 </div>
 <div class="container" id="mainApp" style="display:none;">
@@ -6226,10 +6228,18 @@ function initDataSync() {
     }
     
     // 定期检查数据更新
+    let lastDataHash = '';
     setInterval(function() {
         if (App) {
+            // 先加载本地数据
             App.loadLocal();
-            App.refreshAll();
+            
+            // 计算当前数据的哈希值，只有当数据发生变化时才执行渲染
+            const currentDataHash = JSON.stringify(App.data).substring(0, 1000); // 只取前1000个字符计算哈希，减少计算时间
+            if (currentDataHash !== lastDataHash) {
+                App.refreshAll();
+                lastDataHash = currentDataHash;
+            }
         }
     }, 30000); // 每30秒检查一次
 }

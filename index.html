@@ -990,7 +990,7 @@ th {
     </div>
     <div class="main-content">
         <div class="top-toolbar">
-            <div class="app-title"><img src="https://raw.githubusercontent.com/jlbwl/jlbbd/de4a4095d802b9d7e46db5b9eb18a0ab8dee935c/logo_jlb.png" alt="logo" style="width:20px;height:20px;vertical-align:middle;margin-right:6px;border-radius:3px;object-fit:contain;"> 金卢比 Ultimate <span id="appVersion" style="font-size:12px; color:var(--text-sub); font-weight:normal; margin-left:10px;">v1.1.3</span></div>
+            <div class="app-title"><img src="https://raw.githubusercontent.com/jlbwl/jlbbd/de4a4095d802b9d7e46db5b9eb18a0ab8dee935c/logo_jlb.png" alt="logo" style="width:20px;height:20px;vertical-align:middle;margin-right:6px;border-radius:3px;object-fit:contain;"> 金卢比 Ultimate <span id="appVersion" style="font-size:12px; color:var(--text-sub); font-weight:normal; margin-left:10px;">v1.1.4</span></div>
             <div class="toolbar-actions"><span id="userRoleBadge" class="status-tag status-settled">ADMIN</span><button class="btn btn-outline btn-sm" onclick="toggleTheme()">🌙</button></div>
         </div>
         <div id="view-dashboard" class="view-section active">
@@ -1222,9 +1222,9 @@ th {
                     <div class="status-column" data-status="high-intent">
                         <div style="font-weight: 600; margin-bottom: 12px; display: flex; justify-content: space-between;">
                             <span>高意向</span>
-                            <span id="highIntentCount" class="status-count">0</span>
+                            <span id="high-intentCount" class="status-count">0</span>
                         </div>
-                        <div id="highIntentList" class="customer-list" style="min-height: 200px; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: var(--bg-color);"></div>
+                        <div id="high-intentList" class="customer-list" style="min-height: 200px; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: var(--bg-color);"></div>
                     </div>
                     <div class="status-column" data-status="closed">
                         <div style="font-weight: 600; margin-bottom: 12px; display: flex; justify-content: space-between;">
@@ -2187,7 +2187,7 @@ const App = {
      * 应用版本号
      * @type {string}
      */
-    version: '1.1.3',
+    version: '1.1.4',
     
     /**
      * 主数据存储数组

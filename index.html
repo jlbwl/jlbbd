@@ -272,6 +272,29 @@ function debounce(func, wait) {
                         
                         formContainer.appendChild(progressContainer);
                         
+                        // AI识别按钮
+                        if (currentQuestionIndex === 0) {
+                            const aiButton = document.createElement('button');
+                            aiButton.style.cssText = `
+                                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                                color: white;
+                                border: none;
+                                padding: 10px 20px;
+                                border-radius: 8px;
+                                font-size: 14px;
+                                font-weight: 600;
+                                cursor: pointer;
+                                margin-bottom: 20px;
+                                display: flex;
+                                align-items: center;
+                                gap: 8px;
+                                transition: all 0.3s ease;
+                            `;
+                            aiButton.innerHTML = '🤖 AI识别填表';
+                            aiButton.onclick = () => openAiRecognitionModal();
+                            formContainer.appendChild(aiButton);
+                        }
+                        
                         // 显示当前问题
                         const component = visibleComponents[currentQuestionIndex];
                         
@@ -10974,26 +10997,223 @@ class EnhancedFormManager {
             }, 300);
         }
     }
-    
-    static showTemplateModal() {
-        const templates = FormTemplateManager.getAllTemplates();
-        const categories = FormTemplateManager.getAllCategories();
-        
-        // 如果模态框已存在，移除旧的
-        if (this.templateModal && this.templateModal.parentNode) {
-            this.templateModal.parentNode.removeChild(this.templateModal);
-        }
-        
-        const modal = document.createElement('div');
-        modal.className = 'modal-overlay active';
-        modal.id = 'templateModal';
-        modal.innerHTML = `
-            <div class="modal" style="max-width: 900px; min-width: 700px;">
-                <div class="modal-header">
-                    <h2>📄 选择表单模板</h2>
-                    <button class="close-btn">&times;</button>
+}
+
+// ==================== AI识别功能 ====================
+
+// 打开AI识别模态框
+function openAiRecognitionModal() {
+    // 创建模态框
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay active';
+    modal.id = 'aiRecognitionModal';
+    modal.innerHTML = `
+        <div class="modal" style="max-width: 600px; min-width: 400px;">
+            <div class="modal-header">
+                <h2>🤖 AI识别填表</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="padding: 20px;">
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-main);">识别方式</label>
+                        <div style="display: flex; gap: 10px;">
+                            <button id="textRecognitionBtn" class="btn btn-primary" style="flex: 1;">📝 文本识别</button>
+                            <button id="imageRecognitionBtn" class="btn btn-outline" style="flex: 1;">📷 图片识别</button>
+                        </div>
+                    </div>
+                    
+                    <!-- 文本识别区域 -->
+                    <div id="textRecognitionArea" style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-main);">粘贴文本</label>
+                        <textarea id="aiTextInput" placeholder="请粘贴需要识别的文本，例如名片信息、简历等" rows="6" style="width: 100%; padding: 14px; border: 2px solid var(--border-color); border-radius: 8px; font-size: 14px; resize: vertical;"></textarea>
+                    </div>
+                    
+                    <!-- 图片识别区域 -->
+                    <div id="imageRecognitionArea" style="margin-bottom: 20px; display: none;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-main);">上传图片</label>
+                        <div style="border: 2px dashed var(--border-color); border-radius: 8px; padding: 30px; text-align: center;">
+                            <input type="file" id="aiImageInput" accept="image/*" style="display: none;">
+                            <label for="aiImageInput" style="cursor: pointer; display: block;">
+                                <div style="font-size: 48px; margin-bottom: 12px;">📷</div>
+                                <p style="color: var(--text-sub); margin-bottom: 12px;">点击或拖拽图片到此处上传</p>
+                                <p style="font-size: 12px; color: var(--text-sub);">支持 JPG、PNG、PDF 格式</p>
+                            </label>
+                            <div id="imagePreview" style="margin-top: 20px; display: none;">
+                                <img id="previewImage" src="" alt="预览" style="max-width: 100%; max-height: 200px; border-radius: 8px;">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: rgba(16, 185, 129, 0.05); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <h4 style="margin: 0 0 10px 0; font-size: 14px; color: var(--text-main);">🤖 AI 提示</h4>
+                        <p style="margin: 0; font-size: 13px; color: var(--text-sub);">AI 将自动识别文本或图片中的信息，并匹配到对应的表单字段。请确保提供的信息清晰可辨。</p>
+                    </div>
                 </div>
-                <div class="modal-body">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline close-btn-ai">取消</button>
+                <button class="btn btn-primary" id="startRecognitionBtn">开始识别</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    
+    // 绑定事件
+    const closeBtn = modal.querySelector('.close-btn');
+    const closeBtnAi = modal.querySelector('.close-btn-ai');
+    const textRecognitionBtn = document.getElementById('textRecognitionBtn');
+    const imageRecognitionBtn = document.getElementById('imageRecognitionBtn');
+    const textRecognitionArea = document.getElementById('textRecognitionArea');
+    const imageRecognitionArea = document.getElementById('imageRecognitionArea');
+    const aiImageInput = document.getElementById('aiImageInput');
+    const imagePreview = document.getElementById('imagePreview');
+    const previewImage = document.getElementById('previewImage');
+    const startRecognitionBtn = document.getElementById('startRecognitionBtn');
+    
+    // 关闭模态框
+    const closeHandler = () => {
+        modal.classList.remove('active');
+        setTimeout(() => {
+            if (modal.parentNode) {
+                modal.parentNode.removeChild(modal);
+            }
+        }, 300);
+    };
+    closeBtn.addEventListener('click', closeHandler);
+    closeBtnAi.addEventListener('click', closeHandler);
+    
+    // 切换识别方式
+    textRecognitionBtn.onclick = () => {
+        textRecognitionBtn.className = 'btn btn-primary';
+        imageRecognitionBtn.className = 'btn btn-outline';
+        textRecognitionArea.style.display = 'block';
+        imageRecognitionArea.style.display = 'none';
+    };
+    
+    imageRecognitionBtn.onclick = () => {
+        imageRecognitionBtn.className = 'btn btn-primary';
+        textRecognitionBtn.className = 'btn btn-outline';
+        imageRecognitionArea.style.display = 'block';
+        textRecognitionArea.style.display = 'none';
+    };
+    
+    // 图片预览
+    aiImageInput.onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                previewImage.src = event.target.result;
+                imagePreview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+    
+    // 开始识别
+    startRecognitionBtn.onclick = () => {
+        // 模拟识别过程
+        startRecognitionBtn.disabled = true;
+        startRecognitionBtn.innerHTML = '识别中...';
+        
+        setTimeout(() => {
+            // 模拟识别结果
+            const recognitionResults = {
+                '姓名': '张三',
+                '手机号': '13800138000',
+                '邮箱': 'zhangsan@example.com',
+                '地址': '北京市朝阳区'
+            };
+            
+            // 填充表单字段
+            fillFormFields(recognitionResults);
+            
+            // 关闭模态框
+            closeHandler();
+            
+            // 显示成功提示
+            alert('✅ AI识别成功！已自动填充表单字段');
+        }, 1500);
+    };
+}
+
+// 填充表单字段
+function fillFormFields(results) {
+    // 获取当前可见的表单组件
+    const visibleComponents = selectedForm.components ? selectedForm.components.filter(c => !c.hidden) : [];
+    
+    // 遍历识别结果，匹配表单字段
+    for (const [key, value] of Object.entries(results)) {
+        // 简单的字段匹配逻辑
+        const matchedComponent = visibleComponents.find(component => {
+            const title = component.title.toLowerCase();
+            const resultKey = key.toLowerCase();
+            return title.includes(resultKey) || resultKey.includes(title);
+        });
+        
+        if (matchedComponent) {
+            formValues[matchedComponent.id] = value;
+        }
+    }
+    
+    // 重新渲染表单，显示填充结果
+    renderFormFill();
+}
+
+// ==================== 模板管理器 ====================
+class FormTemplateManager {
+    static getAllTemplates() {
+        return App.formTemplates || [];
+    }
+    
+    static getAllCategories() {
+        const templates = this.getAllTemplates();
+        return [...new Set(templates.map(t => t.category))];
+    }
+    
+    static getTemplatesByCategory(category) {
+        return this.getAllTemplates().filter(t => t.category === category);
+    }
+    
+    static applyTemplate(templateId) {
+        const template = this.getAllTemplates().find(t => t.id === templateId);
+        if (!template) return null;
+        
+        return {
+            id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+            name: template.name,
+            description: template.description,
+            category: template.category,
+            components: JSON.parse(JSON.stringify(template.components)),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            apiKey: FormAPIManager.generateAPIKey(templateId)
+        };
+    }
+}
+
+// 扩展 EnhancedFormManager 的模板相关方法
+EnhancedFormManager.showTemplateModal = function() {
+    const templates = FormTemplateManager.getAllTemplates();
+    const categories = FormTemplateManager.getAllCategories();
+    
+    // 如果模态框已存在，移除旧的
+    if (this.templateModal && this.templateModal.parentNode) {
+        this.templateModal.parentNode.removeChild(this.templateModal);
+    }
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay active';
+    modal.id = 'templateModal';
+    modal.innerHTML = `
+        <div class="modal" style="max-width: 900px; min-width: 700px;">
+            <div class="modal-header">
+                <h2>📄 选择表单模板</h2>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="padding: 20px;">
                     <div style="display: flex; gap: 10px; margin-bottom: 20px;">
                         <button class="btn btn-sm template-filter active" data-category="all" onclick="EnhancedFormManager.filterTemplates('all')">全部</button>
                         ${categories.map(cat => `<button class="btn btn-sm template-filter" data-category="${cat}" onclick="EnhancedFormManager.filterTemplates('${cat}')">${cat}</button>`).join('')}
@@ -11002,13 +11222,14 @@ class EnhancedFormManager {
                         ${templates.map(t => this.createTemplateCardHTML(t)).join('')}
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-outline close-btn-template">取消</button>
-                </div>
             </div>
-        `;
-        document.body.appendChild(modal);
-        this.templateModal = modal;
+            <div class="modal-footer">
+                <button class="btn btn-outline close-btn-template">取消</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    this.templateModal = modal;
         
         // 绑定关闭按钮事件
         const closeBtn = modal.querySelector('.close-btn');

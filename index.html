@@ -9,7 +9,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="version" content="1.0.0">
+<meta name="version" content="1.1.0">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -978,6 +978,7 @@ th {
             <button class="sidebar-btn" onclick="switchView('formManager')"><span>📄</span> 表单管理</button>
             <button class="sidebar-btn" onclick="switchView('workflow')"><span>🔄</span> 工作流管理</button>
             <button class="sidebar-btn" id="navCustomer" onclick="switchView('customer')" style="display:none;"><span>👥</span> 客户管理</button>
+            <button class="sidebar-btn" id="navLeadgen" onclick="switchView('leadgen')" style="display:none;"><span>🎯</span> 智能获客</button>
             <button class="sidebar-btn" onclick="switchView('recycle')"><span>♻️</span> 回收站</button>
             <button class="sidebar-btn" onclick="switchView('logs')"><span>🛡️</span> 审计日志</button>
             <button class="sidebar-btn" onclick="switchView('settings')"><span>⚙️</span> 设置</button>
@@ -1184,6 +1185,58 @@ th {
                 </div>
                 <div id="workflowList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px;">
                     <!-- 工作流卡片将通过JavaScript动态生成 -->
+                </div>
+            </div>
+        </div>
+        <div id="view-leadgen" class="view-section">
+            <div style="background: var(--card-bg); border-radius: 16px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border: 1px solid var(--border-color);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <h2 style="color: var(--primary-color); font-size: 20px; font-weight: 800; margin: 0;">智能获客</h2>
+                    <button class="btn btn-primary" onclick="addNewCustomer()">➕ 新增客户</button>
+                </div>
+                <div style="margin-bottom: 24px;">
+                    <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+                        <input type="text" id="leadgenSearchInput" placeholder="搜索客户..." style="flex: 1; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px;">
+                        <button class="btn btn-outline" onclick="searchCustomers()">🔍 搜索</button>
+                        <button class="btn btn-outline" onclick="clearSearch()">🗑️ 清空</button>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; margin-bottom: 24px;">
+                    <div class="status-column" data-status="lead">
+                        <div style="font-weight: 600; margin-bottom: 12px; display: flex; justify-content: space-between;">
+                            <span>线索</span>
+                            <span id="leadCount" class="status-count">0</span>
+                        </div>
+                        <div id="leadList" class="customer-list" style="min-height: 200px; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: var(--bg-color);"></div>
+                    </div>
+                    <div class="status-column" data-status="following">
+                        <div style="font-weight: 600; margin-bottom: 12px; display: flex; justify-content: space-between;">
+                            <span>跟进</span>
+                            <span id="followingCount" class="status-count">0</span>
+                        </div>
+                        <div id="followingList" class="customer-list" style="min-height: 200px; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: var(--bg-color);"></div>
+                    </div>
+                    <div class="status-column" data-status="high-intent">
+                        <div style="font-weight: 600; margin-bottom: 12px; display: flex; justify-content: space-between;">
+                            <span>高意向</span>
+                            <span id="highIntentCount" class="status-count">0</span>
+                        </div>
+                        <div id="highIntentList" class="customer-list" style="min-height: 200px; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: var(--bg-color);"></div>
+                    </div>
+                    <div class="status-column" data-status="closed">
+                        <div style="font-weight: 600; margin-bottom: 12px; display: flex; justify-content: space-between;">
+                            <span>已成交</span>
+                            <span id="closedCount" class="status-count">0</span>
+                        </div>
+                        <div id="closedList" class="customer-list" style="min-height: 200px; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: var(--bg-color);"></div>
+                    </div>
+                    <div class="status-column" data-status="lost">
+                        <div style="font-weight: 600; margin-bottom: 12px; display: flex; justify-content: space-between;">
+                            <span>已流失</span>
+                            <span id="lostCount" class="status-count">0</span>
+                        </div>
+                        <div id="lostList" class="customer-list" style="min-height: 200px; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: var(--bg-color);"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2762,6 +2815,7 @@ function toggleTheme() { const isDark = document.body.getAttribute('data-theme')
 function switchView(viewId, event) {
     if(!App.checkPerm('view')) return;
     if(viewId === 'customer' && !App.checkPerm('manage_presets')) { alert('您没有权限访问客户管理页面'); return; }
+    if(viewId === 'leadgen' && !App.checkPerm('manage_presets')) { alert('您没有权限访问智能获客页面'); return; }
     document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.sidebar-btn').forEach(el => el.classList.remove('active'));
     document.getElementById(`view-${viewId}`).classList.add('active');
@@ -2785,6 +2839,7 @@ function switchView(viewId, event) {
     }
     if(viewId === 'dashboard') renderCharts();
     if(viewId === 'customer') { renderPresetTable(); document.getElementById('presetSearchInput').value = ''; document.getElementById('presetSearchDropdown').style.display = 'none'; }
+    if(viewId === 'leadgen') { renderLeadgenDashboard(); }
     if(viewId === 'list') { document.querySelectorAll('.row-cb').forEach(cb => cb.checked = false); updateBatchPanel(); }
     if(viewId === 'formManager') FormManager.renderFormList();
     if(viewId === 'workflow') WorkflowManager.renderWorkflowList();
@@ -11452,6 +11507,298 @@ function testAddToCollection(submissionId, formId) {
         alert('操作失败，请重试');
     }
 }
+
+// ==================== 智能获客功能 ====================
+
+// 客户数据管理
+const LeadgenManager = {
+    // 保存客户数据
+    saveCustomers: function(customers) {
+        localStorage.setItem('leadgen_customers', JSON.stringify(customers));
+    },
+    
+    // 获取客户数据
+    getCustomers: function() {
+        return JSON.parse(localStorage.getItem('leadgen_customers') || '[]');
+    },
+    
+    // 添加客户
+    addCustomer: function(customer) {
+        const customers = this.getCustomers();
+        customer.id = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+        customer.createdAt = new Date().toISOString();
+        customer.updatedAt = new Date().toISOString();
+        customers.push(customer);
+        this.saveCustomers(customers);
+        return customer;
+    },
+    
+    // 更新客户
+    updateCustomer: function(customerId, updates) {
+        const customers = this.getCustomers();
+        const index = customers.findIndex(c => c.id === customerId);
+        if (index !== -1) {
+            customers[index] = {...customers[index], ...updates, updatedAt: new Date().toISOString()};
+            this.saveCustomers(customers);
+            return true;
+        }
+        return false;
+    },
+    
+    // 删除客户
+    deleteCustomer: function(customerId) {
+        const customers = this.getCustomers();
+        const filtered = customers.filter(c => c.id !== customerId);
+        this.saveCustomers(filtered);
+        return true;
+    },
+    
+    // 更新客户状态
+    updateCustomerStatus: function(customerId, status) {
+        return this.updateCustomer(customerId, { status: status });
+    },
+    
+    // 搜索客户
+    searchCustomers: function(keyword) {
+        const customers = this.getCustomers();
+        if (!keyword) return customers;
+        const lowerKeyword = keyword.toLowerCase();
+        return customers.filter(c => 
+            c.name.toLowerCase().includes(lowerKeyword) ||
+            c.company.toLowerCase().includes(lowerKeyword) ||
+            c.wechat.toLowerCase().includes(lowerKeyword) ||
+            c.source.toLowerCase().includes(lowerKeyword)
+        );
+    }
+};
+
+// 渲染智能获客仪表盘
+function renderLeadgenDashboard() {
+    // 显示智能获客菜单
+    document.getElementById('navLeadgen').style.display = App.checkPerm('manage_presets') ? 'block' : 'none';
+    
+    // 加载并渲染客户数据
+    renderCustomerLists();
+}
+
+// 渲染客户列表
+function renderCustomerLists() {
+    const customers = LeadgenManager.getCustomers();
+    
+    // 按状态分组
+    const byStatus = {
+        lead: [],
+        following: [],
+        'high-intent': [],
+        closed: [],
+        lost: []
+    };
+    
+    customers.forEach(customer => {
+        if (byStatus[customer.status]) {
+            byStatus[customer.status].push(customer);
+        }
+    });
+    
+    // 渲染每个状态的客户列表
+    Object.keys(byStatus).forEach(status => {
+        const listElement = document.getElementById(`${status}List`);
+        const countElement = document.getElementById(`${status}Count`);
+        
+        if (listElement && countElement) {
+            countElement.textContent = byStatus[status].length;
+            
+            if (byStatus[status].length === 0) {
+                listElement.innerHTML = '<div style="text-align: center; color: var(--text-sub); padding: 20px;">暂无客户</div>';
+            } else {
+                listElement.innerHTML = byStatus[status].map(customer => `
+                    <div class="customer-card" style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 10px; cursor: pointer; transition: all 0.3s ease;" onclick="showCustomerDetail('${customer.id}')">
+                        <div style="font-weight: 600; margin-bottom: 8px;">${customer.name}</div>
+                        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px;">公司：${customer.company || '-'}</div>
+                        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px;">微信：${customer.wechat || '-'}</div>
+                        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px;">来源：${customer.source || '-'}</div>
+                        <div style="font-size: 12px; color: var(--text-sub);">评分：${customer.score || 0}</div>
+                        <div style="margin-top: 8px; display: flex; gap: 4px;">
+                            <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'lead')">线索</button>
+                            <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'following')">跟进</button>
+                            <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'high-intent')">高意向</button>
+                            <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'closed')">已成交</button>
+                            <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'lost')">已流失</button>
+                        </div>
+                        <button class="btn btn-sm btn-danger" style="font-size: 10px; padding: 2px 6px; margin-top: 8px;" onclick="event.stopPropagation(); deleteCustomer('${customer.id}')">删除</button>
+                    </div>
+                `).join('');
+            }
+        }
+    });
+}
+
+// 新增客户
+function addNewCustomer() {
+    const name = prompt('请输入客户姓名：');
+    if (!name) return;
+    
+    const company = prompt('请输入公司名称：');
+    const wechat = prompt('请输入微信：');
+    const source = prompt('请输入客户来源：');
+    const score = parseInt(prompt('请输入客户评分（0-100）：') || 50);
+    
+    const customer = {
+        name: name,
+        company: company,
+        wechat: wechat,
+        source: source,
+        score: score,
+        status: 'lead'
+    };
+    
+    LeadgenManager.addCustomer(customer);
+    renderCustomerLists();
+    alert('客户添加成功！');
+}
+
+// 更新客户状态
+function updateCustomerStatus(customerId, status) {
+    LeadgenManager.updateCustomerStatus(customerId, status);
+    renderCustomerLists();
+}
+
+// 删除客户
+function deleteCustomer(customerId) {
+    if (confirm('确定要删除这个客户吗？')) {
+        LeadgenManager.deleteCustomer(customerId);
+        renderCustomerLists();
+        alert('客户删除成功！');
+    }
+}
+
+// 显示客户详情
+function showCustomerDetail(customerId) {
+    const customers = LeadgenManager.getCustomers();
+    const customer = customers.find(c => c.id === customerId);
+    
+    if (customer) {
+        let detailHtml = `
+            <h3>${customer.name}</h3>
+            <p>公司：${customer.company || '-'}</p>
+            <p>微信：${customer.wechat || '-'}</p>
+            <p>来源：${customer.source || '-'}</p>
+            <p>评分：${customer.score || 0}</p>
+            <p>状态：${getStatusText(customer.status)}</p>
+            <p>创建时间：${new Date(customer.createdAt).toLocaleString()}</p>
+            <p>更新时间：${new Date(customer.updatedAt).toLocaleString()}</p>
+        `;
+        alert(detailHtml);
+    }
+}
+
+// 获取状态文本
+function getStatusText(status) {
+    const statusMap = {
+        lead: '线索',
+        following: '跟进',
+        'high-intent': '高意向',
+        closed: '已成交',
+        lost: '已流失'
+    };
+    return statusMap[status] || status;
+}
+
+// 搜索客户
+function searchCustomers() {
+    const keyword = document.getElementById('leadgenSearchInput').value;
+    const customers = LeadgenManager.searchCustomers(keyword);
+    
+    // 按状态分组
+    const byStatus = {
+        lead: [],
+        following: [],
+        'high-intent': [],
+        closed: [],
+        lost: []
+    };
+    
+    customers.forEach(customer => {
+        if (byStatus[customer.status]) {
+            byStatus[customer.status].push(customer);
+        }
+    });
+    
+    // 渲染搜索结果
+    Object.keys(byStatus).forEach(status => {
+        const listElement = document.getElementById(`${status}List`);
+        const countElement = document.getElementById(`${status}Count`);
+        
+        if (listElement && countElement) {
+            countElement.textContent = byStatus[status].length;
+            
+            if (byStatus[status].length === 0) {
+                listElement.innerHTML = '<div style="text-align: center; color: var(--text-sub); padding: 20px;">暂无客户</div>';
+            } else {
+                listElement.innerHTML = byStatus[status].map(customer => `
+                    <div class="customer-card" style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 10px; cursor: pointer; transition: all 0.3s ease;" onclick="showCustomerDetail('${customer.id}')">
+                        <div style="font-weight: 600; margin-bottom: 8px;">${customer.name}</div>
+                        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px;">公司：${customer.company || '-'}</div>
+                        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px;">微信：${customer.wechat || '-'}</div>
+                        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px;">来源：${customer.source || '-'}</div>
+                        <div style="font-size: 12px; color: var(--text-sub);">评分：${customer.score || 0}</div>
+                        <div style="margin-top: 8px; display: flex; gap: 4px;">
+                            <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'lead')">线索</button>
+                            <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'following')">跟进</button>
+                            <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'high-intent')">高意向</button>
+                            <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'closed')">已成交</button>
+                            <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'lost')">已流失</button>
+                        </div>
+                        <button class="btn btn-sm btn-danger" style="font-size: 10px; padding: 2px 6px; margin-top: 8px;" onclick="event.stopPropagation(); deleteCustomer('${customer.id}')">删除</button>
+                    </div>
+                `).join('');
+            }
+        }
+    });
+}
+
+// 清空搜索
+function clearSearch() {
+    document.getElementById('leadgenSearchInput').value = '';
+    renderCustomerLists();
+}
+
+// 初始化智能获客功能
+function initLeadgen() {
+    // 检查是否有初始数据，如果没有则添加一些示例数据
+    const customers = LeadgenManager.getCustomers();
+    if (customers.length === 0) {
+        const sampleCustomers = [
+            {
+                name: '张三',
+                company: 'ABC公司',
+                wechat: 'zhangsan123',
+                source: '官网',
+                score: 75,
+                status: 'lead'
+            },
+            {
+                name: '李四',
+                company: 'XYZ公司',
+                wechat: 'lisi456',
+                source: '展会',
+                score: 85,
+                status: 'following'
+            }
+        ];
+        
+        sampleCustomers.forEach(customer => {
+            LeadgenManager.addCustomer(customer);
+        });
+    }
+}
+
+// 在应用初始化时调用
+window.addEventListener('DOMContentLoaded', () => {
+    initLeadgen();
+});
+
+console.log('✅ 智能获客模块已加载');
 </script>
 
 </body>

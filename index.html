@@ -990,7 +990,7 @@ th {
     </div>
     <div class="main-content">
         <div class="top-toolbar">
-            <div class="app-title"><img src="https://raw.githubusercontent.com/jlbwl/jlbbd/de4a4095d802b9d7e46db5b9eb18a0ab8dee935c/logo_jlb.png" alt="logo" style="width:20px;height:20px;vertical-align:middle;margin-right:6px;border-radius:3px;object-fit:contain;"> 金卢比 Ultimate <span id="appVersion" style="font-size:12px; color:var(--text-sub); font-weight:normal; margin-left:10px;">v1.1.4</span></div>
+            <div class="app-title"><img src="https://raw.githubusercontent.com/jlbwl/jlbbd/de4a4095d802b9d7e46db5b9eb18a0ab8dee935c/logo_jlb.png" alt="logo" style="width:20px;height:20px;vertical-align:middle;margin-right:6px;border-radius:3px;object-fit:contain;"> 金卢比 Ultimate <span id="appVersion" style="font-size:12px; color:var(--text-sub); font-weight:normal; margin-left:10px;">v1.1.5</span></div>
             <div class="toolbar-actions"><span id="userRoleBadge" class="status-tag status-settled">ADMIN</span><button class="btn btn-outline btn-sm" onclick="toggleTheme()">🌙</button></div>
         </div>
         <div id="view-dashboard" class="view-section active">
@@ -2187,7 +2187,7 @@ const App = {
      * 应用版本号
      * @type {string}
      */
-    version: '1.1.4',
+    version: '1.1.5',
     
     /**
      * 主数据存储数组
@@ -11668,15 +11668,87 @@ function renderCustomerLists() {
     });
 }
 
-// 新增客户
+// 新增客户 - 使用模态框
 function addNewCustomer() {
-    const name = prompt('请输入客户姓名：');
-    if (!name) return;
+    // 创建模态框
+    const modal = document.createElement('div');
+    modal.id = 'addCustomerModal';
+    modal.className = 'modal-overlay';
+    modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 10000;';
     
-    const company = prompt('请输入公司名称：');
-    const wechat = prompt('请输入微信：');
-    const source = prompt('请输入客户来源：');
-    const score = parseInt(prompt('请输入客户评分（0-100）：') || 50);
+    modal.innerHTML = `
+        <div class="modal" style="background: var(--card-bg); border-radius: 12px; padding: 24px; max-width: 450px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0; color: var(--primary-color); font-size: 18px;">➕ 新增客户</h2>
+                <button class="close-btn" onclick="closeAddCustomerModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-sub);">&times;</button>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px;">
+                <div>
+                    <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px;">客户姓名 <span style="color: var(--danger-color);">*</span></label>
+                    <input type="text" id="newCustomerName" placeholder="请输入客户姓名" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px;">公司名称</label>
+                    <input type="text" id="newCustomerCompany" placeholder="请输入公司名称" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px;">微信号</label>
+                    <input type="text" id="newCustomerWechat" placeholder="请输入微信号" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px;">客户来源</label>
+                    <input type="text" id="newCustomerSource" placeholder="请输入客户来源" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px;">客户评分 (0-100)</label>
+                    <input type="number" id="newCustomerScore" placeholder="50" min="0" max="100" value="50" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+                </div>
+            </div>
+            <div class="modal-footer" style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
+                <button class="btn btn-outline" onclick="closeAddCustomerModal()" style="padding: 10px 20px;">取消</button>
+                <button class="btn btn-primary" onclick="saveNewCustomer()" style="padding: 10px 20px;">保存</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // 聚焦到姓名字段
+    setTimeout(() => {
+        document.getElementById('newCustomerName').focus();
+    }, 100);
+    
+    // 添加键盘事件监听
+    modal.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeAddCustomerModal();
+        } else if (e.key === 'Enter' && e.ctrlKey) {
+            saveNewCustomer();
+        }
+    });
+}
+
+// 关闭新增客户模态框
+function closeAddCustomerModal() {
+    const modal = document.getElementById('addCustomerModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// 保存新客户
+function saveNewCustomer() {
+    const name = document.getElementById('newCustomerName').value.trim();
+    const company = document.getElementById('newCustomerCompany').value.trim();
+    const wechat = document.getElementById('newCustomerWechat').value.trim();
+    const source = document.getElementById('newCustomerSource').value.trim();
+    const score = parseInt(document.getElementById('newCustomerScore').value) || 50;
+    
+    if (!name) {
+        alert('请输入客户姓名！');
+        document.getElementById('newCustomerName').focus();
+        return;
+    }
     
     const customer = {
         name: name,
@@ -11689,7 +11761,45 @@ function addNewCustomer() {
     
     LeadgenManager.addCustomer(customer);
     renderCustomerLists();
-    alert('客户添加成功！');
+    closeAddCustomerModal();
+    
+    // 显示成功提示
+    showToast('客户添加成功！', 'success');
+}
+
+// 显示提示信息
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 24px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 600;
+        z-index: 10001;
+        animation: slideIn 0.3s ease;
+        background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+    `;
+    toast.textContent = message;
+    
+    // 添加动画样式
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.animation = 'slideIn 0.3s ease reverse';
+        setTimeout(() => toast.remove(), 300);
+    }, 2000);
 }
 
 // 更新客户状态

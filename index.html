@@ -663,6 +663,7 @@ body { background-color: var(--bg-color); color: var(--text-main); line-height: 
 .sidebar-title::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 40px; height: 3px; background: var(--primary-color); border-radius: 3px; }
 .sidebar-nav { display: flex; flex-direction: column; gap: 10px; flex: 1; }
 .sidebar-btn { padding: 14px 16px; border: none; background: var(--card-bg); border-radius: 12px; font-weight: 600; color: var(--text-sub); cursor: pointer; transition: all 0.3s ease-in-out; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.08); display: flex; align-items: center; gap: 10px; position: relative; overflow: hidden; }
+.sidebar-btn span { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; font-size: 18px; }
 .sidebar-btn::before { content: ''; position: absolute; left: 0; top: 0; width: 4px; height: 100%; background: var(--primary-color); transform: scaleY(0); transform-origin: bottom; transition: transform 0.3s ease-in-out; border-radius: 12px 0 0 12px; }
 .sidebar-btn.active { background: var(--primary-color); color: white; transform: translateX(6px); box-shadow: 0 6px 12px rgba(37, 99, 235, 0.4); }
 .sidebar-btn.active::before { transform: scaleY(1); }
@@ -990,7 +991,7 @@ th {
     </div>
     <div class="main-content">
         <div class="top-toolbar">
-            <div class="app-title"><img src="https://raw.githubusercontent.com/jlbwl/jlbbd/de4a4095d802b9d7e46db5b9eb18a0ab8dee935c/logo_jlb.png" alt="logo" style="width:20px;height:20px;vertical-align:middle;margin-right:6px;border-radius:3px;object-fit:contain;"> 金卢比 Ultimate <span id="appVersion" style="font-size:12px; color:var(--text-sub); font-weight:normal; margin-left:10px;">v1.1.5</span></div>
+            <div class="app-title"><img src="https://raw.githubusercontent.com/jlbwl/jlbbd/de4a4095d802b9d7e46db5b9eb18a0ab8dee935c/logo_jlb.png" alt="logo" style="width:20px;height:20px;vertical-align:middle;margin-right:6px;border-radius:3px;object-fit:contain;"> 金卢比 Ultimate <span id="appVersion" style="font-size:12px; color:var(--text-sub); font-weight:normal; margin-left:10px;">v1.1.6</span></div>
             <div class="toolbar-actions"><span id="userRoleBadge" class="status-tag status-settled">ADMIN</span><button class="btn btn-outline btn-sm" onclick="toggleTheme()">🌙</button></div>
         </div>
         <div id="view-dashboard" class="view-section active">
@@ -2187,7 +2188,7 @@ const App = {
      * 应用版本号
      * @type {string}
      */
-    version: '1.1.5',
+    version: '1.1.6',
     
     /**
      * 主数据存储数组

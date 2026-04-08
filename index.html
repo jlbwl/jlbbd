@@ -12804,7 +12804,7 @@ function getActivityTypeText(type) {
 // ==================== 自动化工作流 ====================
 
 // 自动化工作流管理
-const WorkflowManager = {
+const CustomerWorkflowManager = {
     // 检查并执行自动化规则
     checkAndExecuteRules: function() {
         const customers = LeadgenManager.getCustomers();
@@ -12945,16 +12945,16 @@ const WorkflowManager = {
 function initWorkflow() {
     // 每5分钟检查一次规则
     setInterval(() => {
-        WorkflowManager.checkAndExecuteRules();
+        CustomerWorkflowManager.checkAndExecuteRules();
     }, 5 * 60 * 1000);
     
     // 初始检查
-    WorkflowManager.checkAndExecuteRules();
+    CustomerWorkflowManager.checkAndExecuteRules();
 }
 
 // 显示任务管理面板
 function showTaskManager() {
-    const tasks = WorkflowManager.getTasks();
+    const tasks = CustomerWorkflowManager.getTasks();
     
     // 创建任务管理模态框
     const modal = document.createElement('div');
@@ -13100,14 +13100,14 @@ function saveNewTask() {
         return;
     }
     
-    WorkflowManager.assignTask(customerId, assignee, description);
+    CustomerWorkflowManager.assignTask(customerId, assignee, description);
     closeAddTaskModal();
     showTaskManager();
 }
 
 // 更新任务状态
 function updateTaskStatus(taskId, status) {
-    WorkflowManager.updateTaskStatus(taskId, status);
+    CustomerWorkflowManager.updateTaskStatus(taskId, status);
     showTaskManager();
     showToast('任务状态更新成功！', 'success');
 }

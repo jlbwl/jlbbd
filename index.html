@@ -12806,31 +12806,31 @@ function getActivityTypeText(type) {
 // 自动化工作流管理
 const CustomerWorkflowManager = {
     // 检查并执行自动化规则
-    checkAndExecuteRules: function() {
-        const customers = LeadgenManager.getCustomers();
+    checkAndExecuteRules: async function() {
+        const customers = await LeadgenManager.getCustomers();
         const now = new Date();
         let hasChanges = false;
         
-        customers.forEach(customer => {
+        for (const customer of customers) {
             // 检查状态自动转换规则
             if (this.shouldAutoUpdateStatus(customer, now)) {
                 const newStatus = this.getAutoUpdateStatus(customer);
                 if (newStatus && newStatus !== customer.status) {
-                    LeadgenManager.updateCustomerStatus(customer.id, newStatus);
-                    LeadgenManager.addActivity(customer.id, 'auto_status_change', `系统自动将状态变更为：${getStatusText(newStatus)}`);
+                    await LeadgenManager.updateCustomerStatus(customer.id, newStatus);
+                    await LeadgenManager.addActivity(customer.id, 'auto_status_change', `系统自动将状态变更为：${getStatusText(newStatus)}`);
                     hasChanges = true;
                 }
             }
             
             // 检查提醒规则
             if (this.shouldSendReminder(customer, now)) {
-                this.sendReminder(customer);
+                await this.sendReminder(customer);
             }
-        });
+        }
         
         if (hasChanges) {
-            renderCustomerLists();
-            renderTagFilters();
+            await renderCustomerLists();
+            await renderTagFilters();
         }
     },
     
@@ -12891,15 +12891,16 @@ const CustomerWorkflowManager = {
     },
     
     // 发送提醒
-    sendReminder: function(customer) {
+    sendReminder: async function(customer) {
         const reminderMessage = `客户 ${customer.name} (${customer.company || '未知公司'}) 需要跟进`;
         showToast(reminderMessage, 'warning');
-        LeadgenManager.addActivity(customer.id, 'reminder', reminderMessage);
+        await LeadgenManager.addActivity(customer.id, 'reminder', reminderMessage);
     },
     
     // 分配任务
-    assignTask: function(customerId, assignee, taskDescription) {
-        const customer = LeadgenManager.getCustomers().find(c => c.id === customerId);
+    assignTask: async function(customerId, assignee, taskDescription) {
+        const customers = await LeadgenManager.getCustomers();
+        const customer = customers.find(c => c.id === customerId);
         if (customer) {
             const task = {
                 id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
@@ -12915,7 +12916,7 @@ const CustomerWorkflowManager = {
             tasks.push(task);
             localStorage.setItem('leadgen_tasks', JSON.stringify(tasks));
             
-            LeadgenManager.addActivity(customerId, 'task_assigned', `任务分配给：${assignee} - ${taskDescription}`);
+            await LeadgenManager.addActivity(customerId, 'task_assigned', `任务分配给：${assignee} - ${taskDescription}`);
             showToast('任务分配成功！', 'success');
             return task;
         }
@@ -12942,14 +12943,14 @@ const CustomerWorkflowManager = {
 };
 
 // 初始化自动化工作流
-function initWorkflow() {
+async function initWorkflow() {
     // 每5分钟检查一次规则
-    setInterval(() => {
-        CustomerWorkflowManager.checkAndExecuteRules();
+    setInterval(async () => {
+        await CustomerWorkflowManager.checkAndExecuteRules();
     }, 5 * 60 * 1000);
     
     // 初始检查
-    CustomerWorkflowManager.checkAndExecuteRules();
+    await CustomerWorkflowManager.checkAndExecuteRules();
 }
 
 // 显示任务管理面板
@@ -13082,7 +13083,7 @@ function closeAddTaskModal() {
 }
 
 // 保存新任务
-function saveNewTask() {
+async function saveNewTask() {
     const customerId = document.getElementById('taskCustomerId').value;
     const description = document.getElementById('taskDescription').value.trim();
     const assignee = document.getElementById('taskAssignee').value.trim();
@@ -13100,7 +13101,7 @@ function saveNewTask() {
         return;
     }
     
-    CustomerWorkflowManager.assignTask(customerId, assignee, description);
+    await CustomerWorkflowManager.assignTask(customerId, assignee, description);
     closeAddTaskModal();
     showTaskManager();
 }

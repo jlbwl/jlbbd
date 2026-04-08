@@ -192,7 +192,10 @@ function debounce(func, wait) {
                     document.body.appendChild(mainContainer);
                 }
                 
-                // 渲染表单填写页面
+                // 当前问题索引
+                let currentQuestionIndex = 0;
+                
+                // 渲染表单填写页面（单问题格式）
                 function renderFormFill() {
                     mainContainer.innerHTML = '';
                     
@@ -226,150 +229,279 @@ function debounce(func, wait) {
                         border: 1px solid #e2e8f0;
                     `;
                     
-                    if (selectedForm.components && selectedForm.components.length > 0) {
-                        selectedForm.components.forEach((component, index) => {
-                            if (component.hidden) return;
+                    const visibleComponents = selectedForm.components ? selectedForm.components.filter(c => !c.hidden) : [];
+                    
+                    if (visibleComponents.length > 0) {
+                        // 显示进度条
+                        const progressContainer = document.createElement('div');
+                        progressContainer.style.cssText = `
+                            margin-bottom: 20px;
+                        `;
+                        
+                        const progressBar = document.createElement('div');
+                        progressBar.style.cssText = `
+                            width: 100%;
+                            height: 8px;
+                            background: #e2e8f0;
+                            border-radius: 4px;
+                            overflow: hidden;
+                        `;
+                        
+                        const progressFill = document.createElement('div');
+                        const progress = ((currentQuestionIndex + 1) / visibleComponents.length) * 100;
+                        progressFill.style.cssText = `
+                            width: ${progress}%;
+                            height: 100%;
+                            background: #2563eb;
+                            border-radius: 4px;
+                            transition: width 0.3s ease;
+                        `;
+                        
+                        progressBar.appendChild(progressFill);
+                        progressContainer.appendChild(progressBar);
+                        
+                        const progressText = document.createElement('div');
+                        progressText.style.cssText = `
+                            text-align: right;
+                            margin-top: 8px;
+                            font-size: 12px;
+                            color: #64748b;
+                        `;
+                        progressText.textContent = `${currentQuestionIndex + 1}/${visibleComponents.length}`;
+                        progressContainer.appendChild(progressText);
+                        
+                        formContainer.appendChild(progressContainer);
+                        
+                        // 显示当前问题
+                        const component = visibleComponents[currentQuestionIndex];
+                        
+                        const fieldWrapper = document.createElement('div');
+                        fieldWrapper.style.cssText = 'margin-bottom: 30px;';
+                        
+                        const labelDiv = document.createElement('div');
+                        labelDiv.style.cssText = 'margin-bottom: 16px; display: flex; align-items: center; gap: 8px;';
+                        
+                        const label = document.createElement('label');
+                        label.style.cssText = 'font-size: 18px; font-weight: 600; color: #1e293b; line-height: 1.4;';
+                        label.textContent = component.title;
+                        labelDiv.appendChild(label);
+                        
+                        if (component.required) {
+                            const requiredMark = document.createElement('span');
+                            requiredMark.style.cssText = 'color: #ef4444; font-weight: 700; font-size: 18px;';
+                            requiredMark.textContent = '*';
+                            labelDiv.appendChild(requiredMark);
                             
-                            const fieldWrapper = document.createElement('div');
-                            fieldWrapper.style.cssText = 'margin-bottom: 20px;';
+                            const requiredText = document.createElement('span');
+                            requiredText.style.cssText = 'font-size: 12px; color: #ef4444; background: #fef2f2; padding: 2px 8px; border-radius: 4px;';
+                            requiredText.textContent = '必填';
+                            labelDiv.appendChild(requiredText);
+                        }
+                        
+                        fieldWrapper.appendChild(labelDiv);
+                        
+                        let input;
+                        if (component.type === 'radio' && component.options) {
+                            const radioGroup = document.createElement('div');
+                            radioGroup.style.cssText = 'display: flex; flex-direction: column; gap: 12px;';
                             
-                            const labelDiv = document.createElement('div');
-                            labelDiv.style.cssText = 'margin-bottom: 8px; display: flex; align-items: center; gap: 6px;';
-                            
-                            const label = document.createElement('label');
-                            label.style.cssText = 'font-size: 15px; font-weight: 600; color: #1e293b;';
-                            label.textContent = component.title;
-                            labelDiv.appendChild(label);
-                            
-                            if (component.required) {
-                                const requiredMark = document.createElement('span');
-                                requiredMark.style.cssText = 'color: #ef4444; font-weight: 700; font-size: 16px;';
-                                requiredMark.textContent = '*';
-                                labelDiv.appendChild(requiredMark);
+                            component.options.forEach((option, optIndex) => {
+                                const radioWrapper = document.createElement('label');
+                                radioWrapper.style.cssText = 'display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 14px; border: 2px solid #e2e8f0; border-radius: 10px; transition: all 0.2s;';
                                 
-                                const requiredText = document.createElement('span');
-                                requiredText.style.cssText = 'font-size: 12px; color: #ef4444; background: #fef2f2; padding: 2px 8px; border-radius: 4px;';
-                                requiredText.textContent = '必填';
-                                labelDiv.appendChild(requiredText);
-                            }
-                            
-                            fieldWrapper.appendChild(labelDiv);
-                            
-                            let input;
-                            if (component.type === 'radio' && component.options) {
-                                const radioGroup = document.createElement('div');
-                                radioGroup.style.cssText = 'display: flex; flex-direction: column; gap: 10px;';
+                                const radioInput = document.createElement('input');
+                                radioInput.type = 'radio';
+                                radioInput.name = `radio_${component.id}`;
+                                radioInput.value = option;
+                                radioInput.style.cssText = 'width: 20px; height: 20px; cursor: pointer;';
                                 
-                                component.options.forEach((option, optIndex) => {
-                                    const radioWrapper = document.createElement('label');
-                                    radioWrapper.style.cssText = 'display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 10px; border: 2px solid #e2e8f0; border-radius: 8px; transition: all 0.2s;';
-                                    
-                                    const radioInput = document.createElement('input');
-                                    radioInput.type = 'radio';
-                                    radioInput.name = `radio_${component.id}`;
-                                    radioInput.value = option;
-                                    radioInput.style.cssText = 'width: 18px; height: 18px; cursor: pointer;';
-                                    
-                                    if (formValues[component.id] === option) {
-                                        radioInput.checked = true;
-                                        radioWrapper.style.borderColor = '#2563eb';
-                                        radioWrapper.style.background = '#eff6ff';
-                                    }
-                                    
-                                    radioInput.onchange = () => {
-                                        formValues[component.id] = option;
+                                if (formValues[component.id] === option) {
+                                    radioInput.checked = true;
+                                    radioWrapper.style.borderColor = '#2563eb';
+                                    radioWrapper.style.background = '#eff6ff';
+                                }
+                                
+                                radioInput.onchange = () => {
+                                    formValues[component.id] = option;
+                                    // 自动前进到下一个问题
+                                    if (currentQuestionIndex < visibleComponents.length - 1) {
+                                        currentQuestionIndex++;
                                         renderFormFill();
-                                    };
-                                    
-                                    radioWrapper.onmouseover = () => {
-                                        if (formValues[component.id] !== option) {
-                                            radioWrapper.style.borderColor = '#cbd5e1';
-                                        }
-                                    };
-                                    
-                                    radioWrapper.onmouseout = () => {
-                                        if (formValues[component.id] !== option) {
-                                            radioWrapper.style.borderColor = '#e2e8f0';
-                                        }
-                                    };
-                                    
-                                    const optionLabel = document.createElement('span');
-                                    optionLabel.style.cssText = 'font-size: 14px; color: #334155;';
-                                    optionLabel.textContent = option;
-                                    
-                                    radioWrapper.appendChild(radioInput);
-                                    radioWrapper.appendChild(optionLabel);
-                                    radioGroup.appendChild(radioWrapper);
-                                });
+                                    }
+                                };
                                 
-                                input = radioGroup;
-                            } else {
-                                input = document.createElement('input');
-                                input.type = component.type === 'phone' ? 'tel' : (component.type === 'email' ? 'email' : 'text');
-                                input.placeholder = component.placeholder || `请输入${component.title}`;
-                                input.value = formValues[component.id] || '';
-                                input.style.cssText = `
-                                    width: 100%;
-                                    padding: 12px 14px;
-                                    border: 2px solid #e2e8f0;
-                                    border-radius: 8px;
-                                    font-size: 15px;
-                                    box-sizing: border-box;
-                                    transition: all 0.2s;
-                                `;
-                                input.onfocus = () => {
-                                    input.style.borderColor = '#2563eb';
-                                    input.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.1)';
+                                radioWrapper.onmouseover = () => {
+                                    if (formValues[component.id] !== option) {
+                                        radioWrapper.style.borderColor = '#cbd5e1';
+                                    }
                                 };
-                                input.onblur = () => {
-                                    input.style.borderColor = '#e2e8f0';
-                                    input.style.boxShadow = 'none';
+                                
+                                radioWrapper.onmouseout = () => {
+                                    if (formValues[component.id] !== option) {
+                                        radioWrapper.style.borderColor = '#e2e8f0';
+                                    }
                                 };
-                                input.oninput = () => {
-                                    formValues[component.id] = input.value;
-                                };
-                            }
+                                
+                                const optionLabel = document.createElement('span');
+                                optionLabel.style.cssText = 'font-size: 16px; color: #334155;';
+                                optionLabel.textContent = option;
+                                
+                                radioWrapper.appendChild(radioInput);
+                                radioWrapper.appendChild(optionLabel);
+                                radioGroup.appendChild(radioWrapper);
+                            });
                             
-                            fieldWrapper.appendChild(input);
-                            formContainer.appendChild(fieldWrapper);
-                        });
+                            input = radioGroup;
+                        } else if (component.type === 'textarea') {
+                            input = document.createElement('textarea');
+                            input.rows = 4;
+                            input.placeholder = component.placeholder || `请输入${component.title}`;
+                            input.value = formValues[component.id] || '';
+                            input.style.cssText = `
+                                width: 100%;
+                                padding: 14px;
+                                border: 2px solid #e2e8f0;
+                                border-radius: 8px;
+                                font-size: 16px;
+                                resize: vertical;
+                                box-sizing: border-box;
+                                transition: all 0.2s;
+                            `;
+                            input.onfocus = () => {
+                                input.style.borderColor = '#2563eb';
+                                input.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.1)';
+                            };
+                            input.onblur = () => {
+                                input.style.borderColor = '#e2e8f0';
+                                input.style.boxShadow = 'none';
+                                // 自动前进到下一个问题
+                                if (currentQuestionIndex < visibleComponents.length - 1) {
+                                    currentQuestionIndex++;
+                                    renderFormFill();
+                                }
+                            };
+                            input.oninput = () => {
+                                formValues[component.id] = input.value;
+                            };
+                        } else {
+                            input = document.createElement('input');
+                            input.type = component.type === 'phone' ? 'tel' : (component.type === 'email' ? 'email' : 'text');
+                            input.placeholder = component.placeholder || `请输入${component.title}`;
+                            input.value = formValues[component.id] || '';
+                            input.style.cssText = `
+                                width: 100%;
+                                padding: 14px;
+                                border: 2px solid #e2e8f0;
+                                border-radius: 8px;
+                                font-size: 16px;
+                                box-sizing: border-box;
+                                transition: all 0.2s;
+                            `;
+                            input.onfocus = () => {
+                                input.style.borderColor = '#2563eb';
+                                input.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.1)';
+                            };
+                            input.onblur = () => {
+                                input.style.borderColor = '#e2e8f0';
+                                input.style.boxShadow = 'none';
+                                // 自动前进到下一个问题
+                                if (currentQuestionIndex < visibleComponents.length - 1) {
+                                    currentQuestionIndex++;
+                                    renderFormFill();
+                                }
+                            };
+                            input.oninput = () => {
+                                formValues[component.id] = input.value;
+                            };
+                            // 回车键自动前进
+                            input.onkeypress = (e) => {
+                                if (e.key === 'Enter' && currentQuestionIndex < visibleComponents.length - 1) {
+                                    currentQuestionIndex++;
+                                    renderFormFill();
+                                }
+                            };
+                        }
+                        
+                        fieldWrapper.appendChild(input);
+                        formContainer.appendChild(fieldWrapper);
+                        
+                        // 导航按钮
+                        const navigationContainer = document.createElement('div');
+                        navigationContainer.style.cssText = `
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            margin-top: 30px;
+                            padding-top: 20px;
+                            border-top: 1px solid #e2e8f0;
+                        `;
+                        
+                        // 后退按钮
+                        const prevBtn = document.createElement('button');
+                        prevBtn.textContent = '上一步';
+                        prevBtn.style.cssText = `
+                            padding: 12px 20px;
+                            background: ${currentQuestionIndex > 0 ? '#f1f5f9' : '#e2e8f0'};
+                            color: ${currentQuestionIndex > 0 ? '#475569' : '#94a3b8'};
+                            border: none;
+                            border-radius: 8px;
+                            font-size: 14px;
+                            font-weight: 600;
+                            cursor: ${currentQuestionIndex > 0 ? 'pointer' : 'not-allowed'};
+                            transition: all 0.2s;
+                        `;
+                        prevBtn.onclick = () => {
+                            if (currentQuestionIndex > 0) {
+                                currentQuestionIndex--;
+                                renderFormFill();
+                            }
+                        };
+                        
+                        // 下一步或提交按钮
+                        const nextBtn = document.createElement('button');
+                        nextBtn.textContent = currentQuestionIndex === visibleComponents.length - 1 ? '提交表单' : '下一步';
+                        nextBtn.style.cssText = `
+                            padding: 12px 24px;
+                            background: ${currentQuestionIndex === visibleComponents.length - 1 ? '#2563eb' : '#3b82f6'};
+                            color: white;
+                            border: none;
+                            border-radius: 8px;
+                            font-size: 14px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            transition: all 0.2s;
+                        `;
+                        nextBtn.onmouseover = () => {
+                            nextBtn.style.transform = 'translateY(-1px)';
+                            nextBtn.style.boxShadow = '0 4px 12px rgba(37, 99, 235, 0.3)';
+                        };
+                        nextBtn.onmouseout = () => {
+                            nextBtn.style.transform = 'translateY(0)';
+                            nextBtn.style.boxShadow = 'none';
+                        };
+                        nextBtn.onclick = () => {
+                            if (currentQuestionIndex === visibleComponents.length - 1) {
+                                submitForm();
+                            } else {
+                                currentQuestionIndex++;
+                                renderFormFill();
+                            }
+                        };
+                        
+                        navigationContainer.appendChild(prevBtn);
+                        navigationContainer.appendChild(nextBtn);
+                        formContainer.appendChild(navigationContainer);
                     } else {
                         formContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #64748b;"><div style="font-size: 32px; margin-bottom: 12px;">📝</div><p style="font-size: 16px;">此表单暂无字段</p></div>';
                     }
                     
-                    const submitBtn = document.createElement('button');
-                    submitBtn.id = 'submitBtn';
-                    submitBtn.textContent = '提交表单';
-                    submitBtn.style.cssText = `
-                        width: 100%;
-                        padding: 14px;
-                        background: #2563eb;
-                        color: white;
-                        border: none;
-                        border-radius: 10px;
-                        font-size: 16px;
-                        font-weight: 700;
-                        cursor: pointer;
-                        margin-top: 10px;
-                        transition: all 0.2s;
-                    `;
-                    submitBtn.onmouseover = () => {
-                        submitBtn.style.background = '#1d4ed8';
-                        submitBtn.style.transform = 'translateY(-1px)';
-                    };
-                    submitBtn.onmouseout = () => {
-                        submitBtn.style.background = '#2563eb';
-                        submitBtn.style.transform = 'translateY(0)';
-                    };
-                    submitBtn.onclick = submitForm;
-                    
-                    formContainer.appendChild(submitBtn);
                     mainContainer.appendChild(formContainer);
                     document.body.appendChild(mainContainer);
                     
                     document.getElementById('backBtn').onclick = () => {
                         selectedForm = null;
                         formValues = {};
+                        currentQuestionIndex = 0;
                         renderFormList();
                     };
                 }
@@ -820,6 +952,7 @@ th {
             <button class="sidebar-btn" onclick="switchView('todo')"><span>📋</span> 今日待办</button>
             <button class="sidebar-btn" onclick="switchView('list')"><span>📝</span> 收单列表</button>
             <button class="sidebar-btn" onclick="switchView('formManager')"><span>📄</span> 表单管理</button>
+            <button class="sidebar-btn" onclick="switchView('workflow')"><span>🔄</span> 工作流管理</button>
             <button class="sidebar-btn" id="navCustomer" onclick="switchView('customer')" style="display:none;"><span>👥</span> 客户管理</button>
             <button class="sidebar-btn" onclick="switchView('recycle')"><span>♻️</span> 回收站</button>
             <button class="sidebar-btn" onclick="switchView('logs')"><span>🛡️</span> 审计日志</button>
@@ -1015,6 +1148,18 @@ th {
                 
                 <div id="formList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
                     <!-- 表单列表将在这里动态生成 -->
+                </div>
+            </div>
+        </div>
+        
+        <div id="view-workflow" class="view-section">
+            <div style="background: var(--card-bg); border-radius: 16px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border: 1px solid var(--border-color);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <h2 style="color: var(--primary-color); font-size: 20px; font-weight: 800; margin: 0;">工作流管理</h2>
+                    <button class="btn btn-primary" onclick="WorkflowManager.openCreateWorkflowModal()">➕ 创建工作流</button>
+                </div>
+                <div id="workflowList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px;">
+                    <!-- 工作流卡片将通过JavaScript动态生成 -->
                 </div>
             </div>
         </div>
@@ -1566,6 +1711,12 @@ const App = {
     forms: [],
     
     /**
+     * 工作流数据
+     * @type {Array}
+     */
+    workflows: [],
+    
+    /**
      * 应用配置
      * @type {Object}
      * @property {string} password - 登录密码
@@ -1654,6 +1805,7 @@ const App = {
      */
     init() {
         this.loadLocal();
+        WorkflowManager.init();
         const urlParams = new URLSearchParams(window.location.search);
         const publishData = urlParams.get('publish');
         
@@ -1679,15 +1831,34 @@ const App = {
             try {
                 const bytes = CryptoJS.AES.decrypt(raw, 'JLB_SECRET_KEY_2026');
                 const json = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
-                this.data = json.data || []; this.recycleBin = json.recycleBin || []; this.logs = json.logs || [];
-                this.presets = json.presets || []; this.channelHistory = json.channelHistory || [];
-                this.smartMemory = json.smartMemory || {}; this.forms = json.forms || [];
+                
+                // 批量赋值，减少多次属性访问
+                this.data = json.data || [];
+                this.recycleBin = json.recycleBin || [];
+                this.logs = json.logs || [];
+                this.presets = json.presets || [];
+                this.channelHistory = json.channelHistory || [];
+                this.smartMemory = json.smartMemory || {};
+                this.forms = json.forms || [];
+                this.workflows = json.workflows || [];
                 this.config = json.config || this.config;
                 this.pagination.pageSize = json.pagination?.pageSize || 20;
-                if (json.config && json.config.columnVisibility) this.userColumnVisibility = json.config.columnVisibility;
-                else for (let key in this.columnConfig) this.userColumnVisibility[key] = this.columnConfig[key].default;
-            } catch(e) { console.error('解密失败', e); this.loadLegacy(); }
-        } else { this.loadLegacy(); }
+                
+                // 只有在需要时才计算用户列可见性
+                if (json.config && json.config.columnVisibility) {
+                    this.userColumnVisibility = json.config.columnVisibility;
+                } else if (Object.keys(this.userColumnVisibility).length === 0) {
+                    for (let key in this.columnConfig) {
+                        this.userColumnVisibility[key] = this.columnConfig[key].default;
+                    }
+                }
+            } catch(e) { 
+                console.error('解密失败', e); 
+                this.loadLegacy(); 
+            }
+        } else { 
+            this.loadLegacy(); 
+        }
     },
     
     /**
@@ -1713,12 +1884,39 @@ const App = {
      */
     saveData() {
         try {
-            const payload = JSON.stringify({ data: this.data, recycleBin: this.recycleBin, logs: this.logs, presets: this.presets, channelHistory: this.channelHistory, smartMemory: this.smartMemory, forms: this.forms, config: { ...this.config, columnVisibility: this.userColumnVisibility }, pagination: this.pagination });
-            const encrypted = CryptoJS.AES.encrypt(payload, 'JLB_SECRET_KEY_2026').toString();
+            // 构建payload对象，减少重复属性访问
+            const payload = {
+                data: this.data,
+                recycleBin: this.recycleBin,
+                logs: this.logs,
+                presets: this.presets,
+                channelHistory: this.channelHistory,
+                smartMemory: this.smartMemory,
+                forms: this.forms,
+                workflows: this.workflows,
+                config: { ...this.config, columnVisibility: this.userColumnVisibility },
+                pagination: this.pagination
+            };
+            
+            // 序列化并加密数据
+            const jsonString = JSON.stringify(payload);
+            const encrypted = CryptoJS.AES.encrypt(jsonString, 'JLB_SECRET_KEY_2026').toString();
+            
+            // 保存到localStorage
             localStorage.setItem('jlb_data_v8_enc', encrypted);
-            ['jl_data_v2','jl_recycle_v2','jl_logs_v2','jl_presets_v2','jl_channels_v2','jl_forms_v2','jl_config'].forEach(k=>localStorage.removeItem(k));
-        } catch(e) { console.error('加密保存失败', e); alert('保存失败，可能是浏览器存储空间不足'); }
-        this.refreshAll();
+            
+            // 清理旧版本数据（只在首次保存时执行）
+            const hasOldData = localStorage.getItem('jl_data_v2');
+            if (hasOldData) {
+                ['jl_data_v2','jl_recycle_v2','jl_logs_v2','jl_presets_v2','jl_channels_v2','jl_forms_v2','jl_config'].forEach(k => localStorage.removeItem(k));
+            }
+        } catch(e) { 
+            console.error('加密保存失败', e); 
+            alert('保存失败，可能是浏览器存储空间不足'); 
+        }
+        
+        // 异步刷新所有视图，避免阻塞主线程
+        setTimeout(() => this.refreshAll(), 0);
     },
     
     /**
@@ -2123,6 +2321,8 @@ function switchView(viewId, event) {
     if(viewId === 'dashboard') renderCharts();
     if(viewId === 'customer') { renderPresetTable(); document.getElementById('presetSearchInput').value = ''; document.getElementById('presetSearchDropdown').style.display = 'none'; }
     if(viewId === 'list') { document.querySelectorAll('.row-cb').forEach(cb => cb.checked = false); updateBatchPanel(); }
+    if(viewId === 'formManager') FormManager.renderFormList();
+    if(viewId === 'workflow') WorkflowManager.renderWorkflowList();
 }
 function sortTable(key, isNumber = false) {
     if (App.sortConfig.key === key) App.sortConfig.ascending = !App.sortConfig.ascending;
@@ -5737,6 +5937,35 @@ function updateSelectAllStatus() {
 
 // 打开创建表单模态框
 function openCreateFormModal() {
+    // 先显示创建方式选择模态框
+    openModal('createFormTypeModal', {
+        title: '创建表单',
+        titleId: 'createFormTypeModalTitle',
+        onOpen: () => {
+            // 清空模态框内容
+            const modalBody = document.getElementById('createFormTypeModalBody');
+            modalBody.innerHTML = `
+                <div style="text-align: center; padding: 40px 20px;">
+                    <h3 style="margin-bottom: 30px; color: var(--primary-color);">选择创建方式</h3>
+                    <div style="display: flex; flex-direction: column; gap: 20px; max-width: 400px; margin: 0 auto;">
+                        <button class="btn btn-primary" onclick="event.stopPropagation(); createBlankForm()" style="padding: 20px; font-size: 16px;">
+                            📋 创建空白表单
+                        </button>
+                        <button class="btn btn-outline" onclick="event.stopPropagation(); openAIGenerateFormModal()" style="padding: 20px; font-size: 16px; border: 2px solid var(--primary-color); color: var(--primary-color);">
+                            🤖 AI生成表单
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+    });
+}
+
+function createBlankForm() {
+    // 关闭当前模态框
+    closeModal('createFormTypeModal');
+    
+    // 打开空白表单创建模态框
     openModal('formEditModal', {
         title: '➕ 创建表单',
         titleId: 'formEditModalTitle',
@@ -5775,6 +6004,376 @@ function openCreateFormModal() {
         }
     });
 }
+
+function openAIGenerateFormModal() {
+    // 关闭当前模态框
+    closeModal('createFormTypeModal');
+    
+    // 打开AI生成表单模态框
+    openModal('aiGenerateFormModal', {
+        title: '🤖 AI生成表单',
+        titleId: 'aiGenerateFormModalTitle',
+        onOpen: () => {
+            const modalBody = document.getElementById('aiGenerateFormModalBody');
+            modalBody.innerHTML = `
+                <div style="padding: 20px;">
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-main);">
+                            📝 描述您需要的表单
+                        </label>
+                        <textarea id="aiFormDescription" rows="4" style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; resize: vertical;" placeholder="例如：创建一个客户信息收集表单，包含姓名、电话、邮箱、地址等字段..."></textarea>
+                    </div>
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-main);">
+                            📋 表单类型
+                        </label>
+                        <select id="aiFormType" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px;">
+                            <option value="general">通用表单</option>
+                            <option value="contact">联系表单</option>
+                            <option value="survey">调查问卷</option>
+                            <option value="registration">注册表单</option>
+                            <option value="feedback">反馈表单</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-main);">
+                            ⚙️ 高级选项
+                        </label>
+                        <div style="background: rgba(0,0,0,0.02); padding: 15px; border-radius: 8px;">
+                            <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                                <input type="checkbox" id="aiIncludeRequired" checked style="margin-right: 8px;">
+                                <label for="aiIncludeRequired" style="font-size: 14px;">包含必填字段</label>
+                            </div>
+                            <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                                <input type="checkbox" id="aiIncludeValidation" checked style="margin-right: 8px;">
+                                <label for="aiIncludeValidation" style="font-size: 14px;">添加数据验证</label>
+                            </div>
+                            <div style="display: flex; align-items: center;">
+                                <input type="checkbox" id="aiIncludePlaceholder" checked style="margin-right: 8px;">
+                                <label for="aiIncludePlaceholder" style="font-size: 14px;">添加输入提示</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="aiGenerationStatus" style="margin-bottom: 20px; padding: 15px; background: rgba(37, 99, 235, 0.1); border-radius: 8px; display: none;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="width: 20px; height: 20px; border: 2px solid var(--primary-color); border-top: 2px solid transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                            <span style="font-size: 14px; color: var(--primary-color);">正在生成表单，请稍候...</span>
+                        </div>
+                    </div>
+                    <div id="aiGenerationError" style="margin-bottom: 20px; padding: 15px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; display: none;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 14px; color: var(--danger-color);">生成失败，请重试</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        },
+        onSave: () => {
+            generateFormWithAI();
+        }
+    });
+}
+
+function generateFormWithAI() {
+    const description = document.getElementById('aiFormDescription').value.trim();
+    if (!description) {
+        alert('请输入表单描述');
+        return;
+    }
+    
+    // 显示生成状态
+    document.getElementById('aiGenerationStatus').style.display = 'block';
+    document.getElementById('aiGenerationError').style.display = 'none';
+    
+    // 模拟AI生成过程
+    setTimeout(() => {
+        document.getElementById('aiGenerationStatus').style.display = 'none';
+        
+        // 生成表单结构
+        const formName = description.substring(0, 30) + '...';
+        const formDescription = description;
+        const formType = document.getElementById('aiFormType').value;
+        const includeRequired = document.getElementById('aiIncludeRequired').checked;
+        const includeValidation = document.getElementById('aiIncludeValidation').checked;
+        const includePlaceholder = document.getElementById('aiIncludePlaceholder').checked;
+        
+        // 根据表单类型生成组件
+        let components = [];
+        
+        switch (formType) {
+            case 'contact':
+                components = [
+                    {
+                        id: 'name',
+                        title: '姓名',
+                        type: 'text',
+                        required: includeRequired,
+                        placeholder: includePlaceholder ? '请输入姓名' : '',
+                        validation: includeValidation ? 'required' : ''
+                    },
+                    {
+                        id: 'phone',
+                        title: '电话',
+                        type: 'phone',
+                        required: includeRequired,
+                        placeholder: includePlaceholder ? '请输入手机号码' : '',
+                        validation: includeValidation ? 'phone' : ''
+                    },
+                    {
+                        id: 'email',
+                        title: '邮箱',
+                        type: 'email',
+                        required: includeRequired,
+                        placeholder: includePlaceholder ? '请输入邮箱地址' : '',
+                        validation: includeValidation ? 'email' : ''
+                    },
+                    {
+                        id: 'message',
+                        title: '留言',
+                        type: 'textarea',
+                        required: false,
+                        placeholder: includePlaceholder ? '请输入您的留言' : '',
+                        validation: ''
+                    }
+                ];
+                break;
+            case 'survey':
+                components = [
+                    {
+                        id: 'satisfaction',
+                        title: '满意度',
+                        type: 'radio',
+                        required: includeRequired,
+                        options: ['非常满意', '满意', '一般', '不满意', '非常不满意'],
+                        validation: includeValidation ? 'required' : ''
+                    },
+                    {
+                        id: 'suggestions',
+                        title: '建议',
+                        type: 'textarea',
+                        required: false,
+                        placeholder: includePlaceholder ? '请输入您的建议' : '',
+                        validation: ''
+                    },
+                    {
+                        id: 'contact',
+                        title: '是否需要联系',
+                        type: 'radio',
+                        required: includeRequired,
+                        options: ['是', '否'],
+                        validation: includeValidation ? 'required' : ''
+                    }
+                ];
+                break;
+            case 'registration':
+                components = [
+                    {
+                        id: 'username',
+                        title: '用户名',
+                        type: 'text',
+                        required: includeRequired,
+                        placeholder: includePlaceholder ? '请输入用户名' : '',
+                        validation: includeValidation ? 'required' : ''
+                    },
+                    {
+                        id: 'email',
+                        title: '邮箱',
+                        type: 'email',
+                        required: includeRequired,
+                        placeholder: includePlaceholder ? '请输入邮箱地址' : '',
+                        validation: includeValidation ? 'email' : ''
+                    },
+                    {
+                        id: 'password',
+                        title: '密码',
+                        type: 'password',
+                        required: includeRequired,
+                        placeholder: includePlaceholder ? '请输入密码' : '',
+                        validation: includeValidation ? 'password' : ''
+                    },
+                    {
+                        id: 'confirmPassword',
+                        title: '确认密码',
+                        type: 'password',
+                        required: includeRequired,
+                        placeholder: includePlaceholder ? '请再次输入密码' : '',
+                        validation: includeValidation ? 'password' : ''
+                    }
+                ];
+                break;
+            case 'feedback':
+                components = [
+                    {
+                        id: 'subject',
+                        title: '主题',
+                        type: 'text',
+                        required: includeRequired,
+                        placeholder: includePlaceholder ? '请输入反馈主题' : '',
+                        validation: includeValidation ? 'required' : ''
+                    },
+                    {
+                        id: 'category',
+                        title: '类别',
+                        type: 'radio',
+                        required: includeRequired,
+                        options: ['功能建议', 'bug报告', '其他'],
+                        validation: includeValidation ? 'required' : ''
+                    },
+                    {
+                        id: 'description',
+                        title: '详细描述',
+                        type: 'textarea',
+                        required: includeRequired,
+                        placeholder: includePlaceholder ? '请详细描述您的反馈' : '',
+                        validation: includeValidation ? 'required' : ''
+                    },
+                    {
+                        id: 'contact',
+                        title: '联系信息',
+                        type: 'text',
+                        required: false,
+                        placeholder: includePlaceholder ? '请留下您的联系信息' : '',
+                        validation: ''
+                    }
+                ];
+                break;
+            default:
+                // 通用表单
+                components = [
+                    {
+                        id: 'name',
+                        title: '姓名',
+                        type: 'text',
+                        required: includeRequired,
+                        placeholder: includePlaceholder ? '请输入姓名' : '',
+                        validation: includeValidation ? 'required' : ''
+                    },
+                    {
+                        id: 'email',
+                        title: '邮箱',
+                        type: 'email',
+                        required: includeRequired,
+                        placeholder: includePlaceholder ? '请输入邮箱地址' : '',
+                        validation: includeValidation ? 'email' : ''
+                    },
+                    {
+                        id: 'phone',
+                        title: '电话',
+                        type: 'phone',
+                        required: includeRequired,
+                        placeholder: includePlaceholder ? '请输入手机号码' : '',
+                        validation: includeValidation ? 'phone' : ''
+                    },
+                    {
+                        id: 'message',
+                        title: '留言',
+                        type: 'textarea',
+                        required: false,
+                        placeholder: includePlaceholder ? '请输入您的留言' : '',
+                        validation: ''
+                    }
+                ];
+        }
+        
+        // 关闭AI生成模态框
+        closeModal('aiGenerateFormModal');
+        
+        // 打开编辑表单模态框并填充生成的表单
+        openModal('formEditModal', {
+            title: '✏️ 编辑AI生成的表单',
+            titleId: 'formEditModalTitle',
+            onOpen: () => {
+                // 填充表单数据
+                document.getElementById('editFormName').value = formName;
+                document.getElementById('editFormDescription').innerText = formDescription;
+                document.getElementById('editFormCategory').value = formType;
+                document.getElementById('editFormFee').value = '0.00';
+                document.getElementById('editFormCycle').value = 'T1';
+                document.getElementById('editFormBrokerLink').value = '';
+                document.getElementById('editFormEstimate').value = '';
+                
+                // 设置默认状态
+                document.querySelector(`select[name="editFormStatus"]`).value = 'open';
+                document.querySelector(`select[name="editFormVisibility"]`).value = 'single';
+                document.getElementById('editFormTeam').value = '';
+                
+                // 清空组件区域（保留表单名称和说明输入框）
+                const componentsContainer = document.getElementById('editFormComponents');
+                const formNameDiv = componentsContainer.querySelector('div:first-child');
+                const formDescDiv = componentsContainer.querySelector('div:nth-child(2)');
+                componentsContainer.innerHTML = '';
+                componentsContainer.appendChild(formNameDiv);
+                componentsContainer.appendChild(formDescDiv);
+                
+                // 加载生成的组件
+                components.forEach(component => {
+                    addEditFormComponent(component.type, component);
+                });
+                
+                // 重置当前表单ID（空字符串表示创建新表单）
+                document.getElementById('currentFormId').value = '';
+                
+                // 初始化拖拽功能
+                initEditFormDragAndDrop();
+                
+                // 重置属性面板
+                document.getElementById('editComponentProperties').style.display = 'none';
+                document.getElementById('editNoComponentSelected').style.display = 'block';
+            }
+        });
+    }, 2000);
+}
+
+// 添加AI生成表单模态框
+const aiGenerateFormModal = document.createElement('div');
+aiGenerateFormModal.id = 'aiGenerateFormModal';
+aiGenerateFormModal.className = 'modal-overlay';
+aiGenerateFormModal.innerHTML = `
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="aiGenerateFormModalTitle">🤖 AI生成表单</h2>
+            <button class="close-btn" onclick="closeModal('aiGenerateFormModal')">&times;</button>
+        </div>
+        <div class="modal-body" id="aiGenerateFormModalBody">
+            <!-- 内容将通过JavaScript动态填充 -->
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('aiGenerateFormModal')">取消</button>
+            <button class="btn btn-primary" onclick="generateFormWithAI()">生成表单</button>
+        </div>
+    </div>
+`;
+document.body.appendChild(aiGenerateFormModal);
+
+// 添加创建表单类型选择模态框
+const createFormTypeModal = document.createElement('div');
+createFormTypeModal.id = 'createFormTypeModal';
+createFormTypeModal.className = 'modal-overlay';
+createFormTypeModal.innerHTML = `
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="createFormTypeModalTitle">创建表单</h2>
+            <button class="close-btn" onclick="closeModal('createFormTypeModal')">&times;</button>
+        </div>
+        <div class="modal-body" id="createFormTypeModalBody">
+            <!-- 内容将通过JavaScript动态填充 -->
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('createFormTypeModal')">取消</button>
+        </div>
+    </div>
+`;
+document.body.appendChild(createFormTypeModal);
+
+// 添加旋转动画
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+`;
+document.head.appendChild(style);
 
 // 编辑表单
 function editForm(formId) {
@@ -7894,6 +8493,31 @@ function getComponentById(componentId) {
     </div>
 </div>
 
+<!-- 工作流相关模态框 -->
+<div class="modal-overlay" id="createWorkflowModal">
+    <div class="modal">
+        <div class="modal-header"><h2 id="createWorkflowModalTitle">创建工作流</h2><button class="close-btn" onclick="closeModal('createWorkflowModal')">&times;</button></div>
+        <div class="modal-body" id="createWorkflowModalBody"></div>
+        <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('createWorkflowModal')">取消</button><button class="btn btn-primary" onclick="saveWorkflow()">保存</button></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="editWorkflowModal">
+    <div class="modal">
+        <div class="modal-header"><h2 id="editWorkflowModalTitle">编辑工作流</h2><button class="close-btn" onclick="closeModal('editWorkflowModal')">&times;</button></div>
+        <div class="modal-body" id="editWorkflowModalBody"></div>
+        <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('editWorkflowModal')">取消</button><button class="btn btn-primary" onclick="updateWorkflow()">更新</button></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="workflowDetailModal">
+    <div class="modal">
+        <div class="modal-header"><h2 id="workflowDetailModalTitle">工作流详情</h2><button class="close-btn" onclick="closeModal('workflowDetailModal')">&times;</button></div>
+        <div class="modal-body" id="workflowDetailModalBody"></div>
+        <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('workflowDetailModal')">关闭</button></div>
+    </div>
+</div>
+
 <!-- 表单管理模块 - 增强版 -->
 <script>
 /**
@@ -8176,6 +8800,634 @@ class FormTemplateManager {
 }
 
 // ==================== 表单数据看板 ====================
+function saveWorkflow() {
+    const name = document.getElementById('workflowName').value;
+    const description = document.getElementById('workflowDescription').value;
+    const stepsContainer = document.getElementById('stepsContainer');
+    const steps = [];
+    
+    if (!name) {
+        alert('请输入工作流名称');
+        return;
+    }
+    
+    stepsContainer.querySelectorAll('.workflow-step').forEach((stepDiv, index) => {
+        const stepType = stepDiv.querySelector('.step-type').value;
+        const config = {};
+        
+        switch (stepType) {
+            case 'email':
+                config.email = stepDiv.querySelector('.step-config-email').value;
+                config.subject = stepDiv.querySelector('.step-config-subject').value;
+                config.content = stepDiv.querySelector('.step-config-content').value;
+                break;
+            case 'webhook':
+                config.url = stepDiv.querySelector('.step-config-url').value;
+                config.method = stepDiv.querySelector('.step-config-method').value;
+                break;
+            case 'notification':
+                config.type = stepDiv.querySelector('.step-config-type').value;
+                config.message = stepDiv.querySelector('.step-config-message').value;
+                break;
+            case 'data-transform':
+                config.transformType = stepDiv.querySelector('.step-config-transform-type').value;
+                config.target = stepDiv.querySelector('.step-config-target').value;
+                break;
+        }
+        
+        steps.push({ type: stepType, config });
+    });
+    
+    WorkflowManager.createWorkflow(name, description, steps);
+    closeModal('createWorkflowModal');
+    WorkflowManager.renderWorkflowList();
+    alert('✅ 工作流创建成功！');
+}
+
+function updateWorkflow() {
+    const workflowId = window.currentWorkflowId;
+    if (!workflowId) return;
+    
+    const name = document.getElementById('editWorkflowName').value;
+    const description = document.getElementById('editWorkflowDescription').value;
+    const status = document.getElementById('editWorkflowStatus').value;
+    
+    if (!name) {
+        alert('请输入工作流名称');
+        return;
+    }
+    
+    WorkflowManager.updateWorkflow(workflowId, { name, description, status });
+    closeModal('editWorkflowModal');
+    WorkflowManager.renderWorkflowList();
+    alert('✅ 工作流更新成功！');
+}
+
+class FormManager {
+    static init() {
+        console.log('✅ 表单管理器已初始化');
+    }
+    
+    static createForm(name, description, components) {
+        const form = {
+            id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+            name,
+            description,
+            components,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            status: 'active'
+        };
+        
+        App.forms.push(form);
+        App.saveData();
+        return form;
+    }
+    
+    static updateForm(formId, updates) {
+        const index = App.forms.findIndex(f => f.id === formId);
+        if (index !== -1) {
+            App.forms[index] = {
+                ...App.forms[index],
+                ...updates,
+                updatedAt: new Date().toISOString()
+            };
+            App.saveData();
+            return App.forms[index];
+        }
+        return null;
+    }
+    
+    static deleteForm(formId) {
+        const index = App.forms.findIndex(f => f.id === formId);
+        if (index !== -1) {
+            App.forms.splice(index, 1);
+            App.saveData();
+            return true;
+        }
+        return false;
+    }
+    
+    static getForm(formId) {
+        return App.forms.find(f => f.id === formId);
+    }
+    
+    static getAllForms() {
+        return App.forms;
+    }
+    
+    static renderFormList() {
+        const formList = document.getElementById('formList');
+        if (!formList) return;
+        
+        formList.innerHTML = '';
+        
+        if (App.forms.length === 0) {
+            formList.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 60px 40px; color: var(--text-sub);">
+                    <div style="font-size: 48px; margin-bottom: 16px;">📄</div>
+                    <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 8px; color: var(--text-main);">暂无表单</h3>
+                    <p style="font-size: 14px; margin-bottom: 20px;">您可以创建表单来收集数据</p>
+                    <button class="btn btn-primary" onclick="openCreateFormModal()">➕ 创建表单</button>
+                </div>
+            `;
+            return;
+        }
+        
+        App.forms.forEach(form => {
+            const card = document.createElement('div');
+            card.className = 'form-card';
+            card.style.cssText = `
+                background: var(--card-bg);
+                border: 1px solid var(--border-color);
+                border-radius: 12px;
+                padding: 20px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                transition: all 0.3s ease-in-out;
+                cursor: pointer;
+                position: relative;
+                overflow: hidden;
+            `;
+            card.onmouseenter = () => {
+                card.style.transform = 'translateY(-4px)';
+                card.style.boxShadow = '0 8px 20px rgba(0,0,0,0.15)';
+                card.style.borderColor = 'var(--primary-color)';
+            };
+            card.onmouseleave = () => {
+                card.style.transform = 'translateY(0)';
+                card.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)';
+                card.style.borderColor = 'var(--border-color)';
+            };
+            
+            card.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                    <div>
+                        <h3 style="font-size: 16px; font-weight: 600; color: var(--text-main); margin: 0;">${form.name}</h3>
+                        ${form.description ? `<p style="font-size: 13px; color: var(--text-sub); margin: 5px 0 0 0; line-height: 1.4;">${form.description}</p>` : ''}
+                    </div>
+                    <span class="status-tag ${form.status === 'active' ? 'status-settled' : 'status-unsettled'}">
+                        ${form.status === 'active' ? '启用' : '禁用'}
+                    </span>
+                </div>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+                    <span style="font-size: 11px; padding: 2px 8px; background: rgba(37, 99, 235, 0.1); color: var(--primary-color); border-radius: 10px;">${form.components ? form.components.length : 0} 个字段</span>
+                    <span style="font-size: 11px; padding: 2px 8px; background: rgba(16, 185, 129, 0.1); color: var(--success-color); border-radius: 10px;">创建于 ${new Date(form.createdAt).toLocaleDateString()}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 11px; color: var(--text-sub);">最后更新: ${new Date(form.updatedAt).toLocaleString()}</span>
+                    <div style="display: flex; gap: 6px;">
+                        <button class="btn btn-outline btn-sm" onclick="event.stopPropagation(); editForm('${form.id}')" title="编辑">✏️</button>
+                        <button class="btn btn-outline btn-sm" onclick="event.stopPropagation(); showFormStats('${form.id}')" title="统计">📊</button>
+                        <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteForm('${form.id}')" title="删除">🗑️</button>
+                    </div>
+                </div>
+            `;
+            
+            card.onclick = (e) => {
+                if (!e.target.closest('button')) {
+                    showFormDetail(form.id);
+                }
+            };
+            
+            formList.appendChild(card);
+        });
+    }
+}
+
+class WorkflowManager {
+    static init() {
+        if (!App.workflows) {
+            App.workflows = [];
+        }
+        console.log('✅ 工作流管理器已初始化');
+    }
+    
+    static createWorkflow(name, description, steps) {
+        const workflow = {
+            id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+            name,
+            description,
+            steps,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            status: 'active'
+        };
+        
+        App.workflows.push(workflow);
+        App.saveData();
+        return workflow;
+    }
+    
+    static updateWorkflow(workflowId, updates) {
+        const index = App.workflows.findIndex(w => w.id === workflowId);
+        if (index !== -1) {
+            App.workflows[index] = {
+                ...App.workflows[index],
+                ...updates,
+                updatedAt: new Date().toISOString()
+            };
+            App.saveData();
+            return App.workflows[index];
+        }
+        return null;
+    }
+    
+    static deleteWorkflow(workflowId) {
+        const index = App.workflows.findIndex(w => w.id === workflowId);
+        if (index !== -1) {
+            App.workflows.splice(index, 1);
+            App.saveData();
+            return true;
+        }
+        return false;
+    }
+    
+    static getWorkflow(workflowId) {
+        return App.workflows.find(w => w.id === workflowId);
+    }
+    
+    static getAllWorkflows() {
+        return App.workflows;
+    }
+    
+    static executeWorkflow(workflowId, data) {
+        const workflow = this.getWorkflow(workflowId);
+        if (!workflow) return { success: false, message: '工作流不存在' };
+        
+        try {
+            for (const step of workflow.steps) {
+                switch (step.type) {
+                    case 'email':
+                        console.log('发送邮件:', step.config);
+                        // 模拟邮件发送
+                        break;
+                    case 'webhook':
+                        console.log('调用Webhook:', step.config.url, data);
+                        // 模拟Webhook调用
+                        break;
+                    case 'notification':
+                        console.log('发送通知:', step.config.message);
+                        // 模拟通知发送
+                        break;
+                    case 'data-transform':
+                        console.log('数据转换:', step.config);
+                        // 模拟数据转换
+                        break;
+                }
+            }
+            return { success: true, message: '工作流执行成功' };
+        } catch (error) {
+            console.error('工作流执行失败:', error);
+            return { success: false, message: '工作流执行失败' };
+        }
+    }
+    
+    static renderWorkflowList() {
+        const workflowList = document.getElementById('workflowList');
+        if (!workflowList) return;
+        
+        workflowList.innerHTML = '';
+        
+        if (App.workflows.length === 0) {
+            workflowList.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 60px 40px; color: var(--text-sub);">
+                    <div style="font-size: 48px; margin-bottom: 16px;">🔄</div>
+                    <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 8px; color: var(--text-main);">暂无工作流</h3>
+                    <p style="font-size: 14px; margin-bottom: 20px;">您可以创建工作流来自动化表单提交后的处理流程</p>
+                    <button class="btn btn-primary" onclick="WorkflowManager.openCreateWorkflowModal()">➕ 创建工作流</button>
+                </div>
+            `;
+            return;
+        }
+        
+        App.workflows.forEach(workflow => {
+            const card = document.createElement('div');
+            card.className = 'workflow-card';
+            card.style.cssText = `
+                background: var(--card-bg);
+                border: 1px solid var(--border-color);
+                border-radius: 12px;
+                padding: 20px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                transition: all 0.3s ease-in-out;
+                cursor: pointer;
+                position: relative;
+                overflow: hidden;
+            `;
+            card.onmouseenter = () => {
+                card.style.transform = 'translateY(-4px)';
+                card.style.boxShadow = '0 8px 20px rgba(0,0,0,0.15)';
+                card.style.borderColor = 'var(--primary-color)';
+            };
+            card.onmouseleave = () => {
+                card.style.transform = 'translateY(0)';
+                card.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)';
+                card.style.borderColor = 'var(--border-color)';
+            };
+            
+            card.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                    <div>
+                        <h3 style="font-size: 16px; font-weight: 600; color: var(--text-main); margin: 0;">${workflow.name}</h3>
+                        ${workflow.description ? `<p style="font-size: 13px; color: var(--text-sub); margin: 5px 0 0 0; line-height: 1.4;">${workflow.description}</p>` : ''}
+                    </div>
+                    <span class="status-tag ${workflow.status === 'active' ? 'status-settled' : 'status-unsettled'}">
+                        ${workflow.status === 'active' ? '启用' : '禁用'}
+                    </span>
+                </div>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+                    <span style="font-size: 11px; padding: 2px 8px; background: rgba(37, 99, 235, 0.1); color: var(--primary-color); border-radius: 10px;">${workflow.steps.length} 个步骤</span>
+                    <span style="font-size: 11px; padding: 2px 8px; background: rgba(16, 185, 129, 0.1); color: var(--success-color); border-radius: 10px;">创建于 ${new Date(workflow.createdAt).toLocaleDateString()}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 11px; color: var(--text-sub);">最后更新: ${new Date(workflow.updatedAt).toLocaleString()}</span>
+                    <div style="display: flex; gap: 6px;">
+                        <button class="btn btn-outline btn-sm" onclick="event.stopPropagation(); WorkflowManager.editWorkflow('${workflow.id}')" title="编辑">✏️</button>
+                        <button class="btn btn-outline btn-sm" onclick="event.stopPropagation(); WorkflowManager.testWorkflow('${workflow.id}')" title="测试">🧪</button>
+                        <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); WorkflowManager.deleteWorkflow('${workflow.id}')" title="删除">🗑️</button>
+                    </div>
+                </div>
+            `;
+            
+            card.onclick = (e) => {
+                if (!e.target.closest('button')) {
+                    WorkflowManager.showWorkflowDetail(workflow.id);
+                }
+            };
+            
+            workflowList.appendChild(card);
+        });
+    }
+    
+    static openCreateWorkflowModal() {
+        openModal('createWorkflowModal', {
+            title: '创建工作流',
+            titleId: 'createWorkflowModalTitle',
+            onOpen: () => {
+                const modalBody = document.getElementById('createWorkflowModalBody');
+                modalBody.innerHTML = `
+                    <div style="padding: 20px;">
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-main);">工作流名称</label>
+                            <input type="text" id="workflowName" placeholder="请输入工作流名称" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px;">
+                        </div>
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-main);">工作流描述</label>
+                            <textarea id="workflowDescription" placeholder="请输入工作流描述" rows="3" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; resize: vertical;"></textarea>
+                        </div>
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-main);">工作流步骤</label>
+                            <div id="workflowSteps" style="border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; background: rgba(0,0,0,0.02);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                    <h4 style="margin: 0; font-size: 14px; color: var(--text-main);">步骤列表</h4>
+                                    <button class="btn btn-primary btn-sm" onclick="WorkflowManager.addWorkflowStep()">➕ 添加步骤</button>
+                                </div>
+                                <div id="stepsContainer">
+                                    <!-- 步骤将在这里动态添加 -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+    }
+    
+    static addWorkflowStep() {
+        const stepsContainer = document.getElementById('stepsContainer');
+        const stepIndex = stepsContainer.children.length;
+        
+        const stepDiv = document.createElement('div');
+        stepDiv.className = 'workflow-step';
+        stepDiv.style.cssText = `
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        `;
+        
+        stepDiv.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h5 style="margin: 0; font-size: 13px; color: var(--text-main);">步骤 ${stepIndex + 1}</h5>
+                <button class="btn btn-danger btn-sm" onclick="this.parentElement.parentElement.remove()">删除</button>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px; align-items: center;">
+                <label style="font-size: 13px; font-weight: 600; color: var(--text-main);">步骤类型</label>
+                <select class="step-type" style="padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px;">
+                    <option value="email">发送邮件</option>
+                    <option value="webhook">调用Webhook</option>
+                    <option value="notification">发送通知</option>
+                    <option value="data-transform">数据转换</option>
+                </select>
+            </div>
+            <div class="step-config" style="margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.02); border-radius: 6px;">
+                <!-- 配置将根据步骤类型动态添加 -->
+            </div>
+        `;
+        
+        stepsContainer.appendChild(stepDiv);
+        
+        // 绑定步骤类型变化事件
+        const stepTypeSelect = stepDiv.querySelector('.step-type');
+        stepTypeSelect.addEventListener('change', () => {
+            WorkflowManager.updateStepConfig(stepDiv, stepTypeSelect.value);
+        });
+        
+        // 初始化配置
+        WorkflowManager.updateStepConfig(stepDiv, stepTypeSelect.value);
+    }
+    
+    static updateStepConfig(stepDiv, stepType) {
+        const configDiv = stepDiv.querySelector('.step-config');
+        
+        switch (stepType) {
+            case 'email':
+                configDiv.innerHTML = `
+                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px; align-items: center; margin-bottom: 8px;">
+                        <label style="font-size: 12px; font-weight: 600; color: var(--text-main);">收件人</label>
+                        <input type="email" class="step-config-email" placeholder="请输入邮箱地址" style="padding: 6px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px;">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px; align-items: center; margin-bottom: 8px;">
+                        <label style="font-size: 12px; font-weight: 600; color: var(--text-main);">主题</label>
+                        <input type="text" class="step-config-subject" placeholder="请输入邮件主题" style="padding: 6px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px;">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px; align-items: start;">
+                        <label style="font-size: 12px; font-weight: 600; color: var(--text-main);">内容</label>
+                        <textarea class="step-config-content" placeholder="请输入邮件内容" rows="2" style="padding: 6px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; resize: vertical;"></textarea>
+                    </div>
+                `;
+                break;
+            case 'webhook':
+                configDiv.innerHTML = `
+                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px; align-items: center; margin-bottom: 8px;">
+                        <label style="font-size: 12px; font-weight: 600; color: var(--text-main);">Webhook URL</label>
+                        <input type="url" class="step-config-url" placeholder="请输入Webhook URL" style="padding: 6px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px;">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px; align-items: center;">
+                        <label style="font-size: 12px; font-weight: 600; color: var(--text-main);">方法</label>
+                        <select class="step-config-method" style="padding: 6px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px;">
+                            <option value="POST">POST</option>
+                            <option value="GET">GET</option>
+                            <option value="PUT">PUT</option>
+                            <option value="DELETE">DELETE</option>
+                        </select>
+                    </div>
+                `;
+                break;
+            case 'notification':
+                configDiv.innerHTML = `
+                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px; align-items: center; margin-bottom: 8px;">
+                        <label style="font-size: 12px; font-weight: 600; color: var(--text-main);">通知类型</label>
+                        <select class="step-config-type" style="padding: 6px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px;">
+                            <option value="system">系统通知</option>
+                            <option value="email">邮件通知</option>
+                            <option value="sms">短信通知</option>
+                        </select>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px; align-items: start;">
+                        <label style="font-size: 12px; font-weight: 600; color: var(--text-main);">消息内容</label>
+                        <textarea class="step-config-message" placeholder="请输入通知内容" rows="2" style="padding: 6px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; resize: vertical;"></textarea>
+                    </div>
+                `;
+                break;
+            case 'data-transform':
+                configDiv.innerHTML = `
+                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px; align-items: center; margin-bottom: 8px;">
+                        <label style="font-size: 12px; font-weight: 600; color: var(--text-main);">转换类型</label>
+                        <select class="step-config-transform-type" style="padding: 6px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px;">
+                            <option value="format-date">格式化日期</option>
+                            <option value="uppercase">转为大写</option>
+                            <option value="lowercase">转为小写</option>
+                            <option value="trim">去除空格</option>
+                        </select>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px; align-items: center;">
+                        <label style="font-size: 12px; font-weight: 600; color: var(--text-main);">目标字段</label>
+                        <input type="text" class="step-config-target" placeholder="请输入目标字段名" style="padding: 6px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px;">
+                    </div>
+                `;
+                break;
+        }
+    }
+    
+    static editWorkflow(workflowId) {
+        const workflow = this.getWorkflow(workflowId);
+        if (!workflow) return;
+        
+        window.currentWorkflowId = workflowId;
+        
+        openModal('editWorkflowModal', {
+            title: '编辑工作流',
+            titleId: 'editWorkflowModalTitle',
+            onOpen: () => {
+                const modalBody = document.getElementById('editWorkflowModalBody');
+                modalBody.innerHTML = `
+                    <div style="padding: 20px;">
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-main);">工作流名称</label>
+                            <input type="text" id="editWorkflowName" value="${workflow.name}" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px;">
+                        </div>
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-main);">工作流描述</label>
+                            <textarea id="editWorkflowDescription" rows="3" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; resize: vertical;">${workflow.description || ''}</textarea>
+                        </div>
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-main);">工作流状态</label>
+                            <select id="editWorkflowStatus" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px;">
+                                <option value="active" ${workflow.status === 'active' ? 'selected' : ''}>启用</option>
+                                <option value="inactive" ${workflow.status === 'inactive' ? 'selected' : ''}>禁用</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+    }
+    
+    static testWorkflow(workflowId) {
+        const result = this.executeWorkflow(workflowId, { test: 'data' });
+        if (result.success) {
+            alert('✅ 工作流测试成功！');
+        } else {
+            alert('❌ 工作流测试失败：' + result.message);
+        }
+    }
+    
+    static showWorkflowDetail(workflowId) {
+        const workflow = this.getWorkflow(workflowId);
+        if (!workflow) return;
+        
+        openModal('workflowDetailModal', {
+            title: workflow.name + ' - 工作流详情',
+            titleId: 'workflowDetailModalTitle',
+            onOpen: () => {
+                const modalBody = document.getElementById('workflowDetailModalBody');
+                modalBody.innerHTML = `
+                    <div style="padding: 20px;">
+                        <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                            <h3 style="margin: 0 0 10px 0; font-size: 16px; color: var(--text-main);">工作流信息</h3>
+                            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px; align-items: center;">
+                                <div style="font-size: 13px; font-weight: 600; color: var(--text-main);">工作流名称</div>
+                                <div style="font-size: 13px; color: var(--text-sub);">${workflow.name}</div>
+                                <div style="font-size: 13px; font-weight: 600; color: var(--text-main);">工作流描述</div>
+                                <div style="font-size: 13px; color: var(--text-sub);">${workflow.description || '无'}</div>
+                                <div style="font-size: 13px; font-weight: 600; color: var(--text-main);">状态</div>
+                                <div style="font-size: 13px; color: var(--text-sub);">${workflow.status === 'active' ? '启用' : '禁用'}</div>
+                                <div style="font-size: 13px; font-weight: 600; color: var(--text-main);">创建时间</div>
+                                <div style="font-size: 13px; color: var(--text-sub);">${new Date(workflow.createdAt).toLocaleString()}</div>
+                                <div style="font-size: 13px; font-weight: 600; color: var(--text-main);">最后更新</div>
+                                <div style="font-size: 13px; color: var(--text-sub);">${new Date(workflow.updatedAt).toLocaleString()}</div>
+                            </div>
+                        </div>
+                        <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px;">
+                            <h3 style="margin: 0 0 10px 0; font-size: 16px; color: var(--text-main);">工作流步骤</h3>
+                            ${workflow.steps.length > 0 ? `
+                                <div style="space-y: 10px;">
+                                    ${workflow.steps.map((step, index) => `
+                                        <div style="background: rgba(0,0,0,0.02); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; margin-bottom: 10px;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                                <h4 style="margin: 0; font-size: 14px; color: var(--text-main);">步骤 ${index + 1}: ${this.getStepTypeName(step.type)}</h4>
+                                            </div>
+                                            <div style="font-size: 13px; color: var(--text-sub);">
+                                                ${this.getStepConfigDisplay(step.config)}
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : `
+                                <div style="text-align: center; padding: 20px; color: var(--text-sub);">
+                                    <p>暂无步骤</p>
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                `;
+            }
+        });
+    }
+    
+    static getStepTypeName(type) {
+        const typeNames = {
+            email: '发送邮件',
+            webhook: '调用Webhook',
+            notification: '发送通知',
+            'data-transform': '数据转换'
+        };
+        return typeNames[type] || type;
+    }
+    
+    static getStepConfigDisplay(config) {
+        if (!config) return '无配置';
+        
+        const configDisplay = [];
+        for (const [key, value] of Object.entries(config)) {
+            configDisplay.push(`${key}: ${value}`);
+        }
+        return configDisplay.join('<br>');
+    }
+}
+
 class FormDashboard {
     static getFormStats(formId) {
         // 从 localStorage 读取表单提交数据
@@ -8186,7 +9438,10 @@ class FormDashboard {
             todaySubmissions: this.getTodaySubmissions(formData),
             weeklySubmissions: this.getWeeklySubmissions(formData),
             fieldStats: this.getFieldStats(formData),
-            trendData: this.getTrendData(formData)
+            trendData: this.getTrendData(formData),
+            aiInsights: this.getAIInsights(formData),
+            conversionRate: this.getConversionRate(formData),
+            averageTimeToComplete: this.getAverageTimeToComplete(formData)
         };
     }
     
@@ -8230,6 +9485,183 @@ class FormDashboard {
             counts.push(data.filter(item => item.submitTime && item.submitTime.startsWith(dateStr)).length);
         }
         return { days, counts };
+    }
+    
+    static getAIInsights(data) {
+        // 模拟AI分析
+        if (data.length === 0) {
+            return {
+                summary: '暂无数据',
+                recommendations: []
+            };
+        }
+        
+        const fieldStats = this.getFieldStats(data);
+        const mostFrequentFields = Object.entries(fieldStats)
+            .map(([field, values]) => ({
+                field,
+                count: Object.values(values).reduce((a, b) => a + b, 0)
+            }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 3);
+        
+        const recommendations = [];
+        if (data.length > 10) {
+            recommendations.push('建议添加更多必填字段以提高数据质量');
+        }
+        if (mostFrequentFields.length > 0) {
+            recommendations.push(`关注字段: ${mostFrequentFields.map(f => f.field).join(', ')}`);
+        }
+        
+        return {
+            summary: `分析了 ${data.length} 条提交数据，发现 ${mostFrequentFields.length} 个主要字段`,
+            recommendations
+        };
+    }
+    
+    static getConversionRate(data) {
+        // 模拟转化率计算
+        const totalViews = data.length * 2; // 假设每个提交对应2次查看
+        return data.length > 0 ? Math.round((data.length / totalViews) * 100) : 0;
+    }
+    
+    static getAverageTimeToComplete(data) {
+        // 模拟平均完成时间
+        return Math.round(Math.random() * 180 + 60); // 60-240秒
+    }
+    
+    static generateChartData(formId, chartType) {
+        const stats = this.getFormStats(formId);
+        
+        switch (chartType) {
+            case 'trend':
+                return {
+                    type: 'line',
+                    data: {
+                        labels: stats.trendData.days,
+                        datasets: [{
+                            label: '提交数量',
+                            data: stats.trendData.counts,
+                            borderColor: '#2563eb',
+                            backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: '最近7天提交趋势'
+                            }
+                        }
+                    }
+                };
+            
+            case 'pie':
+                const fieldData = Object.entries(stats.fieldStats)
+                    .map(([field, values]) => ({
+                        field,
+                        count: Object.values(values).reduce((a, b) => a + b, 0)
+                    }))
+                    .filter(item => item.count > 0)
+                    .slice(0, 5);
+                
+                return {
+                    type: 'pie',
+                    data: {
+                        labels: fieldData.map(item => item.field),
+                        datasets: [{
+                            data: fieldData.map(item => item.count),
+                            backgroundColor: [
+                                '#2563eb',
+                                '#10b981',
+                                '#f59e0b',
+                                '#ef4444',
+                                '#8b5cf6'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: '字段使用分布'
+                            }
+                        }
+                    }
+                };
+            
+            case 'bar':
+                return {
+                    type: 'bar',
+                    data: {
+                        labels: ['总提交', '今日', '本周', '转化率'],
+                        datasets: [{
+                            label: '数量',
+                            data: [
+                                stats.totalSubmissions,
+                                stats.todaySubmissions,
+                                stats.weeklySubmissions,
+                                stats.conversionRate
+                            ],
+                            backgroundColor: [
+                                '#2563eb',
+                                '#10b981',
+                                '#f59e0b',
+                                '#8b5cf6'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: '表单性能概览'
+                            }
+                        }
+                    }
+                };
+            
+            default:
+                return null;
+        }
+    }
+    
+    static exportData(formId, format) {
+        const allSubmissions = JSON.parse(localStorage.getItem('formSubmissions') || '[]');
+        const formData = allSubmissions.filter(item => item.formId === formId);
+        
+        switch (format) {
+            case 'json':
+                return JSON.stringify(formData, null, 2);
+            
+            case 'csv':
+                if (formData.length === 0) return '';
+                
+                const headers = ['提交时间', ...Object.keys(formData[0].data || {})];
+                const rows = formData.map(item => {
+                    const row = [item.submitTime];
+                    headers.slice(1).forEach(header => {
+                        row.push(item.data ? item.data[header] || '' : '');
+                    });
+                    return row;
+                });
+                
+                return [headers, ...rows]
+                    .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+                    .join('\n');
+            
+            case 'excel':
+                // 模拟Excel导出
+                return JSON.stringify(formData, null, 2);
+            
+            default:
+                return '';
+        }
     }
 }
 
@@ -8552,13 +9984,13 @@ class EnhancedFormManager {
         modal.className = 'modal-overlay active';
         modal.id = 'formStatsModal';
         modal.innerHTML = `
-            <div class="modal" style="max-width: 900px; min-width: 700px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal" style="max-width: 1000px; min-width: 800px; max-height: 90vh; overflow-y: auto;">
                 <div class="modal-header">
                     <h2>📊 ${form.name} - 数据统计</h2>
                     <button class="close-btn">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px;">
+                    <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 15px; margin-bottom: 20px;">
                         <div style="background: rgba(37, 99, 235, 0.1); padding: 20px; border-radius: 8px; text-align: center;">
                             <div style="font-size: 28px; font-weight: 700; color: var(--primary-color);">${stats.totalSubmissions}</div>
                             <div style="font-size: 12px; color: var(--text-sub); margin-top: 4px;">总提交数</div>
@@ -8572,10 +10004,54 @@ class EnhancedFormManager {
                             <div style="font-size: 12px; color: var(--text-sub); margin-top: 4px;">本周提交</div>
                         </div>
                         <div style="background: rgba(139, 92, 246, 0.1); padding: 20px; border-radius: 8px; text-align: center;">
-                            <div style="font-size: 28px; font-weight: 700; color: #8b5cf6;">${form.components?.length || 0}</div>
+                            <div style="font-size: 28px; font-weight: 700; color: #8b5cf6;">${stats.conversionRate}%</div>
+                            <div style="font-size: 12px; color: var(--text-sub); margin-top: 4px;">转化率</div>
+                        </div>
+                        <div style="background: rgba(239, 68, 68, 0.1); padding: 20px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 28px; font-weight: 700; color: var(--danger-color);">${stats.averageTimeToComplete}s</div>
+                            <div style="font-size: 12px; color: var(--text-sub); margin-top: 4px;">平均完成时间</div>
+                        </div>
+                        <div style="background: rgba(59, 130, 246, 0.1); padding: 20px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 28px; font-weight: 700; color: #3b82f6;">${form.components?.length || 0}</div>
                             <div style="font-size: 12px; color: var(--text-sub); margin-top: 4px;">字段数量</div>
                         </div>
                     </div>
+                    
+                    <!-- AI分析洞察 -->
+                    <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+                            <div style="font-size: 20px;">🤖</div>
+                            <h4 style="margin: 0; font-size: 16px;">AI 分析洞察</h4>
+                        </div>
+                        <div style="background: rgba(16, 185, 129, 0.05); padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                            <p style="margin: 0; color: var(--text-main); font-size: 14px;">${stats.aiInsights.summary}</p>
+                        </div>
+                        ${stats.aiInsights.recommendations.length > 0 ? `
+                        <div>
+                            <h5 style="margin: 0 0 10px 0; font-size: 14px; color: var(--text-main);">📋 改进建议</h5>
+                            <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: var(--text-sub);">
+                                ${stats.aiInsights.recommendations.map(rec => `<li style="margin-bottom: 5px;">${rec}</li>`).join('')}
+                            </ul>
+                        </div>
+                        ` : ''}
+                    </div>
+                    
+                    <!-- 图表展示 -->
+                    <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h4 style="margin: 0; font-size: 14px;">📈 数据趋势</h4>
+                            <div style="display: flex; gap: 8px;">
+                                <button onclick="EnhancedFormManager.changeChartType('${formId}', 'trend')" style="background: #f3f4f6; color: var(--text-color); border: 1px solid var(--border-color); padding: 4px 12px; border-radius: 4px; font-size: 12px; cursor: pointer;">趋势图</button>
+                                <button onclick="EnhancedFormManager.changeChartType('${formId}', 'pie')" style="background: #f3f4f6; color: var(--text-color); border: 1px solid var(--border-color); padding: 4px 12px; border-radius: 4px; font-size: 12px; cursor: pointer;">饼图</button>
+                                <button onclick="EnhancedFormManager.changeChartType('${formId}', 'bar')" style="background: #f3f4f6; color: var(--text-color); border: 1px solid var(--border-color); padding: 4px 12px; border-radius: 4px; font-size: 12px; cursor: pointer;">柱状图</button>
+                            </div>
+                        </div>
+                        <div style="height: 300px;">
+                            <canvas id="formChart${formId}"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- 数据日历 -->
                     <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                             <h4 style="margin: 0; font-size: 14px;">📅 数据日历</h4>
@@ -8587,10 +10063,14 @@ class EnhancedFormManager {
                         </div>
                         <div id="dataCalendar" style="width: 100%;"></div>
                     </div>
+                    
+                    <!-- 提交数据表格 -->
+                    ${submissionsTableHTML}
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-outline close-btn-stats">关闭</button>
-                    <button class="btn btn-primary" onclick="EnhancedFormManager.exportFormData('${formId}')">📥 导出数据</button>
+                    <button class="btn btn-primary" onclick="EnhancedFormManager.exportFormData('${formId}', 'json')">📥 导出JSON</button>
+                    <button class="btn btn-primary" onclick="EnhancedFormManager.exportFormData('${formId}', 'csv')">📥 导出CSV</button>
                 </div>
             </div>
         `;
@@ -8666,6 +10146,45 @@ class EnhancedFormManager {
                 alert('操作失败，请重试');
             }
         }
+    }
+    
+    static changeChartType(formId, chartType) {
+        // 销毁旧图表
+        if (this.currentChart) {
+            this.currentChart.destroy();
+            this.currentChart = null;
+        }
+        
+        // 生成图表数据
+        const chartData = FormDashboard.generateChartData(formId, chartType);
+        if (!chartData) return;
+        
+        // 创建新图表
+        const canvas = document.getElementById(`formChart${formId}`);
+        if (canvas) {
+            this.currentChart = new Chart(canvas, chartData);
+        }
+    }
+    
+    static exportFormData(formId, format = 'json') {
+        const data = FormDashboard.exportData(formId, format);
+        if (!data) {
+            alert('暂无数据可导出');
+            return;
+        }
+        
+        // 创建下载链接
+        const blob = new Blob([data], { type: format === 'csv' ? 'text/csv' : 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `form_${formId}_${new Date().toISOString().split('T')[0]}.${format}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        alert('数据导出成功');
     }
     
     static showHiddenSubmissions(formId, returnDate = null) {

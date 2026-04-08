@@ -13138,8 +13138,11 @@ function addTaskManagerButton() {
             
             // 插入到新增客户按钮之前
             const addButton = header.querySelector('button.btn-primary');
-            if (addButton) {
+            if (addButton && header.contains(addButton)) {
                 header.insertBefore(taskButton, addButton);
+            } else {
+                // 如果找不到按钮或按钮不是header的子节点，直接添加到header末尾
+                header.appendChild(taskButton);
             }
         }
     }
@@ -13449,12 +13452,15 @@ function addRecommendationButton() {
             
             // 插入到任务管理按钮之前
             const taskButton = header.querySelector('button.btn-outline');
-            if (taskButton) {
+            if (taskButton && header.contains(taskButton)) {
                 header.insertBefore(recommendButton, taskButton);
             } else {
                 const addButton = header.querySelector('button.btn-primary');
-                if (addButton) {
+                if (addButton && header.contains(addButton)) {
                     header.insertBefore(recommendButton, addButton);
+                } else {
+                    // 如果找不到按钮或按钮不是header的子节点，直接添加到header末尾
+                    header.appendChild(recommendButton);
                 }
             }
         }
@@ -13475,12 +13481,15 @@ function addReportButton() {
             
             // 插入到智能推荐按钮之前
             const recommendButton = header.querySelector('button.btn-outline');
-            if (recommendButton) {
+            if (recommendButton && header.contains(recommendButton)) {
                 header.insertBefore(reportButton, recommendButton);
             } else {
                 const addButton = header.querySelector('button.btn-primary');
-                if (addButton) {
+                if (addButton && header.contains(addButton)) {
                     header.insertBefore(reportButton, addButton);
+                } else {
+                    // 如果找不到按钮或按钮不是header的子节点，直接添加到header末尾
+                    header.appendChild(reportButton);
                 }
             }
         }

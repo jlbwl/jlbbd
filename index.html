@@ -1194,15 +1194,25 @@ th {
         </div>
         <div id="view-leadgen" class="view-section">
             <div style="background: var(--card-bg); border-radius: 16px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border: 1px solid var(--border-color);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 10px;">
                     <h2 style="color: var(--primary-color); font-size: 20px; font-weight: 800; margin: 0;">智能获客</h2>
-                    <button class="btn btn-primary" onclick="addNewCustomer()">➕ 新增客户</button>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button class="btn btn-primary" onclick="addNewCustomer()">➕ 新增客户</button>
+                        <button class="btn btn-outline" onclick="exportCustomers('json')">📤 导出JSON</button>
+                        <button class="btn btn-outline" onclick="exportCustomers('csv')">📤 导出Excel</button>
+                        <input type="file" id="importFile" accept=".json,.csv" style="display: none;" onchange="importCustomers()">
+                        <button class="btn btn-outline" onclick="document.getElementById('importFile').click()">📥 导入</button>
+                    </div>
                 </div>
                 <div style="margin-bottom: 24px;">
                     <div style="display: flex; gap: 10px; margin-bottom: 16px;">
                         <input type="text" id="leadgenSearchInput" placeholder="搜索客户..." style="flex: 1; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px;">
                         <button class="btn btn-outline" onclick="searchCustomers()">🔍 搜索</button>
                         <button class="btn btn-outline" onclick="clearSearch()">🗑️ 清空</button>
+                    </div>
+                    <div style="margin-bottom: 16px;">
+                        <div style="font-weight: 600; margin-bottom: 8px; font-size: 14px;">按标签筛选</div>
+                        <div id="tagFilterContainer" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
                     </div>
                 </div>
                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; margin-bottom: 24px;">
@@ -11547,76 +11557,757 @@ function testAddToCollection(submissionId, formId) {
 // ==================== 智能获客功能 ====================
 
 // 客户数据管理
+// 数据存储管理
+const StorageManager = {
+    // 数据库名称和版本
+    DB_NAME: 'leadgen_db',
+    DB_VERSION: 1,
+    
+    // 检查表是否存在
+    isIndexedDBSupported: function() {
+        return 'indexedDB' in window;
+    },
+    
+    // 初始化数据库
+    initDB: function() {
+        return new Promise((resolve, reject) => {
+            if (!this.isIndexedDBSupported()) {
+                reject('IndexedDB is not supported');
+                return;
+            }
+            
+            const request = indexedDB.open(this.DB_NAME, this.DB_VERSION);
+            
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                
+                // 创建客户存储空间
+                if (!db.objectStoreNames.contains('customers')) {
+                    const customerStore = db.createObjectStore('customers', { keyPath: 'id' });
+                    customerStore.createIndex('status', 'status', { unique: false });
+                    customerStore.createIndex('score', 'score', { unique: false });
+                    customerStore.createIndex('createdAt', 'createdAt', { unique: false });
+                }
+                
+                // 创建任务存储空间
+                if (!db.objectStoreNames.contains('tasks')) {
+                    db.createObjectStore('tasks', { keyPath: 'id' });
+                }
+            };
+            
+            request.onsuccess = (event) => {
+                resolve(event.target.result);
+            };
+            
+            request.onerror = (event) => {
+                reject('Failed to open IndexedDB');
+            };
+        });
+    },
+    
+    // 保存数据
+    saveData: function(storeName, data) {
+        return new Promise((resolve, reject) => {
+            this.initDB().then(db => {
+                const transaction = db.transaction(storeName, 'readwrite');
+                const store = transaction.objectStore(storeName);
+                const request = store.put(data);
+                
+                request.onsuccess = () => resolve(data);
+                request.onerror = () => reject('Failed to save data');
+            }).catch(() => {
+                // 回退到localStorage
+                this.saveToLocalStorage(storeName, data);
+                resolve(data);
+            });
+        });
+    },
+    
+    // 保存多个数据
+    saveAllData: function(storeName, dataArray) {
+        return new Promise((resolve, reject) => {
+            this.initDB().then(db => {
+                const transaction = db.transaction(storeName, 'readwrite');
+                const store = transaction.objectStore(storeName);
+                
+                let completed = 0;
+                const total = dataArray.length;
+                
+                dataArray.forEach(data => {
+                    const request = store.put(data);
+                    request.onsuccess = () => {
+                        completed++;
+                        if (completed === total) {
+                            resolve(dataArray);
+                        }
+                    };
+                    request.onerror = () => {
+                        reject('Failed to save data');
+                    };
+                });
+            }).catch(() => {
+                // 回退到localStorage
+                this.saveAllToLocalStorage(storeName, dataArray);
+                resolve(dataArray);
+            });
+        });
+    },
+    
+    // 获取所有数据
+    getAllData: function(storeName) {
+        return new Promise((resolve, reject) => {
+            this.initDB().then(db => {
+                const transaction = db.transaction(storeName, 'readonly');
+                const store = transaction.objectStore(storeName);
+                const request = store.getAll();
+                
+                request.onsuccess = (event) => resolve(event.target.result);
+                request.onerror = () => reject('Failed to get data');
+            }).catch(() => {
+                // 回退到localStorage
+                const data = this.getAllFromLocalStorage(storeName);
+                resolve(data);
+            });
+        });
+    },
+    
+    // 根据ID获取数据
+    getDataById: function(storeName, id) {
+        return new Promise((resolve, reject) => {
+            this.initDB().then(db => {
+                const transaction = db.transaction(storeName, 'readonly');
+                const store = transaction.objectStore(storeName);
+                const request = store.get(id);
+                
+                request.onsuccess = (event) => resolve(event.target.result);
+                request.onerror = () => reject('Failed to get data');
+            }).catch(() => {
+                // 回退到localStorage
+                const data = this.getFromLocalStorage(storeName, id);
+                resolve(data);
+            });
+        });
+    },
+    
+    // 删除数据
+    deleteData: function(storeName, id) {
+        return new Promise((resolve, reject) => {
+            this.initDB().then(db => {
+                const transaction = db.transaction(storeName, 'readwrite');
+                const store = transaction.objectStore(storeName);
+                const request = store.delete(id);
+                
+                request.onsuccess = () => resolve(true);
+                request.onerror = () => reject('Failed to delete data');
+            }).catch(() => {
+                // 回退到localStorage
+                this.deleteFromLocalStorage(storeName, id);
+                resolve(true);
+            });
+        });
+    },
+    
+    // localStorage 回退方法
+    saveToLocalStorage: function(storeName, data) {
+        try {
+            const key = `leadgen_${storeName}`;
+            const existingData = JSON.parse(localStorage.getItem(key) || '[]');
+            const index = existingData.findIndex(item => item.id === data.id);
+            
+            if (index !== -1) {
+                existingData[index] = data;
+            } else {
+                existingData.push(data);
+            }
+            
+            localStorage.setItem(key, JSON.stringify(existingData));
+        } catch (error) {
+            console.error('localStorage save failed:', error);
+        }
+    },
+    
+    saveAllToLocalStorage: function(storeName, dataArray) {
+        try {
+            const key = `leadgen_${storeName}`;
+            localStorage.setItem(key, JSON.stringify(dataArray));
+        } catch (error) {
+            console.error('localStorage save all failed:', error);
+        }
+    },
+    
+    getAllFromLocalStorage: function(storeName) {
+        try {
+            const key = `leadgen_${storeName}`;
+            return JSON.parse(localStorage.getItem(key) || '[]');
+        } catch (error) {
+            console.error('localStorage get all failed:', error);
+            return [];
+        }
+    },
+    
+    getFromLocalStorage: function(storeName, id) {
+        try {
+            const key = `leadgen_${storeName}`;
+            const data = JSON.parse(localStorage.getItem(key) || '[]');
+            return data.find(item => item.id === id);
+        } catch (error) {
+            console.error('localStorage get by id failed:', error);
+            return null;
+        }
+    },
+    
+    deleteFromLocalStorage: function(storeName, id) {
+        try {
+            const key = `leadgen_${storeName}`;
+            const data = JSON.parse(localStorage.getItem(key) || '[]');
+            const filteredData = data.filter(item => item.id !== id);
+            localStorage.setItem(key, JSON.stringify(filteredData));
+        } catch (error) {
+            console.error('localStorage delete failed:', error);
+        }
+    }
+};
+
 const LeadgenManager = {
     // 保存客户数据
-    saveCustomers: function(customers) {
-        localStorage.setItem('leadgen_customers', JSON.stringify(customers));
+    saveCustomers: async function(customers) {
+        try {
+            await StorageManager.saveAllData('customers', customers);
+        } catch (error) {
+            console.error('保存客户数据失败:', error);
+        }
     },
     
     // 获取客户数据
-    getCustomers: function() {
-        return JSON.parse(localStorage.getItem('leadgen_customers') || '[]');
+    getCustomers: async function() {
+        try {
+            return await StorageManager.getAllData('customers');
+        } catch (error) {
+            console.error('获取客户数据失败:', error);
+            return [];
+        }
     },
     
     // 添加客户
-    addCustomer: function(customer) {
-        const customers = this.getCustomers();
+    addCustomer: async function(customer) {
+        const customers = await this.getCustomers();
         customer.id = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
         customer.createdAt = new Date().toISOString();
         customer.updatedAt = new Date().toISOString();
+        // 计算多维度评分
+        customer.score = this.calculateScore(customer);
+        // 自动生成标签
+        customer.tags = this.generateTags(customer);
+        // 初始化行为记录
+        customer.activities = [];
         customers.push(customer);
-        this.saveCustomers(customers);
+        await this.saveCustomers(customers);
         return customer;
     },
     
     // 更新客户
-    updateCustomer: function(customerId, updates) {
-        const customers = this.getCustomers();
+    updateCustomer: async function(customerId, updates) {
+        const customers = await this.getCustomers();
         const index = customers.findIndex(c => c.id === customerId);
         if (index !== -1) {
-            customers[index] = {...customers[index], ...updates, updatedAt: new Date().toISOString()};
-            this.saveCustomers(customers);
+            const updatedCustomer = {...customers[index], ...updates, updatedAt: new Date().toISOString()};
+            // 重新计算评分
+            updatedCustomer.score = this.calculateScore(updatedCustomer);
+            // 重新生成标签
+            updatedCustomer.tags = this.generateTags(updatedCustomer);
+            customers[index] = updatedCustomer;
+            await this.saveCustomers(customers);
             return true;
         }
         return false;
     },
     
     // 删除客户
-    deleteCustomer: function(customerId) {
-        const customers = this.getCustomers();
+    deleteCustomer: async function(customerId) {
+        const customers = await this.getCustomers();
         const filtered = customers.filter(c => c.id !== customerId);
-        this.saveCustomers(filtered);
+        await this.saveCustomers(filtered);
         return true;
     },
     
     // 更新客户状态
-    updateCustomerStatus: function(customerId, status) {
-        return this.updateCustomer(customerId, { status: status });
+    updateCustomerStatus: async function(customerId, status) {
+        const result = await this.updateCustomer(customerId, { status: status });
+        if (result) {
+            // 记录状态变更行为
+            await this.addActivity(customerId, 'status_change', `状态变更为：${getStatusText(status)}`);
+        }
+        return result;
     },
     
     // 搜索客户
-    searchCustomers: function(keyword) {
-        const customers = this.getCustomers();
+    searchCustomers: async function(keyword) {
+        const customers = await this.getCustomers();
         if (!keyword) return customers;
         const lowerKeyword = keyword.toLowerCase();
         return customers.filter(c => 
             c.name.toLowerCase().includes(lowerKeyword) ||
             c.company.toLowerCase().includes(lowerKeyword) ||
             c.wechat.toLowerCase().includes(lowerKeyword) ||
-            c.source.toLowerCase().includes(lowerKeyword)
+            c.source.toLowerCase().includes(lowerKeyword) ||
+            (c.tags && c.tags.some(tag => tag.toLowerCase().includes(lowerKeyword)))
         );
+    },
+    
+    // 多维度评分计算
+    calculateScore: function(customer) {
+        let baseScore = 50;
+        
+        // 来源权重
+        const sourceWeights = {
+            '官网': 20,
+            '展会': 15,
+            '推荐': 25,
+            '社交媒体': 10,
+            '广告': 8,
+            '其他': 5
+        };
+        
+        // 企业规模权重
+        const companySizeWeights = {
+            '大型企业': 20,
+            '中型企业': 15,
+            '小型企业': 10,
+            '初创企业': 5
+        };
+        
+        // 交互深度权重
+        const interactionWeights = {
+            '高': 25,
+            '中': 15,
+            '低': 5
+        };
+        
+        // 来源评分
+        if (customer.source) {
+            baseScore += sourceWeights[customer.source] || 5;
+        }
+        
+        // 企业规模评分
+        if (customer.companySize) {
+            baseScore += companySizeWeights[customer.companySize] || 5;
+        }
+        
+        // 交互深度评分
+        if (customer.interactionLevel) {
+            baseScore += interactionWeights[customer.interactionLevel] || 5;
+        }
+        
+        // 负向评分逻辑
+        if (this.isInvalidLead(customer)) {
+            baseScore = 0;
+        }
+        
+        // 状态加成
+        const statusBonuses = {
+            'high-intent': 10,
+            'closed': 20
+        };
+        if (customer.status) {
+            baseScore += statusBonuses[customer.status] || 0;
+        }
+        
+        // 确保评分在0-100之间
+        return Math.max(0, Math.min(100, baseScore));
+    },
+    
+    // 检测无效线索
+    isInvalidLead: function(customer) {
+        // 检查是否为无效线索的逻辑
+        const invalidSources = ['竞争对手', '垃圾信息'];
+        const invalidPatterns = [/^test/i, /^demo/i, /^example/i];
+        
+        // 来源为无效来源
+        if (customer.source && invalidSources.includes(customer.source)) {
+            return true;
+        }
+        
+        // 姓名或公司匹配无效模式
+        if ((customer.name && invalidPatterns.some(pattern => pattern.test(customer.name))) ||
+            (customer.company && invalidPatterns.some(pattern => pattern.test(customer.company)))) {
+            return true;
+        }
+        
+        return false;
+    },
+    
+    // 自动生成标签
+    generateTags: function(customer) {
+        const tags = [];
+        
+        // 基于来源的标签
+        if (customer.source) {
+            tags.push(`来源:${customer.source}`);
+        }
+        
+        // 基于评分的标签
+        if (customer.score >= 80) {
+            tags.push('高价值');
+        } else if (customer.score >= 60) {
+            tags.push('中等价值');
+        } else {
+            tags.push('低价值');
+        }
+        
+        // 基于状态的标签
+        if (customer.status) {
+            tags.push(`状态:${getStatusText(customer.status)}`);
+        }
+        
+        // 基于公司规模的标签
+        if (customer.companySize) {
+            tags.push(`规模:${customer.companySize}`);
+        }
+        
+        return tags;
+    },
+    
+    // 添加客户行为记录
+    addActivity: async function(customerId, type, description) {
+        const customers = await this.getCustomers();
+        const index = customers.findIndex(c => c.id === customerId);
+        if (index !== -1) {
+            if (!customers[index].activities) {
+                customers[index].activities = [];
+            }
+            customers[index].activities.unshift({
+                type: type,
+                description: description,
+                timestamp: new Date().toISOString()
+            });
+            await this.saveCustomers(customers);
+            return true;
+        }
+        return false;
+    },
+    
+    // 获取客户行为记录
+    getActivities: async function(customerId) {
+        const customers = await this.getCustomers();
+        const customer = customers.find(c => c.id === customerId);
+        return customer ? customer.activities || [] : [];
+    },
+    
+    // 按标签筛选客户
+    filterCustomersByTag: async function(tag) {
+        const customers = await this.getCustomers();
+        return customers.filter(c => c.tags && c.tags.includes(tag));
+    },
+    
+    // 获取所有标签
+    getAllTags: async function() {
+        const customers = await this.getCustomers();
+        const tags = new Set();
+        customers.forEach(customer => {
+            if (customer.tags) {
+                customer.tags.forEach(tag => tags.add(tag));
+            }
+        });
+        return Array.from(tags);
+    },
+    
+    // 导出客户数据为JSON
+    exportCustomersAsJSON: async function() {
+        const customers = await this.getCustomers();
+        const dataStr = JSON.stringify(customers, null, 2);
+        const dataBlob = new Blob([dataStr], {type: 'application/json'});
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `customers_${new Date().toISOString().split('T')[0]}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+    },
+    
+    // 导出客户数据为CSV (Excel兼容)
+    exportCustomersAsCSV: async function() {
+        const customers = await this.getCustomers();
+        const headers = ['姓名', '公司', '规模', '微信', '来源', '状态', '评分', '创建时间', '标签'];
+        const rows = customers.map(customer => [
+            customer.name,
+            customer.company || '',
+            customer.companySize || '',
+            customer.wechat || '',
+            customer.source || '',
+            getStatusText(customer.status),
+            customer.score || 0,
+            new Date(customer.createdAt).toLocaleString(),
+            customer.tags ? customer.tags.join(';') : ''
+        ]);
+        
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+        ].join('\n');
+        
+        const dataBlob = new Blob([csvContent], {type: 'text/csv;charset=utf-8;'});
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `customers_${new Date().toISOString().split('T')[0]}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+    },
+    
+    // 导入客户数据
+    importCustomers: async function(data) {
+        try {
+            const existingCustomers = await this.getCustomers();
+            const importedCustomers = Array.isArray(data) ? data : [];
+            
+            // 处理导入的数据，确保每个客户都有必要的字段
+            const processedCustomers = importedCustomers.map(customer => {
+                const newCustomer = {
+                    id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+                    name: customer.name || '',
+                    company: customer.company || '',
+                    companySize: customer.companySize || '',
+                    wechat: customer.wechat || '',
+                    source: customer.source || '',
+                    status: customer.status || 'lead',
+                    score: this.calculateScore(customer),
+                    tags: this.generateTags(customer),
+                    activities: customer.activities || [],
+                    createdAt: customer.createdAt || new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+                return newCustomer;
+            });
+            
+            // 合并数据
+            const mergedCustomers = [...existingCustomers, ...processedCustomers];
+            await this.saveCustomers(mergedCustomers);
+            return true;
+        } catch (error) {
+            console.error('导入客户数据失败:', error);
+            return false;
+        }
     }
 };
 
 // 渲染智能获客仪表盘
-function renderLeadgenDashboard() {
+async function renderLeadgenDashboard() {
     // 加载并渲染客户数据
-    renderCustomerLists();
+    await renderCustomerLists();
+    // 加载标签筛选
+    await renderTagFilters();
+}
+
+// 渲染标签筛选
+async function renderTagFilters() {
+    const tagContainer = document.getElementById('tagFilterContainer');
+    if (tagContainer) {
+        const allTags = await LeadgenManager.getAllTags();
+        tagContainer.innerHTML = '';
+        
+        if (allTags.length > 0) {
+            allTags.forEach(tag => {
+                const tagButton = document.createElement('button');
+                tagButton.textContent = tag;
+                tagButton.style.cssText = `
+                    padding: 6px 12px;
+                    border: 1px solid var(--border-color);
+                    border-radius: 16px;
+                    background: var(--card-bg);
+                    color: var(--text-main);
+                    font-size: 12px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                `;
+                tagButton.onclick = () => filterCustomersByTag(tag);
+                tagButton.onmouseover = () => {
+                    tagButton.style.background = 'var(--primary-color)';
+                    tagButton.style.color = 'white';
+                };
+                tagButton.onmouseout = () => {
+                    tagButton.style.background = 'var(--card-bg)';
+                    tagButton.style.color = 'var(--text-main)';
+                };
+                tagContainer.appendChild(tagButton);
+            });
+        } else {
+            tagContainer.innerHTML = '<div style="color: var(--text-sub); font-size: 12px;">暂无标签</div>';
+        }
+    }
+}
+
+// 按标签筛选客户
+async function filterCustomersByTag(tag) {
+    const customers = await LeadgenManager.filterCustomersByTag(tag);
+    
+    // 按状态分组
+    const byStatus = {
+        lead: [],
+        following: [],
+        'high-intent': [],
+        closed: [],
+        lost: []
+    };
+    
+    customers.forEach(customer => {
+        if (byStatus[customer.status]) {
+            byStatus[customer.status].push(customer);
+        }
+    });
+    
+    // 渲染筛选结果
+    Object.keys(byStatus).forEach(status => {
+        const listElement = document.getElementById(`${status}List`);
+        const countElement = document.getElementById(`${status}Count`);
+        
+        if (listElement && countElement) {
+            countElement.textContent = byStatus[status].length;
+            
+            if (byStatus[status].length === 0) {
+                listElement.innerHTML = '<div style="text-align: center; color: var(--text-sub); padding: 20px;">暂无客户</div>';
+            } else {
+                listElement.innerHTML = byStatus[status].map(customer => `
+                    <div class="customer-card" style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 10px; cursor: pointer; transition: all 0.3s ease;" onclick="showCustomerDetail('${customer.id}')">
+                        <div style="font-weight: 600; margin-bottom: 8px;">${customer.name}</div>
+                        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px;">公司：${customer.company || '-'}</div>
+                        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px;">规模：${customer.companySize || '-'}</div>
+                        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px;">微信：${customer.wechat || '-'}</div>
+                        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px;">来源：${customer.source || '-'}</div>
+                        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px;">评分：${customer.score || 0}</div>
+                        ${customer.tags && customer.tags.length > 0 ? `
+                        <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px;">
+                            ${customer.tags.map(tag => `
+                                <span style="background: rgba(37, 99, 235, 0.1); color: var(--primary-color); padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;">${tag}</span>
+                            `).join('')}
+                        </div>
+                        ` : ''}
+                        <div style="margin-top: 8px; display: flex; gap: 4px; flex-wrap: wrap;">
+                            <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'lead')">线索</button>
+                            <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'following')">跟进</button>
+                            <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'high-intent')">高意向</button>
+                            <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'closed')">已成交</button>
+                            <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'lost')">已流失</button>
+                        </div>
+                        <button class="btn btn-sm btn-danger" style="font-size: 10px; padding: 2px 6px; margin-top: 8px;" onclick="event.stopPropagation(); deleteCustomer('${customer.id}')">删除</button>
+                    </div>
+                `).join('');
+            }
+        }
+    });
+}
+
+// 清空搜索
+async function clearSearch() {
+    document.getElementById('leadgenSearchInput').value = '';
+    await renderCustomerLists();
+    await renderTagFilters();
+}
+
+// 导出客户数据
+async function exportCustomers(format) {
+    try {
+        if (format === 'json') {
+            await LeadgenManager.exportCustomersAsJSON();
+        } else if (format === 'csv') {
+            await LeadgenManager.exportCustomersAsCSV();
+        }
+    } catch (error) {
+        console.error('导出客户数据失败:', error);
+        alert('导出失败，请重试');
+    }
+}
+
+// 导入客户数据
+async function importCustomers() {
+    const fileInput = document.getElementById('importFile');
+    const file = fileInput.files[0];
+    
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        try {
+            let data;
+            if (file.name.endsWith('.json')) {
+                data = JSON.parse(e.target.result);
+            } else if (file.name.endsWith('.csv')) {
+                data = parseCSV(e.target.result);
+            } else {
+                alert('不支持的文件格式');
+                return;
+            }
+            
+            const success = await LeadgenManager.importCustomers(data);
+            if (success) {
+                alert('导入成功！');
+                await renderCustomerLists();
+                await renderTagFilters();
+            } else {
+                alert('导入失败，请检查文件格式');
+            }
+        } catch (error) {
+            console.error('导入客户数据失败:', error);
+            alert('导入失败，请检查文件格式');
+        } finally {
+            // 重置文件输入
+            fileInput.value = '';
+        }
+    };
+    
+    if (file.name.endsWith('.json')) {
+        reader.readAsText(file);
+    } else if (file.name.endsWith('.csv')) {
+        reader.readAsText(file);
+    }
+}
+
+// 解析CSV文件
+function parseCSV(csvContent) {
+    const lines = csvContent.split('\n');
+    const headers = lines[0].split(',').map(header => header.replace(/"/g, ''));
+    const data = [];
+    
+    for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        
+        const values = lines[i].split(',').map(value => value.replace(/"/g, ''));
+        const row = {};
+        
+        headers.forEach((header, index) => {
+            row[header] = values[index] || '';
+        });
+        
+        // 映射CSV列到客户对象属性
+        const customer = {
+            name: row['姓名'] || '',
+            company: row['公司'] || '',
+            companySize: row['规模'] || '',
+            wechat: row['微信'] || '',
+            source: row['来源'] || '',
+            status: mapStatusFromText(row['状态'] || '')
+        };
+        
+        data.push(customer);
+    }
+    
+    return data;
+}
+
+// 从状态文本映射到状态值
+function mapStatusFromText(statusText) {
+    const statusMap = {
+        '线索': 'lead',
+        '跟进': 'following',
+        '高意向': 'high-intent',
+        '已成交': 'closed',
+        '已流失': 'lost'
+    };
+    return statusMap[statusText] || 'lead';
 }
 
 // 渲染客户列表
-function renderCustomerLists() {
-    const customers = LeadgenManager.getCustomers();
+async function renderCustomerLists() {
+    const customers = await LeadgenManager.getCustomers();
     
     // 按状态分组
     const byStatus = {
@@ -11648,10 +12339,18 @@ function renderCustomerLists() {
                     <div class="customer-card" style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 10px; cursor: pointer; transition: all 0.3s ease;" onclick="showCustomerDetail('${customer.id}')">
                         <div style="font-weight: 600; margin-bottom: 8px;">${customer.name}</div>
                         <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px;">公司：${customer.company || '-'}</div>
+                        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px;">规模：${customer.companySize || '-'}</div>
                         <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px;">微信：${customer.wechat || '-'}</div>
                         <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px;">来源：${customer.source || '-'}</div>
-                        <div style="font-size: 12px; color: var(--text-sub);">评分：${customer.score || 0}</div>
-                        <div style="margin-top: 8px; display: flex; gap: 4px;">
+                        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px;">评分：${customer.score || 0}</div>
+                        ${customer.tags && customer.tags.length > 0 ? `
+                        <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px;">
+                            ${customer.tags.map(tag => `
+                                <span style="background: rgba(37, 99, 235, 0.1); color: var(--primary-color); padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;">${tag}</span>
+                            `).join('')}
+                        </div>
+                        ` : ''}
+                        <div style="margin-top: 8px; display: flex; gap: 4px; flex-wrap: wrap;">
                             <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'lead')">线索</button>
                             <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'following')">跟进</button>
                             <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'high-intent')">高意向</button>
@@ -11690,16 +12389,43 @@ function addNewCustomer() {
                     <input type="text" id="newCustomerCompany" placeholder="请输入公司名称" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box;">
                 </div>
                 <div>
+                    <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px;">企业规模</label>
+                    <select id="newCustomerCompanySize" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box; background: var(--card-bg); color: var(--text-main);">
+                        <option value="">请选择</option>
+                        <option value="大型企业">大型企业</option>
+                        <option value="中型企业">中型企业</option>
+                        <option value="小型企业">小型企业</option>
+                        <option value="初创企业">初创企业</option>
+                    </select>
+                </div>
+                <div>
                     <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px;">微信号</label>
                     <input type="text" id="newCustomerWechat" placeholder="请输入微信号" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box;">
                 </div>
                 <div>
                     <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px;">客户来源</label>
-                    <input type="text" id="newCustomerSource" placeholder="请输入客户来源" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+                    <select id="newCustomerSource" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box; background: var(--card-bg); color: var(--text-main);">
+                        <option value="">请选择</option>
+                        <option value="官网">官网</option>
+                        <option value="展会">展会</option>
+                        <option value="推荐">推荐</option>
+                        <option value="社交媒体">社交媒体</option>
+                        <option value="广告">广告</option>
+                        <option value="其他">其他</option>
+                    </select>
                 </div>
                 <div>
-                    <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px;">客户评分 (0-100)</label>
-                    <input type="number" id="newCustomerScore" placeholder="50" min="0" max="100" value="50" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+                    <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px;">交互深度</label>
+                    <select id="newCustomerInteractionLevel" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box; background: var(--card-bg); color: var(--text-main);">
+                        <option value="">请选择</option>
+                        <option value="高">高</option>
+                        <option value="中">中</option>
+                        <option value="低">低</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px;">客户评分 (自动计算)</label>
+                    <input type="number" id="newCustomerScore" placeholder="50" min="0" max="100" value="50" disabled style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box; background: var(--bg-color);">
                 </div>
             </div>
             <div class="modal-footer" style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
@@ -11738,9 +12464,10 @@ function closeAddCustomerModal() {
 function saveNewCustomer() {
     const name = document.getElementById('newCustomerName').value.trim();
     const company = document.getElementById('newCustomerCompany').value.trim();
+    const companySize = document.getElementById('newCustomerCompanySize').value;
     const wechat = document.getElementById('newCustomerWechat').value.trim();
-    const source = document.getElementById('newCustomerSource').value.trim();
-    const score = parseInt(document.getElementById('newCustomerScore').value) || 50;
+    const source = document.getElementById('newCustomerSource').value;
+    const interactionLevel = document.getElementById('newCustomerInteractionLevel').value;
     
     if (!name) {
         alert('请输入客户姓名！');
@@ -11751,9 +12478,10 @@ function saveNewCustomer() {
     const customer = {
         name: name,
         company: company,
+        companySize: companySize,
         wechat: wechat,
         source: source,
-        score: score,
+        interactionLevel: interactionLevel,
         status: 'lead'
     };
     
@@ -11801,38 +12529,1268 @@ function showToast(message, type = 'info') {
 }
 
 // 更新客户状态
-function updateCustomerStatus(customerId, status) {
-    LeadgenManager.updateCustomerStatus(customerId, status);
-    renderCustomerLists();
+async function updateCustomerStatus(customerId, status) {
+    await LeadgenManager.updateCustomerStatus(customerId, status);
+    await renderCustomerLists();
 }
 
 // 删除客户
-function deleteCustomer(customerId) {
+async function deleteCustomer(customerId) {
     if (confirm('确定要删除这个客户吗？')) {
-        LeadgenManager.deleteCustomer(customerId);
-        renderCustomerLists();
+        await LeadgenManager.deleteCustomer(customerId);
+        await renderCustomerLists();
         alert('客户删除成功！');
     }
 }
 
 // 显示客户详情
-function showCustomerDetail(customerId) {
-    const customers = LeadgenManager.getCustomers();
+async function showCustomerDetail(customerId) {
+    const customers = await LeadgenManager.getCustomers();
     const customer = customers.find(c => c.id === customerId);
     
     if (customer) {
-        let detailHtml = `
-            <h3>${customer.name}</h3>
-            <p>公司：${customer.company || '-'}</p>
-            <p>微信：${customer.wechat || '-'}</p>
-            <p>来源：${customer.source || '-'}</p>
-            <p>评分：${customer.score || 0}</p>
-            <p>状态：${getStatusText(customer.status)}</p>
-            <p>创建时间：${new Date(customer.createdAt).toLocaleString()}</p>
-            <p>更新时间：${new Date(customer.updatedAt).toLocaleString()}</p>
+        // 获取客户行为记录
+        const activities = await LeadgenManager.getActivities(customerId);
+        
+        // 创建详情模态框
+        const modal = document.createElement('div');
+        modal.id = 'customerDetailModal';
+        modal.className = 'modal-overlay';
+        modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 10000;';
+        
+        modal.innerHTML = `
+            <div class="modal" style="background: var(--card-bg); border-radius: 12px; padding: 24px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+                <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <h2 style="margin: 0; color: var(--primary-color); font-size: 20px;">👤 客户详情 - ${customer.name}</h2>
+                    <button class="close-btn" onclick="closeCustomerDetailModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-sub);">&times;</button>
+                </div>
+                
+                <div style="margin-bottom: 24px;">
+                    <h3 style="color: var(--text-main); font-size: 16px; font-weight: 600; margin-bottom: 16px;">360度客户画像</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                        <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;">
+                            <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px;">基本信息</div>
+                            <div style="font-weight: 600;">${customer.name}</div>
+                            <div style="font-size: 14px; color: var(--text-sub);">${customer.company || '-'}</div>
+                            <div style="font-size: 14px; color: var(--text-sub);">${customer.wechat || '-'}</div>
+                        </div>
+                        <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;">
+                            <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px;">业务信息</div>
+                            <div style="font-weight: 600;">评分：${customer.score || 0}</div>
+                            <div style="font-size: 14px; color: var(--text-sub);">状态：${getStatusText(customer.status)}</div>
+                            <div style="font-size: 14px; color: var(--text-sub);">来源：${customer.source || '-'}</div>
+                        </div>
+                        <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;">
+                            <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px;">企业信息</div>
+                            <div style="font-weight: 600;">规模：${customer.companySize || '-'}</div>
+                            <div style="font-size: 14px; color: var(--text-sub);">交互深度：${customer.interactionLevel || '-'}</div>
+                            <div style="font-size: 14px; color: var(--text-sub);">创建时间：${new Date(customer.createdAt).toLocaleDateString()}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                ${customer.tags && customer.tags.length > 0 ? `
+                <div style="margin-bottom: 24px;">
+                    <h3 style="color: var(--text-main); font-size: 16px; font-weight: 600; margin-bottom: 12px;">客户标签</h3>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        ${customer.tags.map(tag => `
+                            <span style="background: rgba(37, 99, 235, 0.1); color: var(--primary-color); padding: 6px 12px; border-radius: 16px; font-size: 12px; font-weight: 600;">${tag}</span>
+                        `).join('')}
+                    </div>
+                </div>
+                ` : ''}
+                
+                <div style="margin-bottom: 24px;">
+                    <h3 style="color: var(--text-main); font-size: 16px; font-weight: 600; margin-bottom: 12px;">行为时间线</h3>
+                    ${activities.length > 0 ? `
+                    <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;">
+                        ${activities.map(activity => `
+                            <div style="display: flex; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color);">
+                                <div style="flex-shrink: 0; width: 80px; font-size: 12px; color: var(--text-sub);">${new Date(activity.timestamp).toLocaleString()}</div>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; margin-bottom: 4px;">${getActivityTypeText(activity.type)}</div>
+                                    <div style="font-size: 14px; color: var(--text-sub);">${activity.description}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    ` : `
+                    <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 32px; text-align: center;">
+                        <div style="font-size: 24px; margin-bottom: 8px;">📋</div>
+                        <div style="color: var(--text-sub);">暂无行为记录</div>
+                    </div>
+                    `}
+                </div>
+                
+                <div style="margin-bottom: 24px;">
+                    <h3 style="color: var(--text-main); font-size: 16px; font-weight: 600; margin-bottom: 12px;">添加跟进记录</h3>
+                    <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;">
+                        <textarea id="followUpNote" placeholder="请输入跟进记录..." style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; resize: vertical; min-height: 100px; box-sizing: border-box;"></textarea>
+                        <div style="margin-top: 12px; display: flex; justify-content: flex-end;">
+                            <button class="btn btn-primary" onclick="addFollowUpRecord('${customerId}')" style="padding: 8px 16px;">保存记录</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-footer" style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
+                    <button class="btn btn-outline" onclick="closeCustomerDetailModal()" style="padding: 10px 20px;">关闭</button>
+                    <button class="btn btn-primary" onclick="editCustomer('${customerId}')" style="padding: 10px 20px;">编辑客户</button>
+                </div>
+            </div>
         `;
-        alert(detailHtml);
+        
+        document.body.appendChild(modal);
     }
+}
+
+// 关闭客户详情模态框
+function closeCustomerDetailModal() {
+    const modal = document.getElementById('customerDetailModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// 添加跟进记录
+function addFollowUpRecord(customerId) {
+    const note = document.getElementById('followUpNote').value.trim();
+    if (note) {
+        LeadgenManager.addActivity(customerId, 'follow_up', note);
+        // 重新显示详情页以更新时间线
+        closeCustomerDetailModal();
+        showCustomerDetail(customerId);
+        showToast('跟进记录添加成功！', 'success');
+    }
+}
+
+// 编辑客户
+function editCustomer(customerId) {
+    const customer = LeadgenManager.getCustomers().find(c => c.id === customerId);
+    if (customer) {
+        // 创建编辑模态框
+        const modal = document.createElement('div');
+        modal.id = 'editCustomerModal';
+        modal.className = 'modal-overlay';
+        modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 10000;';
+        
+        modal.innerHTML = `
+            <div class="modal" style="background: var(--card-bg); border-radius: 12px; padding: 24px; max-width: 450px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+                <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0; color: var(--primary-color); font-size: 18px;">✏️ 编辑客户</h2>
+                    <button class="close-btn" onclick="closeEditCustomerModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-sub);">&times;</button>
+                </div>
+                <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px;">客户姓名 <span style="color: var(--danger-color);">*</span></label>
+                        <input type="text" id="editCustomerName" value="${customer.name}" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px;">公司名称</label>
+                        <input type="text" id="editCustomerCompany" value="${customer.company || ''}" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px;">企业规模</label>
+                        <select id="editCustomerCompanySize" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box; background: var(--card-bg); color: var(--text-main);">
+                            <option value="">请选择</option>
+                            <option value="大型企业" ${customer.companySize === '大型企业' ? 'selected' : ''}>大型企业</option>
+                            <option value="中型企业" ${customer.companySize === '中型企业' ? 'selected' : ''}>中型企业</option>
+                            <option value="小型企业" ${customer.companySize === '小型企业' ? 'selected' : ''}>小型企业</option>
+                            <option value="初创企业" ${customer.companySize === '初创企业' ? 'selected' : ''}>初创企业</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px;">微信号</label>
+                        <input type="text" id="editCustomerWechat" value="${customer.wechat || ''}" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px;">客户来源</label>
+                        <select id="editCustomerSource" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box; background: var(--card-bg); color: var(--text-main);">
+                            <option value="">请选择</option>
+                            <option value="官网" ${customer.source === '官网' ? 'selected' : ''}>官网</option>
+                            <option value="展会" ${customer.source === '展会' ? 'selected' : ''}>展会</option>
+                            <option value="推荐" ${customer.source === '推荐' ? 'selected' : ''}>推荐</option>
+                            <option value="社交媒体" ${customer.source === '社交媒体' ? 'selected' : ''}>社交媒体</option>
+                            <option value="广告" ${customer.source === '广告' ? 'selected' : ''}>广告</option>
+                            <option value="其他" ${customer.source === '其他' ? 'selected' : ''}>其他</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px;">交互深度</label>
+                        <select id="editCustomerInteractionLevel" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box; background: var(--card-bg); color: var(--text-main);">
+                            <option value="">请选择</option>
+                            <option value="高" ${customer.interactionLevel === '高' ? 'selected' : ''}>高</option>
+                            <option value="中" ${customer.interactionLevel === '中' ? 'selected' : ''}>中</option>
+                            <option value="低" ${customer.interactionLevel === '低' ? 'selected' : ''}>低</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px;">客户状态</label>
+                        <select id="editCustomerStatus" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box; background: var(--card-bg); color: var(--text-main);">
+                            <option value="lead" ${customer.status === 'lead' ? 'selected' : ''}>线索</option>
+                            <option value="following" ${customer.status === 'following' ? 'selected' : ''}>跟进</option>
+                            <option value="high-intent" ${customer.status === 'high-intent' ? 'selected' : ''}>高意向</option>
+                            <option value="closed" ${customer.status === 'closed' ? 'selected' : ''}>已成交</option>
+                            <option value="lost" ${customer.status === 'lost' ? 'selected' : ''}>已流失</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer" style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
+                    <button class="btn btn-outline" onclick="closeEditCustomerModal()" style="padding: 10px 20px;">取消</button>
+                    <button class="btn btn-primary" onclick="saveEditCustomer('${customerId}')" style="padding: 10px 20px;">保存</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+    }
+}
+
+// 关闭编辑客户模态框
+function closeEditCustomerModal() {
+    const modal = document.getElementById('editCustomerModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// 保存编辑客户
+function saveEditCustomer(customerId) {
+    const name = document.getElementById('editCustomerName').value.trim();
+    const company = document.getElementById('editCustomerCompany').value.trim();
+    const companySize = document.getElementById('editCustomerCompanySize').value;
+    const wechat = document.getElementById('editCustomerWechat').value.trim();
+    const source = document.getElementById('editCustomerSource').value;
+    const interactionLevel = document.getElementById('editCustomerInteractionLevel').value;
+    const status = document.getElementById('editCustomerStatus').value;
+    
+    if (!name) {
+        alert('请输入客户姓名！');
+        document.getElementById('editCustomerName').focus();
+        return;
+    }
+    
+    const updates = {
+        name: name,
+        company: company,
+        companySize: companySize,
+        wechat: wechat,
+        source: source,
+        interactionLevel: interactionLevel,
+        status: status
+    };
+    
+    LeadgenManager.updateCustomer(customerId, updates);
+    renderCustomerLists();
+    closeEditCustomerModal();
+    closeCustomerDetailModal();
+    
+    // 显示成功提示
+    showToast('客户信息更新成功！', 'success');
+}
+
+// 获取行为类型文本
+function getActivityTypeText(type) {
+    const typeMap = {
+        'status_change': '状态变更',
+        'follow_up': '跟进记录',
+        'add': '客户添加',
+        'edit': '信息编辑',
+        'auto_status_change': '自动状态变更',
+        'reminder': '提醒'
+    };
+    return typeMap[type] || type;
+}
+
+// ==================== 自动化工作流 ====================
+
+// 自动化工作流管理
+const WorkflowManager = {
+    // 检查并执行自动化规则
+    checkAndExecuteRules: function() {
+        const customers = LeadgenManager.getCustomers();
+        const now = new Date();
+        let hasChanges = false;
+        
+        customers.forEach(customer => {
+            // 检查状态自动转换规则
+            if (this.shouldAutoUpdateStatus(customer, now)) {
+                const newStatus = this.getAutoUpdateStatus(customer);
+                if (newStatus && newStatus !== customer.status) {
+                    LeadgenManager.updateCustomerStatus(customer.id, newStatus);
+                    LeadgenManager.addActivity(customer.id, 'auto_status_change', `系统自动将状态变更为：${getStatusText(newStatus)}`);
+                    hasChanges = true;
+                }
+            }
+            
+            // 检查提醒规则
+            if (this.shouldSendReminder(customer, now)) {
+                this.sendReminder(customer);
+            }
+        });
+        
+        if (hasChanges) {
+            renderCustomerLists();
+            renderTagFilters();
+        }
+    },
+    
+    // 判断是否应该自动更新状态
+    shouldAutoUpdateStatus: function(customer, now) {
+        // 检查最后更新时间
+        const updatedAt = new Date(customer.updatedAt);
+        const daysSinceUpdate = (now - updatedAt) / (1000 * 60 * 60 * 24);
+        
+        // 不同状态的自动转换规则
+        switch (customer.status) {
+            case 'lead':
+                // 线索超过7天未跟进，自动标记为流失
+                return daysSinceUpdate > 7;
+            case 'following':
+                // 跟进超过14天未成交，自动标记为流失
+                return daysSinceUpdate > 14;
+            case 'high-intent':
+                // 高意向超过30天未成交，自动标记为流失
+                return daysSinceUpdate > 30;
+            default:
+                return false;
+        }
+    },
+    
+    // 获取自动更新的状态
+    getAutoUpdateStatus: function(customer) {
+        switch (customer.status) {
+            case 'lead':
+            case 'following':
+            case 'high-intent':
+                return 'lost';
+            default:
+                return null;
+        }
+    },
+    
+    // 判断是否应该发送提醒
+    shouldSendReminder: function(customer, now) {
+        // 检查最后更新时间
+        const updatedAt = new Date(customer.updatedAt);
+        const daysSinceUpdate = (now - updatedAt) / (1000 * 60 * 60 * 24);
+        
+        // 不同状态的提醒规则
+        switch (customer.status) {
+            case 'lead':
+                // 线索超过3天未跟进，发送提醒
+                return daysSinceUpdate > 3;
+            case 'following':
+                // 跟进超过7天未更新，发送提醒
+                return daysSinceUpdate > 7;
+            case 'high-intent':
+                // 高意向超过14天未成交，发送提醒
+                return daysSinceUpdate > 14;
+            default:
+                return false;
+        }
+    },
+    
+    // 发送提醒
+    sendReminder: function(customer) {
+        const reminderMessage = `客户 ${customer.name} (${customer.company || '未知公司'}) 需要跟进`;
+        showToast(reminderMessage, 'warning');
+        LeadgenManager.addActivity(customer.id, 'reminder', reminderMessage);
+    },
+    
+    // 分配任务
+    assignTask: function(customerId, assignee, taskDescription) {
+        const customer = LeadgenManager.getCustomers().find(c => c.id === customerId);
+        if (customer) {
+            const task = {
+                id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+                customerId: customerId,
+                assignee: assignee,
+                description: taskDescription,
+                createdAt: new Date().toISOString(),
+                status: 'pending'
+            };
+            
+            // 保存任务到本地存储
+            const tasks = JSON.parse(localStorage.getItem('leadgen_tasks') || '[]');
+            tasks.push(task);
+            localStorage.setItem('leadgen_tasks', JSON.stringify(tasks));
+            
+            LeadgenManager.addActivity(customerId, 'task_assigned', `任务分配给：${assignee} - ${taskDescription}`);
+            showToast('任务分配成功！', 'success');
+            return task;
+        }
+        return null;
+    },
+    
+    // 获取任务列表
+    getTasks: function() {
+        return JSON.parse(localStorage.getItem('leadgen_tasks') || '[]');
+    },
+    
+    // 更新任务状态
+    updateTaskStatus: function(taskId, status) {
+        const tasks = JSON.parse(localStorage.getItem('leadgen_tasks') || '[]');
+        const index = tasks.findIndex(t => t.id === taskId);
+        if (index !== -1) {
+            tasks[index].status = status;
+            tasks[index].updatedAt = new Date().toISOString();
+            localStorage.setItem('leadgen_tasks', JSON.stringify(tasks));
+            return true;
+        }
+        return false;
+    }
+};
+
+// 初始化自动化工作流
+function initWorkflow() {
+    // 每5分钟检查一次规则
+    setInterval(() => {
+        WorkflowManager.checkAndExecuteRules();
+    }, 5 * 60 * 1000);
+    
+    // 初始检查
+    WorkflowManager.checkAndExecuteRules();
+}
+
+// 显示任务管理面板
+function showTaskManager() {
+    const tasks = WorkflowManager.getTasks();
+    
+    // 创建任务管理模态框
+    const modal = document.createElement('div');
+    modal.id = 'taskManagerModal';
+    modal.className = 'modal-overlay';
+    modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 10000;';
+    
+    modal.innerHTML = `
+        <div class="modal" style="background: var(--card-bg); border-radius: 12px; padding: 24px; max-width: 700px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h2 style="margin: 0; color: var(--primary-color); font-size: 20px;">📋 任务管理</h2>
+                <button class="close-btn" onclick="closeTaskManagerModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-sub);">&times;</button>
+            </div>
+            
+            <div style="margin-bottom: 24px;">
+                <button class="btn btn-primary" onclick="showAddTaskModal()" style="margin-bottom: 16px;">➕ 新增任务</button>
+                
+                <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;">
+                    ${tasks.length > 0 ? `
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid var(--border-color);">
+                                <th style="text-align: left; padding: 12px; font-weight: 600;">客户</th>
+                                <th style="text-align: left; padding: 12px; font-weight: 600;">任务描述</th>
+                                <th style="text-align: left; padding: 12px; font-weight: 600;">负责人</th>
+                                <th style="text-align: left; padding: 12px; font-weight: 600;">状态</th>
+                                <th style="text-align: left; padding: 12px; font-weight: 600;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${tasks.map(task => {
+                                const customer = LeadgenManager.getCustomers().find(c => c.id === task.customerId);
+                                return `
+                                <tr style="border-bottom: 1px solid var(--border-color);">
+                                    <td style="padding: 12px;">${customer ? customer.name : '未知客户'}</td>
+                                    <td style="padding: 12px;">${task.description}</td>
+                                    <td style="padding: 12px;">${task.assignee}</td>
+                                    <td style="padding: 12px;">
+                                        <span style="background: ${task.status === 'pending' ? '#fbbf24' : task.status === 'completed' ? '#10b981' : '#6366f1'}; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 600;">
+                                            ${task.status === 'pending' ? '待处理' : task.status === 'completed' ? '已完成' : '进行中'}
+                                        </span>
+                                    </td>
+                                    <td style="padding: 12px;">
+                                        <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px; margin-right: 4px;" onclick="updateTaskStatus('${task.id}', 'in_progress')">开始</button>
+                                        <button class="btn btn-sm btn-primary" style="font-size: 10px; padding: 2px 6px; margin-right: 4px;" onclick="updateTaskStatus('${task.id}', 'completed')">完成</button>
+                                        <button class="btn btn-sm btn-danger" style="font-size: 10px; padding: 2px 6px;" onclick="deleteTask('${task.id}')">删除</button>
+                                    </td>
+                                </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                    ` : `
+                    <div style="text-align: center; padding: 32px;">
+                        <div style="font-size: 24px; margin-bottom: 8px;">📋</div>
+                        <div style="color: var(--text-sub);">暂无任务</div>
+                    </div>
+                    `}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+// 关闭任务管理模态框
+function closeTaskManagerModal() {
+    const modal = document.getElementById('taskManagerModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// 显示新增任务模态框
+function showAddTaskModal() {
+    const customers = LeadgenManager.getCustomers();
+    
+    const modal = document.createElement('div');
+    modal.id = 'addTaskModal';
+    modal.className = 'modal-overlay';
+    modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 10001;';
+    
+    modal.innerHTML = `
+        <div class="modal" style="background: var(--card-bg); border-radius: 12px; padding: 24px; max-width: 450px; width: 90%; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0; color: var(--primary-color); font-size: 18px;">➕ 新增任务</h2>
+                <button class="close-btn" onclick="closeAddTaskModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-sub);">&times;</button>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px;">
+                <div>
+                    <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px;">客户 <span style="color: var(--danger-color);">*</span></label>
+                    <select id="taskCustomerId" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box; background: var(--card-bg); color: var(--text-main);">
+                        <option value="">请选择客户</option>
+                        ${customers.map(customer => `
+                            <option value="${customer.id}">${customer.name} (${customer.company || '未知公司'})</option>
+                        `).join('')}
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px;">任务描述 <span style="color: var(--danger-color);">*</span></label>
+                    <textarea id="taskDescription" placeholder="请输入任务描述..." style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; resize: vertical; min-height: 100px; box-sizing: border-box;"></textarea>
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px;">负责人 <span style="color: var(--danger-color);">*</span></label>
+                    <input type="text" id="taskAssignee" placeholder="请输入负责人姓名" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box;">
+                </div>
+            </div>
+            <div class="modal-footer" style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
+                <button class="btn btn-outline" onclick="closeAddTaskModal()" style="padding: 10px 20px;">取消</button>
+                <button class="btn btn-primary" onclick="saveNewTask()" style="padding: 10px 20px;">保存</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+// 关闭新增任务模态框
+function closeAddTaskModal() {
+    const modal = document.getElementById('addTaskModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// 保存新任务
+function saveNewTask() {
+    const customerId = document.getElementById('taskCustomerId').value;
+    const description = document.getElementById('taskDescription').value.trim();
+    const assignee = document.getElementById('taskAssignee').value.trim();
+    
+    if (!customerId) {
+        alert('请选择客户！');
+        return;
+    }
+    if (!description) {
+        alert('请输入任务描述！');
+        return;
+    }
+    if (!assignee) {
+        alert('请输入负责人！');
+        return;
+    }
+    
+    WorkflowManager.assignTask(customerId, assignee, description);
+    closeAddTaskModal();
+    showTaskManager();
+}
+
+// 更新任务状态
+function updateTaskStatus(taskId, status) {
+    WorkflowManager.updateTaskStatus(taskId, status);
+    showTaskManager();
+    showToast('任务状态更新成功！', 'success');
+}
+
+// 删除任务
+function deleteTask(taskId) {
+    if (confirm('确定要删除这个任务吗？')) {
+        const tasks = JSON.parse(localStorage.getItem('leadgen_tasks') || '[]');
+        const filteredTasks = tasks.filter(t => t.id !== taskId);
+        localStorage.setItem('leadgen_tasks', JSON.stringify(filteredTasks));
+        showTaskManager();
+        showToast('任务删除成功！', 'success');
+    }
+}
+
+// 在智能获客视图中添加任务管理按钮
+function addTaskManagerButton() {
+    const leadgenView = document.getElementById('view-leadgen');
+    if (leadgenView) {
+        const header = leadgenView.querySelector('.modal-header') || leadgenView.querySelector('div[style*="display: flex; justify-content: space-between; align-items: center;"]');
+        if (header) {
+            const taskButton = document.createElement('button');
+            taskButton.className = 'btn btn-outline';
+            taskButton.textContent = '📋 任务管理';
+            taskButton.onclick = showTaskManager;
+            taskButton.style.marginRight = '10px';
+            
+            // 插入到新增客户按钮之前
+            const addButton = header.querySelector('button.btn-primary');
+            if (addButton) {
+                header.insertBefore(taskButton, addButton);
+            }
+        }
+    }
+}
+
+// 初始化工作流
+window.addEventListener('DOMContentLoaded', () => {
+    initWorkflow();
+    // 延迟添加按钮，确保DOM已完全加载
+    setTimeout(() => {
+        addTaskManagerButton();
+        addRecommendationButton();
+        addReportButton();
+    }, 1000);
+});
+
+// ==================== 智能推荐引擎 ====================
+
+// 智能推荐引擎管理
+const RecommendationEngine = {
+    // 获取高价值客户推荐
+    getHighValueCustomers: function(limit = 5) {
+        const customers = LeadgenManager.getCustomers();
+        return customers
+            .filter(customer => customer.score >= 70)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, limit);
+    },
+    
+    // 获取相似客户推荐
+    getSimilarCustomers: function(customerId) {
+        const targetCustomer = LeadgenManager.getCustomers().find(c => c.id === customerId);
+        if (!targetCustomer) return [];
+        
+        const customers = LeadgenManager.getCustomers().filter(c => c.id !== customerId);
+        
+        // 计算相似度
+        const similarCustomers = customers.map(customer => {
+            let similarityScore = 0;
+            
+            // 来源相似度
+            if (customer.source === targetCustomer.source) similarityScore += 30;
+            
+            // 企业规模相似度
+            if (customer.companySize === targetCustomer.companySize) similarityScore += 25;
+            
+            // 评分相似度（分数越接近，相似度越高）
+            const scoreDiff = Math.abs(customer.score - targetCustomer.score);
+            similarityScore += Math.max(0, 20 - scoreDiff / 5);
+            
+            // 状态相似度
+            if (customer.status === targetCustomer.status) similarityScore += 15;
+            
+            // 标签相似度
+            if (customer.tags && targetCustomer.tags) {
+                const commonTags = customer.tags.filter(tag => targetCustomer.tags.includes(tag));
+                similarityScore += commonTags.length * 10;
+            }
+            
+            return { ...customer, similarityScore };
+        });
+        
+        return similarCustomers
+            .sort((a, b) => b.similarityScore - a.similarityScore)
+            .slice(0, 5);
+    },
+    
+    // 获取推荐操作
+    getRecommendedActions: function(customerId) {
+        const customer = LeadgenManager.getCustomers().find(c => c.id === customerId);
+        if (!customer) return [];
+        
+        const actions = [];
+        
+        // 基于状态的推荐
+        switch (customer.status) {
+            case 'lead':
+                actions.push('建议立即跟进，了解客户需求');
+                actions.push('建议添加详细的企业信息');
+                break;
+            case 'following':
+                actions.push('建议安排产品演示');
+                actions.push('建议发送报价单');
+                break;
+            case 'high-intent':
+                actions.push('建议提供定制化解决方案');
+                actions.push('建议安排高层会议');
+                break;
+            case 'closed':
+                actions.push('建议定期回访，维护客户关系');
+                actions.push('建议推荐其他产品或服务');
+                break;
+            case 'lost':
+                actions.push('建议分析流失原因，改进销售策略');
+                break;
+        }
+        
+        // 基于评分的推荐
+        if (customer.score >= 80) {
+            actions.push('建议作为重点客户培养');
+        } else if (customer.score < 30) {
+            actions.push('建议评估客户价值，考虑资源分配');
+        }
+        
+        // 基于标签的推荐
+        if (customer.tags) {
+            if (customer.tags.includes('高价值')) {
+                actions.push('建议提供VIP服务');
+            }
+            if (customer.tags.includes('官网')) {
+                actions.push('建议关注客户在官网的行为');
+            }
+        }
+        
+        return actions;
+    },
+    
+    // 预测客户成交概率
+    predictConversionProbability: function(customerId) {
+        const customer = LeadgenManager.getCustomers().find(c => c.id === customerId);
+        if (!customer) return 0;
+        
+        let probability = 50; // 基础概率
+        
+        // 评分影响
+        probability += (customer.score - 50) * 0.5;
+        
+        // 状态影响
+        const statusBonus = {
+            'lead': 0,
+            'following': 20,
+            'high-intent': 40,
+            'closed': 100,
+            'lost': 0
+        };
+        probability += statusBonus[customer.status] || 0;
+        
+        // 标签影响
+        if (customer.tags) {
+            if (customer.tags.includes('高价值')) probability += 10;
+            if (customer.tags.includes('推荐')) probability += 15;
+        }
+        
+        // 确保概率在0-100之间
+        return Math.max(0, Math.min(100, Math.round(probability)));
+    }
+};
+
+// 显示智能推荐面板
+function showRecommendations() {
+    const highValueCustomers = RecommendationEngine.getHighValueCustomers();
+    
+    // 创建推荐面板模态框
+    const modal = document.createElement('div');
+    modal.id = 'recommendationsModal';
+    modal.className = 'modal-overlay';
+    modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 10000;';
+    
+    modal.innerHTML = `
+        <div class="modal" style="background: var(--card-bg); border-radius: 12px; padding: 24px; max-width: 800px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h2 style="margin: 0; color: var(--primary-color); font-size: 20px;">🤖 智能推荐</h2>
+                <button class="close-btn" onclick="closeRecommendationsModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-sub);">&times;</button>
+            </div>
+            
+            <div style="margin-bottom: 32px;">
+                <h3 style="color: var(--text-main); font-size: 16px; font-weight: 600; margin-bottom: 16px;">🔥 高价值客户推荐</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px;">
+                    ${highValueCustomers.length > 0 ? highValueCustomers.map(customer => `
+                        <div class="customer-card" style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; cursor: pointer; transition: all 0.3s ease;" onclick="showCustomerDetail('${customer.id}')">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                <div style="font-weight: 600; font-size: 16px;">${customer.name}</div>
+                                <span style="background: #10b981; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 600;">${customer.score}分</span>
+                            </div>
+                            <div style="font-size: 14px; color: var(--text-sub); margin-bottom: 4px;">公司：${customer.company || '-'}</div>
+                            <div style="font-size: 14px; color: var(--text-sub); margin-bottom: 4px;">来源：${customer.source || '-'}</div>
+                            <div style="font-size: 14px; color: var(--text-sub); margin-bottom: 4px;">状态：${getStatusText(customer.status)}</div>
+                            <div style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 4px;">
+                                ${customer.tags && customer.tags.length > 0 ? customer.tags.map(tag => `
+                                    <span style="background: rgba(37, 99, 235, 0.1); color: var(--primary-color); padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;">${tag}</span>
+                                `).join('') : ''}
+                            </div>
+                        </div>
+                    `).join('') : `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 32px;">
+                        <div style="font-size: 24px; margin-bottom: 8px;">🔥</div>
+                        <div style="color: var(--text-sub);">暂无高价值客户</div>
+                    </div>
+                    `}
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 32px;">
+                <h3 style="color: var(--text-main); font-size: 16px; font-weight: 600; margin-bottom: 16px;">📊 系统洞察</h3>
+                <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 24px; font-weight: 800; color: var(--primary-color);">${LeadgenManager.getCustomers().length}</div>
+                            <div style="font-size: 14px; color: var(--text-sub);">总客户数</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 24px; font-weight: 800; color: #10b981;">${LeadgenManager.getCustomers().filter(c => c.status === 'closed').length}</div>
+                            <div style="font-size: 14px; color: var(--text-sub);">已成交</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 24px; font-weight: 800; color: #6366f1;">${LeadgenManager.getCustomers().filter(c => c.status === 'high-intent').length}</div>
+                            <div style="font-size: 14px; color: var(--text-sub);">高意向</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 24px; font-weight: 800; color: #f59e0b;">${LeadgenManager.getCustomers().filter(c => c.status === 'following').length}</div>
+                            <div style="font-size: 14px; color: var(--text-sub);">跟进中</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+// 关闭推荐面板模态框
+function closeRecommendationsModal() {
+    const modal = document.getElementById('recommendationsModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// 在客户详情页添加推荐信息
+function addRecommendationsToCustomerDetail(customerId) {
+    const customer = LeadgenManager.getCustomers().find(c => c.id === customerId);
+    if (!customer) return;
+    
+    const similarCustomers = RecommendationEngine.getSimilarCustomers(customerId);
+    const recommendedActions = RecommendationEngine.getRecommendedActions(customerId);
+    const conversionProbability = RecommendationEngine.predictConversionProbability(customerId);
+    
+    // 找到客户详情模态框
+    const modal = document.querySelector('.modal-overlay .modal');
+    if (modal) {
+        // 在行为时间线之前添加推荐信息
+        const timelineSection = modal.querySelector('h3:nth-child(3)');
+        if (timelineSection) {
+            const recommendationHTML = `
+                <div style="margin-bottom: 24px;">
+                    <h3 style="color: var(--text-main); font-size: 16px; font-weight: 600; margin-bottom: 16px;">🤖 智能推荐</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;">
+                            <div style="font-weight: 600; margin-bottom: 12px; font-size: 14px;">成交概率</div>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div style="font-size: 32px; font-weight: 800; color: ${conversionProbability >= 70 ? '#10b981' : conversionProbability >= 40 ? '#f59e0b' : '#ef4444'};">${conversionProbability}%</div>
+                                <div style="flex: 1;">
+                                    <div style="height: 8px; background: var(--border-color); border-radius: 4px; overflow: hidden;">
+                                        <div style="height: 100%; width: ${conversionProbability}%; background: ${conversionProbability >= 70 ? '#10b981' : conversionProbability >= 40 ? '#f59e0b' : '#ef4444'}; border-radius: 4px;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;">
+                            <div style="font-weight: 600; margin-bottom: 12px; font-size: 14px;">建议操作</div>
+                            <ul style="margin: 0; padding-left: 20px;">
+                                ${recommendedActions.length > 0 ? recommendedActions.map(action => `<li style="margin-bottom: 4px; font-size: 14px;">${action}</li>`).join('') : '<li style="color: var(--text-sub); font-size: 14px;">暂无建议</li>'}
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    ${similarCustomers.length > 0 ? `
+                    <div style="margin-top: 16px; background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;">
+                        <div style="font-weight: 600; margin-bottom: 12px; font-size: 14px;">相似客户</div>
+                        <div style="display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px;">
+                            ${similarCustomers.map(similar => `
+                                <div class="customer-card" style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; min-width: 200px; cursor: pointer; transition: all 0.3s ease;" onclick="event.stopPropagation(); showCustomerDetail('${similar.id}')">
+                                    <div style="font-weight: 600; margin-bottom: 4px;">${similar.name}</div>
+                                    <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 2px;">公司：${similar.company || '-'}</div>
+                                    <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 2px;">相似度：${Math.round(similar.similarityScore)}%</div>
+                                    <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px;">评分：${similar.score}分</div>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 2px;">
+                                        ${similar.tags && similar.tags.length > 0 ? similar.tags.slice(0, 3).map(tag => `
+                                            <span style="background: rgba(37, 99, 235, 0.1); color: var(--primary-color); padding: 1px 6px; border-radius: 8px; font-size: 8px; font-weight: 600;">${tag}</span>
+                                        `).join('') : ''}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            timelineSection.insertAdjacentHTML('beforebegin', recommendationHTML);
+        }
+    }
+}
+
+// 在智能获客视图中添加推荐按钮
+function addRecommendationButton() {
+    const leadgenView = document.getElementById('view-leadgen');
+    if (leadgenView) {
+        const header = leadgenView.querySelector('.modal-header') || leadgenView.querySelector('div[style*="display: flex; justify-content: space-between; align-items: center;"]');
+        if (header) {
+            const recommendButton = document.createElement('button');
+            recommendButton.className = 'btn btn-outline';
+            recommendButton.textContent = '🤖 智能推荐';
+            recommendButton.onclick = showRecommendations;
+            recommendButton.style.marginRight = '10px';
+            
+            // 插入到任务管理按钮之前
+            const taskButton = header.querySelector('button.btn-outline');
+            if (taskButton) {
+                header.insertBefore(recommendButton, taskButton);
+            } else {
+                const addButton = header.querySelector('button.btn-primary');
+                if (addButton) {
+                    header.insertBefore(recommendButton, addButton);
+                }
+            }
+        }
+    }
+}
+
+// 在智能获客视图中添加报表按钮
+function addReportButton() {
+    const leadgenView = document.getElementById('view-leadgen');
+    if (leadgenView) {
+        const header = leadgenView.querySelector('.modal-header') || leadgenView.querySelector('div[style*="display: flex; justify-content: space-between; align-items: center;"]');
+        if (header) {
+            const reportButton = document.createElement('button');
+            reportButton.className = 'btn btn-outline';
+            reportButton.textContent = '📊 数据分析';
+            reportButton.onclick = showReports;
+            reportButton.style.marginRight = '10px';
+            
+            // 插入到智能推荐按钮之前
+            const recommendButton = header.querySelector('button.btn-outline');
+            if (recommendButton) {
+                header.insertBefore(reportButton, recommendButton);
+            } else {
+                const addButton = header.querySelector('button.btn-primary');
+                if (addButton) {
+                    header.insertBefore(reportButton, addButton);
+                }
+            }
+        }
+    }
+}
+
+// 显示数据分析报表
+function showReports() {
+    const customers = LeadgenManager.getCustomers();
+    
+    // 计算各种统计数据
+    const stats = calculateReportStats(customers);
+    
+    // 创建报表模态框
+    const modal = document.createElement('div');
+    modal.id = 'reportsModal';
+    modal.className = 'modal-overlay';
+    modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 10000;';
+    
+    modal.innerHTML = `
+        <div class="modal" style="background: var(--card-bg); border-radius: 12px; padding: 24px; max-width: 900px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h2 style="margin: 0; color: var(--primary-color); font-size: 20px;">📊 数据分析报表</h2>
+                <button class="close-btn" onclick="closeReportsModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-sub);">&times;</button>
+            </div>
+            
+            <div style="margin-bottom: 32px;">
+                <h3 style="color: var(--text-main); font-size: 16px; font-weight: 600; margin-bottom: 16px;">📈 关键指标</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                    <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; text-align: center;">
+                        <div style="font-size: 24px; font-weight: 800; color: var(--primary-color);">${stats.totalCustomers}</div>
+                        <div style="font-size: 14px; color: var(--text-sub);">总客户数</div>
+                    </div>
+                    <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; text-align: center;">
+                        <div style="font-size: 24px; font-weight: 800; color: #10b981;">${stats.conversionRate}%</div>
+                        <div style="font-size: 14px; color: var(--text-sub);">转化率</div>
+                    </div>
+                    <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; text-align: center;">
+                        <div style="font-size: 24px; font-weight: 800; color: #6366f1;">${stats.avgScore}</div>
+                        <div style="font-size: 14px; color: var(--text-sub);">平均评分</div>
+                    </div>
+                    <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; text-align: center;">
+                        <div style="font-size: 24px; font-weight: 800; color: #f59e0b;">${stats.activeCustomers}</div>
+                        <div style="font-size: 14px; color: var(--text-sub);">活跃客户</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 32px;">
+                <h3 style="color: var(--text-main); font-size: 16px; font-weight: 600; margin-bottom: 16px;">🎯 销售漏斗</h3>
+                <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end; height: 300px;">
+                        ${Object.entries(stats.funnel).map(([status, count], index) => {
+                            const height = (count / stats.totalCustomers) * 100;
+                            const colors = ['#3b82f6', '#6366f1', '#8b5cf6', '#10b981', '#ef4444'];
+                            const color = colors[index % colors.length];
+                            
+                            return `
+                                <div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+                                    <div style="width: 100%; background: ${color}; border-radius: 8px 8px 0 0; transition: height 1s ease; height: ${height}%;"></div>
+                                    <div style="margin-top: 8px; font-weight: 600;">${getStatusText(status)}</div>
+                                    <div style="font-size: 14px; color: var(--text-sub);">${count}人</div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 32px;">
+                <h3 style="color: var(--text-main); font-size: 16px; font-weight: 600; margin-bottom: 16px;">📋 客户来源分析</h3>
+                <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 24px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                        ${Object.entries(stats.sourceDistribution).map(([source, count]) => {
+                            const percentage = ((count / stats.totalCustomers) * 100).toFixed(1);
+                            return `
+                                <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;">
+                                    <div style="font-weight: 600; margin-bottom: 8px;">${source || '未知'}</div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <div style="font-size: 18px; font-weight: 800; color: var(--primary-color);">${count}</div>
+                                        <div style="font-size: 14px; color: var(--text-sub);">${percentage}%</div>
+                                    </div>
+                                    <div style="margin-top: 8px; height: 6px; background: var(--border-color); border-radius: 3px; overflow: hidden;">
+                                        <div style="height: 100%; width: ${percentage}%; background: var(--primary-color); border-radius: 3px;"></div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 32px;">
+                <h3 style="color: var(--text-main); font-size: 16px; font-weight: 600; margin-bottom: 16px;">🏢 企业规模分布</h3>
+                <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 24px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                        ${Object.entries(stats.companySizeDistribution).map(([size, count]) => {
+                            const percentage = ((count / stats.totalCustomers) * 100).toFixed(1);
+                            return `
+                                <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;">
+                                    <div style="font-weight: 600; margin-bottom: 8px;">${size || '未知'}</div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <div style="font-size: 18px; font-weight: 800; color: var(--primary-color);">${count}</div>
+                                        <div style="font-size: 14px; color: var(--text-sub);">${percentage}%</div>
+                                    </div>
+                                    <div style="margin-top: 8px; height: 6px; background: var(--border-color); border-radius: 3px; overflow: hidden;">
+                                        <div style="height: 100%; width: ${percentage}%; background: var(--primary-color); border-radius: 3px;"></div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 32px;">
+                <h3 style="color: var(--text-main); font-size: 16px; font-weight: 600; margin-bottom: 16px;">⭐ 评分分布</h3>
+                <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-end; height: 200px;">
+                        ${stats.scoreDistribution.map((range, index) => {
+                            const height = (range.count / stats.totalCustomers) * 100;
+                            return `
+                                <div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+                                    <div style="width: 100%; background: var(--primary-color); border-radius: 8px 8px 0 0; transition: height 1s ease; height: ${height}%;"></div>
+                                    <div style="margin-top: 8px; font-size: 12px; text-align: center;">${range.range}</div>
+                                    <div style="font-size: 14px; color: var(--text-sub);">${range.count}人</div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+// 关闭报表模态框
+function closeReportsModal() {
+    const modal = document.getElementById('reportsModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// 计算报表统计数据
+function calculateReportStats(customers) {
+    const totalCustomers = customers.length;
+    const closedCustomers = customers.filter(c => c.status === 'closed').length;
+    const conversionRate = totalCustomers > 0 ? Math.round((closedCustomers / totalCustomers) * 100) : 0;
+    const avgScore = totalCustomers > 0 ? Math.round(customers.reduce((sum, c) => sum + (c.score || 0), 0) / totalCustomers) : 0;
+    const activeCustomers = customers.filter(c => ['lead', 'following', 'high-intent'].includes(c.status)).length;
+    
+    // 销售漏斗
+    const funnel = {
+        lead: customers.filter(c => c.status === 'lead').length,
+        following: customers.filter(c => c.status === 'following').length,
+        'high-intent': customers.filter(c => c.status === 'high-intent').length,
+        closed: closedCustomers,
+        lost: customers.filter(c => c.status === 'lost').length
+    };
+    
+    // 来源分布
+    const sourceDistribution = {};
+    customers.forEach(c => {
+        const source = c.source || '未知';
+        sourceDistribution[source] = (sourceDistribution[source] || 0) + 1;
+    });
+    
+    // 企业规模分布
+    const companySizeDistribution = {};
+    customers.forEach(c => {
+        const size = c.companySize || '未知';
+        companySizeDistribution[size] = (companySizeDistribution[size] || 0) + 1;
+    });
+    
+    // 评分分布
+    const scoreDistribution = [
+        { range: '0-20', count: 0 },
+        { range: '21-40', count: 0 },
+        { range: '41-60', count: 0 },
+        { range: '61-80', count: 0 },
+        { range: '81-100', count: 0 }
+    ];
+    
+    customers.forEach(c => {
+        const score = c.score || 0;
+        if (score <= 20) scoreDistribution[0].count++;
+        else if (score <= 40) scoreDistribution[1].count++;
+        else if (score <= 60) scoreDistribution[2].count++;
+        else if (score <= 80) scoreDistribution[3].count++;
+        else scoreDistribution[4].count++;
+    });
+    
+    return {
+        totalCustomers,
+        conversionRate,
+        avgScore,
+        activeCustomers,
+        funnel,
+        sourceDistribution,
+        companySizeDistribution,
+        scoreDistribution
+    };
+}
+
+// 初始化报表按钮
+function initReportButton() {
+    // 延迟添加报表按钮，确保DOM已完全加载
+    setTimeout(() => {
+        addReportButton();
+    }, 1000);
+}
+
+// 修改showCustomerDetail函数，添加推荐信息
+function showCustomerDetail(customerId) {
+    const customer = LeadgenManager.getCustomers().find(c => c.id === customerId);
+    if (!customer) return;
+    
+    const modal = document.createElement('div');
+    modal.id = 'customerDetailModal';
+    modal.className = 'modal-overlay';
+    modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 10000;';
+    
+    modal.innerHTML = `
+        <div class="modal" style="background: var(--card-bg); border-radius: 12px; padding: 24px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h2 style="margin: 0; color: var(--primary-color); font-size: 20px;">👤 客户详情 - ${customer.name}</h2>
+                <button class="close-btn" onclick="closeCustomerDetailModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-sub);">&times;</button>
+            </div>
+            
+            <div style="margin-bottom: 24px;">
+                <h3 style="color: var(--text-main); font-size: 16px; font-weight: 600; margin-bottom: 16px;">360度客户画像</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                    <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;">
+                        <div style="font-weight: 600; margin-bottom: 12px; font-size: 14px;">基本信息</div>
+                        <div style="font-size: 14px; color: var(--text-sub); margin-bottom: 4px;">姓名：${customer.name}</div>
+                        <div style="font-size: 14px; color: var(--text-sub); margin-bottom: 4px;">微信：${customer.wechat || '-'}</div>
+                        <div style="font-size: 14px; color: var(--text-sub); margin-bottom: 4px;">电话：${customer.phone || '-'}</div>
+                        <div style="font-size: 14px; color: var(--text-sub); margin-bottom: 4px;">邮箱：${customer.email || '-'}</div>
+                    </div>
+                    <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;">
+                        <div style="font-weight: 600; margin-bottom: 12px; font-size: 14px;">业务信息</div>
+                        <div style="font-size: 14px; color: var(--text-sub); margin-bottom: 4px;">来源：${customer.source || '-'}</div>
+                        <div style="font-size: 14px; color: var(--text-sub); margin-bottom: 4px;">评分：${customer.score || 0}</div>
+                        <div style="font-size: 14px; color: var(--text-sub); margin-bottom: 4px;">状态：${getStatusText(customer.status)}</div>
+                        <div style="font-size: 14px; color: var(--text-sub); margin-bottom: 4px;">创建时间：${new Date(customer.createdAt).toLocaleString()}</div>
+                    </div>
+                    <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;">
+                        <div style="font-weight: 600; margin-bottom: 12px; font-size: 14px;">企业信息</div>
+                        <div style="font-size: 14px; color: var(--text-sub); margin-bottom: 4px;">公司：${customer.company || '-'}</div>
+                        <div style="font-size: 14px; color: var(--text-sub); margin-bottom: 4px;">规模：${customer.companySize || '-'}</div>
+                        <div style="font-size: 14px; color: var(--text-sub); margin-bottom: 4px;">行业：${customer.industry || '-'}</div>
+                        <div style="font-size: 14px; color: var(--text-sub); margin-bottom: 4px;">地址：${customer.address || '-'}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 24px;">
+                <h3 style="color: var(--text-main); font-size: 16px; font-weight: 600; margin-bottom: 16px;">客户标签</h3>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                    ${customer.tags && customer.tags.length > 0 ? customer.tags.map(tag => `
+                        <span style="background: rgba(37, 99, 235, 0.1); color: var(--primary-color); padding: 4px 12px; border-radius: 16px; font-size: 12px; font-weight: 600;">${tag}</span>
+                    `).join('') : '<div style="color: var(--text-sub);">暂无标签</div>'}
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 24px;">
+                <h3 style="color: var(--text-main); font-size: 16px; font-weight: 600; margin-bottom: 16px;">行为时间线</h3>
+                <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;">
+                    ${customer.activities && customer.activities.length > 0 ? customer.activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).map(activity => `
+                        <div style="display: flex; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color);">
+                            <div style="margin-right: 12px; font-size: 16px;">${getActivityIcon(activity.type)}</div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; margin-bottom: 4px;">${getActivityTypeText(activity.type)}</div>
+                                <div style="font-size: 14px; color: var(--text-sub); margin-bottom: 4px;">${activity.description}</div>
+                                <div style="font-size: 12px; color: var(--text-sub);">${new Date(activity.timestamp).toLocaleString()}</div>
+                            </div>
+                        </div>
+                    `).join('') : '<div style="text-align: center; color: var(--text-sub); padding: 20px;">暂无行为记录</div>'}
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 24px;">
+                <h3 style="color: var(--text-main); font-size: 16px; font-weight: 600; margin-bottom: 16px;">跟进记录</h3>
+                <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                    ${customer.followUps && customer.followUps.length > 0 ? customer.followUps.sort((a, b) => new Date(b.date) - new Date(a.date)).map(followUp => `
+                        <div style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color);">
+                            <div style="font-weight: 600; margin-bottom: 4px;">${followUp.content}</div>
+                            <div style="font-size: 12px; color: var(--text-sub);">${new Date(followUp.date).toLocaleString()}</div>
+                        </div>
+                    `).join('') : '<div style="text-align: center; color: var(--text-sub); padding: 20px;">暂无跟进记录</div>'}
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="followUpContent" placeholder="输入跟进内容..." style="flex: 1; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px;">
+                    <button class="btn btn-primary" onclick="addFollowUpRecord('${customer.id}')">添加跟进</button>
+                </div>
+            </div>
+            
+            <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px;">
+                <button class="btn btn-outline" onclick="closeCustomerDetailModal()">关闭</button>
+                <button class="btn btn-primary" onclick="editCustomer('${customer.id}')">编辑客户</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // 添加智能推荐信息
+    addRecommendationsToCustomerDetail(customerId);
 }
 
 // 获取状态文本
@@ -11848,9 +13806,9 @@ function getStatusText(status) {
 }
 
 // 搜索客户
-function searchCustomers() {
+async function searchCustomers() {
     const keyword = document.getElementById('leadgenSearchInput').value;
-    const customers = LeadgenManager.searchCustomers(keyword);
+    const customers = await LeadgenManager.searchCustomers(keyword);
     
     // 按状态分组
     const byStatus = {
@@ -11882,10 +13840,18 @@ function searchCustomers() {
                     <div class="customer-card" style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 10px; cursor: pointer; transition: all 0.3s ease;" onclick="showCustomerDetail('${customer.id}')">
                         <div style="font-weight: 600; margin-bottom: 8px;">${customer.name}</div>
                         <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px;">公司：${customer.company || '-'}</div>
+                        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px;">规模：${customer.companySize || '-'}</div>
                         <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px;">微信：${customer.wechat || '-'}</div>
                         <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px;">来源：${customer.source || '-'}</div>
-                        <div style="font-size: 12px; color: var(--text-sub);">评分：${customer.score || 0}</div>
-                        <div style="margin-top: 8px; display: flex; gap: 4px;">
+                        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px;">评分：${customer.score || 0}</div>
+                        ${customer.tags && customer.tags.length > 0 ? `
+                        <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px;">
+                            ${customer.tags.map(tag => `
+                                <span style="background: rgba(37, 99, 235, 0.1); color: var(--primary-color); padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;">${tag}</span>
+                            `).join('')}
+                        </div>
+                        ` : ''}
+                        <div style="margin-top: 8px; display: flex; gap: 4px; flex-wrap: wrap;">
                             <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'lead')">线索</button>
                             <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'following')">跟进</button>
                             <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'high-intent')">高意向</button>

@@ -962,6 +962,7 @@ th {
         <h2>🔐 安全验证</h2>
         <p style="margin-bottom:15px; color:var(--text-sub); font-size:13px;">请选择角色登录</p>
         <form onsubmit="checkLogin(); return false;">
+            <input type="text" id="usernameInput" value="user" style="display:none;" autocomplete="username">
             <select id="loginRole"><option value="admin">管理员 (全权限)</option><option value="operator">操作员 (仅录入/编辑)</option><option value="guest">观察员 (仅查看)</option></select>
             <input type="password" id="passwordInput" placeholder="密码" onkeydown="if(event.key==='Enter') checkLogin()" autocomplete="new-password">
             <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">进入系统</button>
@@ -989,7 +990,7 @@ th {
     </div>
     <div class="main-content">
         <div class="top-toolbar">
-            <div class="app-title"><img src="https://raw.githubusercontent.com/jlbwl/jlbbd/de4a4095d802b9d7e46db5b9eb18a0ab8dee935c/logo_jlb.png" alt="logo" style="width:20px;height:20px;vertical-align:middle;margin-right:6px;border-radius:3px;object-fit:contain;"> 金卢比 Ultimate <span id="appVersion" style="font-size:12px; color:var(--text-sub); font-weight:normal; margin-left:10px;">v1.1.2</span></div>
+            <div class="app-title"><img src="https://raw.githubusercontent.com/jlbwl/jlbbd/de4a4095d802b9d7e46db5b9eb18a0ab8dee935c/logo_jlb.png" alt="logo" style="width:20px;height:20px;vertical-align:middle;margin-right:6px;border-radius:3px;object-fit:contain;"> 金卢比 Ultimate <span id="appVersion" style="font-size:12px; color:var(--text-sub); font-weight:normal; margin-left:10px;">v1.1.3</span></div>
             <div class="toolbar-actions"><span id="userRoleBadge" class="status-tag status-settled">ADMIN</span><button class="btn btn-outline btn-sm" onclick="toggleTheme()">🌙</button></div>
         </div>
         <div id="view-dashboard" class="view-section active">
@@ -2186,7 +2187,7 @@ const App = {
      * 应用版本号
      * @type {string}
      */
-    version: '1.1.2',
+    version: '1.1.3',
     
     /**
      * 主数据存储数组
@@ -2851,12 +2852,15 @@ function switchView(viewId, event) {
             btn.classList.add('active');
         }
     }
-    if(viewId === 'dashboard') renderCharts();
-    if(viewId === 'customer') { renderPresetTable(); document.getElementById('presetSearchInput').value = ''; document.getElementById('presetSearchDropdown').style.display = 'none'; }
-    if(viewId === 'leadgen') { renderLeadgenDashboard(); }
-    if(viewId === 'list') { document.querySelectorAll('.row-cb').forEach(cb => cb.checked = false); updateBatchPanel(); }
-    if(viewId === 'formManager') FormManager.renderFormList();
-    if(viewId === 'workflow') WorkflowManager.renderWorkflowList();
+    // 将耗时操作移到setTimeout中，避免阻塞主线程
+    setTimeout(function() {
+        if(viewId === 'dashboard') renderCharts();
+        if(viewId === 'customer') { renderPresetTable(); document.getElementById('presetSearchInput').value = ''; document.getElementById('presetSearchDropdown').style.display = 'none'; }
+        if(viewId === 'leadgen') { renderLeadgenDashboard(); }
+        if(viewId === 'list') { document.querySelectorAll('.row-cb').forEach(cb => cb.checked = false); updateBatchPanel(); }
+        if(viewId === 'formManager') FormManager.renderFormList();
+        if(viewId === 'workflow') WorkflowManager.renderWorkflowList();
+    }, 0);
 }
 function sortTable(key, isNumber = false) {
     if (App.sortConfig.key === key) App.sortConfig.ascending = !App.sortConfig.ascending;

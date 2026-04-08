@@ -13130,6 +13130,11 @@ function addTaskManagerButton() {
     if (leadgenView) {
         const header = leadgenView.querySelector('.modal-header') || leadgenView.querySelector('div[style*="display: flex; justify-content: space-between; align-items: center;"]');
         if (header) {
+            // 检查按钮是否已存在
+            if (header.querySelector('button[onclick="showTaskManager"]')) {
+                return;
+            }
+            
             const taskButton = document.createElement('button');
             taskButton.className = 'btn btn-outline';
             taskButton.textContent = '📋 任务管理';
@@ -13139,7 +13144,12 @@ function addTaskManagerButton() {
             // 插入到新增客户按钮之前
             const addButton = header.querySelector('button.btn-primary');
             if (addButton && header.contains(addButton)) {
-                header.insertBefore(taskButton, addButton);
+                try {
+                    header.insertBefore(taskButton, addButton);
+                } catch (e) {
+                    // 如果insertBefore失败，直接添加到header末尾
+                    header.appendChild(taskButton);
+                }
             } else {
                 // 如果找不到按钮或按钮不是header的子节点，直接添加到header末尾
                 header.appendChild(taskButton);
@@ -13444,6 +13454,11 @@ function addRecommendationButton() {
     if (leadgenView) {
         const header = leadgenView.querySelector('.modal-header') || leadgenView.querySelector('div[style*="display: flex; justify-content: space-between; align-items: center;"]');
         if (header) {
+            // 检查按钮是否已存在
+            if (header.querySelector('button[onclick="showRecommendations"]')) {
+                return;
+            }
+            
             const recommendButton = document.createElement('button');
             recommendButton.className = 'btn btn-outline';
             recommendButton.textContent = '🤖 智能推荐';
@@ -13453,11 +13468,19 @@ function addRecommendationButton() {
             // 插入到任务管理按钮之前
             const taskButton = header.querySelector('button.btn-outline');
             if (taskButton && header.contains(taskButton)) {
-                header.insertBefore(recommendButton, taskButton);
+                try {
+                    header.insertBefore(recommendButton, taskButton);
+                } catch (e) {
+                    header.appendChild(recommendButton);
+                }
             } else {
                 const addButton = header.querySelector('button.btn-primary');
                 if (addButton && header.contains(addButton)) {
-                    header.insertBefore(recommendButton, addButton);
+                    try {
+                        header.insertBefore(recommendButton, addButton);
+                    } catch (e) {
+                        header.appendChild(recommendButton);
+                    }
                 } else {
                     // 如果找不到按钮或按钮不是header的子节点，直接添加到header末尾
                     header.appendChild(recommendButton);
@@ -13473,6 +13496,11 @@ function addReportButton() {
     if (leadgenView) {
         const header = leadgenView.querySelector('.modal-header') || leadgenView.querySelector('div[style*="display: flex; justify-content: space-between; align-items: center;"]');
         if (header) {
+            // 检查按钮是否已存在
+            if (header.querySelector('button[onclick="showReports"]')) {
+                return;
+            }
+            
             const reportButton = document.createElement('button');
             reportButton.className = 'btn btn-outline';
             reportButton.textContent = '📊 数据分析';
@@ -13482,11 +13510,19 @@ function addReportButton() {
             // 插入到智能推荐按钮之前
             const recommendButton = header.querySelector('button.btn-outline');
             if (recommendButton && header.contains(recommendButton)) {
-                header.insertBefore(reportButton, recommendButton);
+                try {
+                    header.insertBefore(reportButton, recommendButton);
+                } catch (e) {
+                    header.appendChild(reportButton);
+                }
             } else {
                 const addButton = header.querySelector('button.btn-primary');
                 if (addButton && header.contains(addButton)) {
-                    header.insertBefore(reportButton, addButton);
+                    try {
+                        header.insertBefore(reportButton, addButton);
+                    } catch (e) {
+                        header.appendChild(reportButton);
+                    }
                 } else {
                     // 如果找不到按钮或按钮不是header的子节点，直接添加到header末尾
                     header.appendChild(reportButton);

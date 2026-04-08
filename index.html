@@ -13031,8 +13031,8 @@ function closeTaskManagerModal() {
 }
 
 // 显示新增任务模态框
-function showAddTaskModal() {
-    const customers = LeadgenManager.getCustomers();
+async function showAddTaskModal() {
+    const customers = await LeadgenManager.getCustomers();
     
     const modal = document.createElement('div');
     modal.id = 'addTaskModal';
@@ -13174,8 +13174,8 @@ window.addEventListener('DOMContentLoaded', () => {
 // 智能推荐引擎管理
 const RecommendationEngine = {
     // 获取高价值客户推荐
-    getHighValueCustomers: function(limit = 5) {
-        const customers = LeadgenManager.getCustomers();
+    getHighValueCustomers: async function(limit = 5) {
+        const customers = await LeadgenManager.getCustomers();
         return customers
             .filter(customer => customer.score >= 70)
             .sort((a, b) => b.score - a.score)
@@ -13183,11 +13183,12 @@ const RecommendationEngine = {
     },
     
     // 获取相似客户推荐
-    getSimilarCustomers: function(customerId) {
-        const targetCustomer = LeadgenManager.getCustomers().find(c => c.id === customerId);
+    getSimilarCustomers: async function(customerId) {
+        const allCustomers = await LeadgenManager.getCustomers();
+        const targetCustomer = allCustomers.find(c => c.id === customerId);
         if (!targetCustomer) return [];
         
-        const customers = LeadgenManager.getCustomers().filter(c => c.id !== customerId);
+        const customers = allCustomers.filter(c => c.id !== customerId);
         
         // 计算相似度
         const similarCustomers = customers.map(customer => {
@@ -13302,8 +13303,8 @@ const RecommendationEngine = {
 };
 
 // 显示智能推荐面板
-function showRecommendations() {
-    const highValueCustomers = RecommendationEngine.getHighValueCustomers();
+async function showRecommendations() {
+    const highValueCustomers = await RecommendationEngine.getHighValueCustomers();
     
     // 创建推荐面板模态框
     const modal = document.createElement('div');
@@ -13533,8 +13534,8 @@ function addReportButton() {
 }
 
 // 显示数据分析报表
-function showReports() {
-    const customers = LeadgenManager.getCustomers();
+async function showReports() {
+    const customers = await LeadgenManager.getCustomers();
     
     // 计算各种统计数据
     const stats = calculateReportStats(customers);

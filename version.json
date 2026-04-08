@@ -1,0 +1,14 @@
+{
+  "version": "1.0.0",
+  "releaseDate": "2026-04-08",
+  "changes": [
+    "初始版本发布",
+    "实现单问题表单格式",
+    "增强数据处理与分析能力",
+    "添加AI识别功能",
+    "实现工作流自动化和第三方集成功能"
+  ],
+  "author": "jlbbd team",
+  "description": "金卢比智能表单系统",
+  "homepage": "https://github.com/jlbwl/jlbbd"
+}

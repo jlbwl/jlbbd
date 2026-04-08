@@ -9,6 +9,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="version" content="1.0.0">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -985,7 +986,7 @@ th {
     </div>
     <div class="main-content">
         <div class="top-toolbar">
-            <div class="app-title"><img src="https://raw.githubusercontent.com/jlbwl/jlbbd/de4a4095d802b9d7e46db5b9eb18a0ab8dee935c/logo_jlb.png" alt="logo" style="width:20px;height:20px;vertical-align:middle;margin-right:6px;border-radius:3px;object-fit:contain;"> 金卢比 Ultimate <span style="font-size:12px; color:var(--text-sub); font-weight:normal; margin-left:10px;">V2.0 Local+</span></div>
+            <div class="app-title"><img src="https://raw.githubusercontent.com/jlbwl/jlbbd/de4a4095d802b9d7e46db5b9eb18a0ab8dee935c/logo_jlb.png" alt="logo" style="width:20px;height:20px;vertical-align:middle;margin-right:6px;border-radius:3px;object-fit:contain;"> 金卢比 Ultimate <span style="font-size:12px; color:var(--text-sub); font-weight:normal; margin-left:10px;">v1.0.0</span></div>
             <div class="toolbar-actions"><span id="userRoleBadge" class="status-tag status-settled">ADMIN</span><button class="btn btn-outline btn-sm" onclick="toggleTheme()">🌙</button></div>
         </div>
         <div id="view-dashboard" class="view-section active">
@@ -1691,6 +1692,12 @@ th {
  * @namespace App
  */
 const App = {
+    /**
+     * 应用版本号
+     * @type {string}
+     */
+    version: '1.0.0',
+    
     /**
      * 主数据存储数组
      * @type {Array}

@@ -11215,129 +11215,136 @@ EnhancedFormManager.showTemplateModal = function() {
         const closeHandler = () => this.closeTemplateModal();
         closeBtn.addEventListener('click', closeHandler);
         closeBtnTemplate.addEventListener('click', closeHandler);
+}
+
+// 扩展 EnhancedFormManager 的模板相关方法
+EnhancedFormManager.closeTemplateModal = function() {
+    if (this.templateModal) {
+        this.templateModal.classList.remove('active');
+        setTimeout(() => {
+            if (this.templateModal && this.templateModal.parentNode) {
+                this.templateModal.parentNode.removeChild(this.templateModal);
+                this.templateModal = null;
+            }
+        }, 300);
     }
-    
-    static closeTemplateModal() {
-        if (this.templateModal) {
-            this.templateModal.classList.remove('active');
-            setTimeout(() => {
-                if (this.templateModal && this.templateModal.parentNode) {
-                    this.templateModal.parentNode.removeChild(this.templateModal);
-                    this.templateModal = null;
-                }
-            }, 300);
-        }
-    }
-    
-    static createTemplateCardHTML(template) {
-        return `
-            <div class="template-card" data-category="${template.category}" style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; cursor: pointer; transition: all 0.2s ease;" onclick="EnhancedFormManager.applyTemplate('${template.id}')">
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                    <span style="font-size: 24px;">${template.icon}</span>
-                    <div>
-                        <h4 style="font-size: 14px; font-weight: 600; margin: 0;">${template.name}</h4>
-                        <span style="font-size: 11px; color: var(--text-sub);">${template.category}</span>
-                    </div>
-                </div>
-                <p style="font-size: 12px; color: var(--text-sub); margin-bottom: 10px; line-height: 1.4;">${template.description}</p>
-                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                    ${template.components.slice(0, 3).map(c => `<span style="font-size: 10px; padding: 2px 6px; background: rgba(0,0,0,0.05); border-radius: 4px;">${c.title}</span>`).join('')}
-                    ${template.components.length > 3 ? `<span style="font-size: 10px; padding: 2px 6px; color: var(--text-sub);">+${template.components.length - 3}</span>` : ''}
+};
+
+// 扩展 EnhancedFormManager 的模板相关方法
+EnhancedFormManager.createTemplateCardHTML = function(template) {
+    return `
+        <div class="template-card" data-category="${template.category}" style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; cursor: pointer; transition: all 0.2s ease;" onclick="EnhancedFormManager.applyTemplate('${template.id}')">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                <span style="font-size: 24px;">${template.icon}</span>
+                <div>
+                    <h4 style="font-size: 14px; font-weight: 600; margin: 0;">${template.name}</h4>
+                    <span style="font-size: 11px; color: var(--text-sub);">${template.category}</span>
                 </div>
             </div>
-        `;
+            <p style="font-size: 12px; color: var(--text-sub); margin-bottom: 10px; line-height: 1.4;">${template.description}</p>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                ${template.components.slice(0, 3).map(c => `<span style="font-size: 10px; padding: 2px 6px; background: rgba(0,0,0,0.05); border-radius: 4px;">${c.title}</span>`).join('')}
+                ${template.components.length > 3 ? `<span style="font-size: 10px; padding: 2px 6px; color: var(--text-sub);">+${template.components.length - 3}</span>` : ''}
+            </div>
+        </div>
+    `;
+};
+
+// 扩展 EnhancedFormManager 的模板相关方法
+EnhancedFormManager.filterTemplates = function(category) {
+    document.querySelectorAll('.template-filter').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.category === category);
+    });
+    const templates = category === 'all' ? FormTemplateManager.getAllTemplates() : FormTemplateManager.getTemplatesByCategory(category);
+    const list = document.getElementById('templateList');
+    if (list) list.innerHTML = templates.map(t => this.createTemplateCardHTML(t)).join('');
+};
+
+// 扩展 EnhancedFormManager 的模板相关方法
+EnhancedFormManager.applyTemplate = function(templateId) {
+    const form = FormTemplateManager.applyTemplate(templateId);
+    if (!form) { alert('模板应用失败'); return; }
+    App.forms.unshift(form);
+    App.saveData();
+    this.closeTemplateModal();
+    alert('✅ 模板应用成功！');
+    editForm(form.id);
+};
+
+// 扩展 EnhancedFormManager 的工具方法
+EnhancedFormManager.copyToClipboard = function(text) {
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => { alert('已复制到剪贴板'); });
+    } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        alert('已复制到剪贴板');
     }
-    
-    static filterTemplates(category) {
-        document.querySelectorAll('.template-filter').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.category === category);
-        });
-        const templates = category === 'all' ? FormTemplateManager.getAllTemplates() : FormTemplateManager.getTemplatesByCategory(category);
-        const list = document.getElementById('templateList');
-        if (list) list.innerHTML = templates.map(t => this.createTemplateCardHTML(t)).join('');
-    }
-    
-    static applyTemplate(templateId) {
-        const form = FormTemplateManager.applyTemplate(templateId);
-        if (!form) { alert('模板应用失败'); return; }
-        App.forms.unshift(form);
+};
+
+// 扩展 EnhancedFormManager 的API相关方法
+EnhancedFormManager.regenerateAPIKey = function(formId) {
+    if (!confirm('确定要重新生成API密钥吗？旧密钥将立即失效。')) return;
+    const form = App.forms.find(f => f.id === formId);
+    if (form) {
+        form.apiKey = FormAPIManager.generateAPIKey(formId);
         App.saveData();
-        this.closeTemplateModal();
-        alert('✅ 模板应用成功！');
-        editForm(form.id);
+        alert('✅ API密钥已重新生成');
+        this.closeAPIModal();
+        setTimeout(() => {
+            this.showFormAPI(formId);
+        }, 350);
+    }
+};
+
+// 扩展 EnhancedFormManager 的数据导出方法
+EnhancedFormManager.exportFormData = function(formId) {
+    const form = App.forms.find(f => f.id === formId);
+    if (!form) { alert('未找到表单'); return; }
+    
+    // 从 localStorage 读取该表单的提交数据
+    const allSubmissions = JSON.parse(localStorage.getItem('formSubmissions') || '[]');
+    const formSubmissions = allSubmissions.filter(s => s.formId === formId);
+    
+    if (formSubmissions.length === 0) { 
+        alert('暂无数据可导出'); 
+        return; 
     }
     
-    static copyToClipboard(text) {
-        if (navigator.clipboard) {
-            navigator.clipboard.writeText(text).then(() => { alert('已复制到剪贴板'); });
-        } else {
-            const textarea = document.createElement('textarea');
-            textarea.value = text;
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
-            alert('已复制到剪贴板');
-        }
-    }
+    // 获取所有字段名
+    const fieldNames = form.components?.map(c => c.title) || [];
     
-    static regenerateAPIKey(formId) {
-        if (!confirm('确定要重新生成API密钥吗？旧密钥将立即失效。')) return;
-        const form = App.forms.find(f => f.id === formId);
-        if (form) {
-            form.apiKey = FormAPIManager.generateAPIKey(formId);
-            App.saveData();
-            alert('✅ API密钥已重新生成');
-            this.closeAPIModal();
-            setTimeout(() => {
-                this.showFormAPI(formId);
-            }, 350);
-        }
-    }
+    // 生成CSV内容
+    const headers = ['做单时间', ...fieldNames];
+    const csvContent = [
+        headers.join(','),
+        ...formSubmissions.map(sub => {
+            const row = [
+                new Date(sub.submitTime).toISOString().split('T')[0],
+                ...fieldNames.map(name => `"${String(sub.data[name] || '').replace(/"/g, '""')}"`)
+            ];
+            return row.join(',');
+        })
+    ].join('\n');
     
-    static exportFormData(formId) {
-        const form = App.forms.find(f => f.id === formId);
-        if (!form) { alert('未找到表单'); return; }
-        
-        // 从 localStorage 读取该表单的提交数据
-        const allSubmissions = JSON.parse(localStorage.getItem('formSubmissions') || '[]');
-        const formSubmissions = allSubmissions.filter(s => s.formId === formId);
-        
-        if (formSubmissions.length === 0) { 
-            alert('暂无数据可导出'); 
-            return; 
-        }
-        
-        // 获取所有字段名
-        const fieldNames = form.components?.map(c => c.title) || [];
-        
-        // 生成CSV内容
-        const headers = ['做单时间', ...fieldNames];
-        const csvContent = [
-            headers.join(','),
-            ...formSubmissions.map(sub => {
-                const row = [
-                    new Date(sub.submitTime).toISOString().split('T')[0],
-                    ...fieldNames.map(name => `"${String(sub.data[name] || '').replace(/"/g, '""')}"`)
-                ];
-                return row.join(',');
-            })
-        ].join('\n');
-        
-        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = `${form.name}_数据_${new Date().toISOString().split('T')[0]}.csv`;
-        link.click();
-        alert('✅ 数据导出成功！');
-    }
-    
-    static showFormDetail(formId) {
-        const form = App.forms.find(f => f.id === formId);
-        if (!form) return;
-        this.showFormStats(formId);
-    }
-}
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${form.name}_数据_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    alert('✅ 数据导出成功！');
+};
+
+// 扩展 EnhancedFormManager 的表单详情方法
+EnhancedFormManager.showFormDetail = function(formId) {
+    const form = App.forms.find(f => f.id === formId);
+    if (!form) return;
+    this.showFormStats(formId);
+};
 
 // ==================== 初始化 ====================
 window.addEventListener('DOMContentLoaded', () => {

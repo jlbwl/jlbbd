@@ -14847,10 +14847,6 @@ class AIChatWindow {
         const chatWindow = document.createElement('div');
         chatWindow.id = 'aiChatWindow';
         chatWindow.style.cssText = `
-            position: fixed;
-            top: 70%;
-            left: 50%;
-            transform: translate(-50%, -50%);
             width: 80%;
             max-width: 600px;
             height: 70%;
@@ -14859,9 +14855,10 @@ class AIChatWindow {
             border-radius: 16px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             z-index: 99999;
-            display: flex;
+            display: none;
             flex-direction: column;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 20px auto 0;
         `;
         
         chatWindow.innerHTML = `
@@ -14900,6 +14897,7 @@ class AIChatWindow {
             </div>
         `;
         
+        // 先添加到 body，后续在 showChatWindow 中移动位置
         document.body.appendChild(chatWindow);
     }
     
@@ -14924,7 +14922,22 @@ class AIChatWindow {
     showChatWindow() {
         const chatWindow = document.getElementById('aiChatWindow');
         if (chatWindow) {
+            // 将聊天窗口添加到统计卡片下方
+            const headerStats = document.querySelector('.header-stats');
+            if (headerStats) {
+                // 确保聊天窗口在统计卡片的父容器中
+                const parentContainer = headerStats.parentElement;
+                if (parentContainer) {
+                    // 移除从 body 中
+                    if (chatWindow.parentElement === document.body) {
+                        document.body.removeChild(chatWindow);
+                    }
+                    // 添加到统计卡片下方
+                    parentContainer.appendChild(chatWindow);
+                }
+            }
             chatWindow.style.display = 'flex';
+            this.hideAllMenus();
         }
     }
     
@@ -14932,6 +14945,11 @@ class AIChatWindow {
         const chatWindow = document.getElementById('aiChatWindow');
         if (chatWindow) {
             chatWindow.style.display = 'none';
+            // 将聊天窗口移回 body，以便下次显示
+            if (chatWindow.parentElement !== document.body) {
+                chatWindow.parentElement.removeChild(chatWindow);
+                document.body.appendChild(chatWindow);
+            }
             this.showAllMenus();
         }
     }

@@ -1688,9 +1688,8 @@ th {
                 <div class="stat-card profit"><div class="stat-label">预估总利润</div><div class="stat-value" id="dashProfit">¥0</div><div class="stat-sub" id="dashProfitRate">利润率 0%</div></div>
                 <div class="stat-card anomaly" onclick="switchView('todo')" style="cursor: pointer;"><div class="stat-label">今日待办</div><div class="stat-value" id="dashAnomaly" style="color:var(--danger-color)">0</div><div class="stat-sub">付利或超额或超时</div></div>
             </div>
-            <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
-                <button class="btn btn-outline" onclick="openHistoryReportModal()">📅 历史经营日报查询</button>
-                <button class="btn btn-primary" onclick="generateDailyReport()">📋 生成今日经营日报 (复制文本)</button>
+            <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; display: none;">
+                <!-- 按钮已移至 AI 智能助手 -->
             </div>
             <div class="chart-grid" style="display: none;">
                 <div class="chart-card"><h3>📈 近7日收单趋势</h3><canvas id="chartTrend"></canvas></div>
@@ -15022,6 +15021,9 @@ class AIChatWindow {
                - "生成审核状态分布图表"
                - "生成结算状态分布图表"
                - "生成项目状态分布图表"
+            7. 经营日报：
+               - "生成今日经营日报" - 生成当天的经营日报并复制到剪贴板
+               - "查询历史经营日报 2024-01-01 到 2024-01-31" - 查询指定日期范围的经营日报
             
             您可以使用文字或语音输入指令。
         `;
@@ -15047,10 +15049,12 @@ class AIChatWindow {
                 await this.handleGenerateReport(message);
             } else if (message.includes('图表') || message.includes('趋势') || message.includes('排行榜') || message.includes('分布')) {
                 await this.handleGenerateChart(message);
+            } else if (message.includes('经营日报') || message.includes('日报')) {
+                await this.handleDailyReport(message);
             } else if (message.includes('帮助') || message.includes('指令')) {
                 this.sendWelcomeMessage();
             } else {
-                this.addMessage('ai', '抱歉，我不太理解您的指令。您可以尝试说："添加客户"、"查找数据"、"修改信息"、"删除记录"、"生成分析"或"生成图表"。');
+                this.addMessage('ai', '抱歉，我不太理解您的指令。您可以尝试说："添加客户"、"查找数据"、"修改信息"、"删除记录"、"生成分析"、"生成图表"或"生成经营日报"。');
             }
         } catch (error) {
             console.error('处理消息出错:', error);
@@ -15468,6 +15472,62 @@ class AIChatWindow {
         
         // 滚动到底部
         chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    async handleDailyReport(message) {
+        const chatMessages = document.getElementById('chatMessages');
+        
+        if (message.includes('今日') || message.includes('生成今日')) {
+            // 生成今日经营日报
+            try {
+                // 复制 generateDailyReport 函数的逻辑
+                const today = new Date().toISOString().split('T')[0];
+                const todayData = App.data.filter(item => item.time && item.time.startsWith(today));
+                const count = todayData.length;
+                const totalAmt = todayData.reduce((s, i) => s + (parseFloat(i.amount)||0), 0);
+                const totalProf = todayData.reduce((s, i) => s + ((parseFloat(i.channelPrice)||0) - (parseFloat(i.amount)||0)), 0);
+                const anomalyCount = todayData.filter(i => ((parseFloat(i.channelPrice)||0) - (parseFloat(i.amount)||0)) < 0).length;
+                const channelMap = {};
+                todayData.forEach(i => {
+                    const c = i.channelName||'未知';
+                    const profit = (parseFloat(i.channelPrice)||0) - (parseFloat(i.amount)||0);
+                    channelMap[c] = (channelMap[c]||0) + profit;
+                });
+                const topChannel = Object.entries(channelMap).sort((a,b)=>b[1]-a[1])[0];
+                const topChanName = topChannel ? topChannel[0] : '无';
+                
+                const reportText = `📅 ${today} 经营日报\n📊 做单量：${count} 笔\n💰 做单结算总额：¥${totalAmt.toLocaleString()}\n📈 预估利润：¥${totalProf.toLocaleString()} ${totalProf>=0?'✅':'⚠️'}\n🏆 最佳渠道：${topChanName}\n⚠️ 异常预警：${anomalyCount} 笔`;
+                
+                // 显示日报内容
+                this.addMessage('ai', `## 📋 今日经营日报\n\n${reportText}`);
+                
+                // 复制到剪贴板
+                if (navigator.clipboard && window.isSecureContext) {
+                    try {
+                        await navigator.clipboard.writeText(reportText);
+                        this.addMessage('ai', '✅ 日报已成功复制到剪贴板！');
+                    } catch (error) {
+                        console.error('剪贴板复制失败:', error);
+                        this.addMessage('ai', '日报内容已显示，但复制到剪贴板失败。');
+                    }
+                } else {
+                    this.addMessage('ai', '日报内容已显示，但您的浏览器不支持剪贴板功能。');
+                }
+            } catch (error) {
+                console.error('生成今日经营日报出错:', error);
+                this.addMessage('ai', '生成今日经营日报时出错，请稍后再试。');
+            }
+        } else if (message.includes('历史') || message.includes('查询')) {
+            // 查询历史经营日报
+            this.addMessage('ai', '请输入要查询的日期范围，格式为："查询历史经营日报 2024-01-01 到 2024-01-31"');
+        } else {
+            // 显示帮助信息
+            this.addMessage('ai', `
+                您可以使用以下指令：
+                - "生成今日经营日报" - 生成当天的经营日报并复制到剪贴板
+                - "查询历史经营日报 2024-01-01 到 2024-01-31" - 查询指定日期范围的经营日报
+            `);
+        }
     }
     
     async handleGenerateChart(message) {

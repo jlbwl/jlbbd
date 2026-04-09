@@ -14844,21 +14844,32 @@ class AIChatWindow {
     }
     
     createChatWindow() {
+        // 创建主容器，包含 AI 智能助手和指令库
+        const mainContainer = document.createElement('div');
+        mainContainer.id = 'aiChatMainContainer';
+        mainContainer.style.cssText = `
+            width: 90%;
+            max-width: 1200px;
+            display: flex;
+            gap: 20px;
+            margin: 20px auto 0;
+            z-index: 99999;
+        `;
+        
+        // 创建 AI 智能助手窗口
         const chatWindow = document.createElement('div');
         chatWindow.id = 'aiChatWindow';
         chatWindow.style.cssText = `
-            width: 80%;
-            max-width: 600px;
+            flex: 1;
+            min-width: 400px;
             height: 70%;
             max-height: 600px;
             background: var(--card-bg, #fff);
             border-radius: 16px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            z-index: 99999;
             display: none;
             flex-direction: column;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            margin: 20px auto 0;
         `;
         
         chatWindow.innerHTML = `
@@ -14897,8 +14908,64 @@ class AIChatWindow {
             </div>
         `;
         
+        // 创建提示词指令库
+        const commandLibrary = document.createElement('div');
+        commandLibrary.id = 'aiCommandLibrary';
+        commandLibrary.style.cssText = `
+            width: 300px;
+            min-width: 280px;
+            height: 70%;
+            max-height: 600px;
+            background: var(--card-bg, #fff);
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            display: none;
+            flex-direction: column;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        `;
+        
+        commandLibrary.innerHTML = `
+            <div style="padding: 20px; border-bottom: 1px solid var(--border-color, #e0e0e0);">
+                <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: var(--text-main, #333);">📚 提示词指令库</h3>
+                <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-sub, #666);">点击指令直接使用</p>
+            </div>
+            <div style="flex: 1; padding: 15px; overflow-y: auto;">
+                <div style="font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; font-size: 13px; line-height: 1.6;">
+                    <h4 style="margin: 0 0 10px 0; color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">📥 客户管理</h4>
+                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='添加新客户，姓名张三，公司ABC';">添加新客户，姓名张三，公司ABC</p>
+                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='查找所有高意向客户';">查找所有高意向客户</p>
+                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='将张三的状态改为已成交';">将张三的状态改为已成交</p>
+                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='删除客户李四';">删除客户李四</p>
+                    
+                    <h4 style="margin: 15px 0 10px 0; color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">📊 数据分析</h4>
+                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='生成盈利分析报告';">生成盈利分析报告</p>
+                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='生成盈利分析报告 本周';">生成盈利分析报告 本周</p>
+                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='生成盈利分析报告 本月';">生成盈利分析报告 本月</p>
+                    
+                    <h4 style="margin: 15px 0 10px 0; color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">📈 图表生成</h4>
+                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='生成近7日收单趋势图表';">生成近7日收单趋势图表</p>
+                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='生成渠道利润TOP5图表';">生成渠道利润TOP5图表</p>
+                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='生成团队交单排行榜图表';">生成团队交单排行榜图表</p>
+                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='生成审核状态分布图表';">生成审核状态分布图表</p>
+                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='生成结算状态分布图表';">生成结算状态分布图表</p>
+                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='生成项目状态分布图表';">生成项目状态分布图表</p>
+                    
+                    <h4 style="margin: 15px 0 10px 0; color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">📋 经营日报</h4>
+                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='生成今日经营日报';">生成今日经营日报</p>
+                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='查询历史经营日报 2024-01-01 到 2024-01-31';">查询历史经营日报 2024-01-01 到 2024-01-31</p>
+                    
+                    <h4 style="margin: 15px 0 10px 0; color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">❓ 帮助</h4>
+                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='帮助';">帮助</p>
+                </div>
+            </div>
+        `;
+        
+        // 将 AI 智能助手和指令库添加到主容器
+        mainContainer.appendChild(chatWindow);
+        mainContainer.appendChild(commandLibrary);
+        
         // 先添加到 body，后续在 showChatWindow 中移动位置
-        document.body.appendChild(chatWindow);
+        document.body.appendChild(mainContainer);
     }
     
     bindEvents() {
@@ -14920,36 +14987,52 @@ class AIChatWindow {
     }
     
     showChatWindow() {
+        const mainContainer = document.getElementById('aiChatMainContainer');
         const chatWindow = document.getElementById('aiChatWindow');
-        if (chatWindow) {
-            // 将聊天窗口添加到统计卡片下方
+        const commandLibrary = document.getElementById('aiCommandLibrary');
+        
+        if (mainContainer && chatWindow && commandLibrary) {
+            // 将主容器添加到统计卡片下方
             const headerStats = document.querySelector('.header-stats');
             if (headerStats) {
-                // 确保聊天窗口在统计卡片的父容器中
+                // 确保主容器在统计卡片的父容器中
                 const parentContainer = headerStats.parentElement;
                 if (parentContainer) {
                     // 移除从 body 中
-                    if (chatWindow.parentElement === document.body) {
-                        document.body.removeChild(chatWindow);
+                    if (mainContainer.parentElement === document.body) {
+                        document.body.removeChild(mainContainer);
                     }
                     // 添加到统计卡片下方
-                    parentContainer.appendChild(chatWindow);
+                    parentContainer.appendChild(mainContainer);
                 }
             }
+            
+            // 显示所有元素
+            mainContainer.style.display = 'flex';
             chatWindow.style.display = 'flex';
+            commandLibrary.style.display = 'flex';
+            
             this.hideAllMenus();
         }
     }
     
     hideChatWindow() {
+        const mainContainer = document.getElementById('aiChatMainContainer');
         const chatWindow = document.getElementById('aiChatWindow');
-        if (chatWindow) {
+        const commandLibrary = document.getElementById('aiCommandLibrary');
+        
+        if (mainContainer && chatWindow && commandLibrary) {
+            // 隐藏所有元素
+            mainContainer.style.display = 'none';
             chatWindow.style.display = 'none';
-            // 将聊天窗口移回 body，以便下次显示
-            if (chatWindow.parentElement !== document.body) {
-                chatWindow.parentElement.removeChild(chatWindow);
-                document.body.appendChild(chatWindow);
+            commandLibrary.style.display = 'none';
+            
+            // 将主容器移回 body，以便下次显示
+            if (mainContainer.parentElement !== document.body) {
+                mainContainer.parentElement.removeChild(mainContainer);
+                document.body.appendChild(mainContainer);
             }
+            
             this.showAllMenus();
         }
     }

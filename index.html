@@ -6945,22 +6945,42 @@ function initDataSync() {
     let lastDataHash = '';
     setInterval(function() {
         if (App) {
-            // 使用setTimeout将执行放入事件队列，避免阻塞主线程
+            // 第一阶段：只加载数据和计算哈希
             setTimeout(function() {
-                // 先加载本地数据
-                App.loadLocal();
-                
-                // 更高效地检测数据变化：只比较数据长度和最后修改时间
-                const dataLength = JSON.stringify(App.data).length;
-                const lastModified = App.data.lastModified || 0;
-                const currentHash = `${dataLength}-${lastModified}`;
-                
-                if (currentHash !== lastDataHash) {
-                    // 再次使用setTimeout确保渲染操作不阻塞主线程
-                    setTimeout(function() {
-                        App.refreshAll();
-                        lastDataHash = currentHash;
-                    }, 0);
+                try {
+                    // 先加载本地数据
+                    App.loadLocal();
+                    
+                    // 更高效地检测数据变化：只比较数据长度和最后修改时间
+                    const dataLength = JSON.stringify(App.data).length;
+                    const lastModified = App.data.lastModified || 0;
+                    const currentHash = `${dataLength}-${lastModified}`;
+                    
+                    if (currentHash !== lastDataHash) {
+                        // 第二阶段：使用requestAnimationFrame进行DOM操作，避免阻塞主线程
+                        if (typeof requestAnimationFrame === 'function') {
+                            requestAnimationFrame(function() {
+                                try {
+                                    App.refreshAll();
+                                    lastDataHash = currentHash;
+                                } catch (e) {
+                                    console.log('Refresh error:', e);
+                                }
+                            });
+                        } else {
+                            // 降级到setTimeout
+                            setTimeout(function() {
+                                try {
+                                    App.refreshAll();
+                                    lastDataHash = currentHash;
+                                } catch (e) {
+                                    console.log('Refresh error:', e);
+                                }
+                            }, 0);
+                        }
+                    }
+                } catch (e) {
+                    console.log('Data check error:', e);
                 }
             }, 0);
         }

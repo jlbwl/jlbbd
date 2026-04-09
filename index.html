@@ -15039,9 +15039,6 @@ class AIChatWindow {
             }
             
             this.showAllMenus();
-            
-            // 恢复所有视图部分的显示
-            document.querySelectorAll('.view-section').forEach(el => el.style.display = 'block');
         }
     }
     
@@ -15074,9 +15071,6 @@ class AIChatWindow {
             
             // 显示所有菜单
             this.showAllMenus();
-            
-            // 显示所有视图部分
-            document.querySelectorAll('.view-section').forEach(el => el.style.display = 'block');
             
             // 切换到对应视图
             switchView(viewId);
@@ -15240,9 +15234,6 @@ class AIChatWindow {
             
             // 移除小精灵图标
             fairyIcon.remove();
-            
-            // 隐藏所有视图部分
-            document.querySelectorAll('.view-section').forEach(el => el.style.display = 'none');
             
             // 隐藏所有菜单
             this.hideAllMenus();

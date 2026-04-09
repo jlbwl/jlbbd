@@ -14139,6 +14139,7 @@ const RecommendationEngine = {
 // 显示智能推荐面板
 async function showRecommendations() {
     const highValueCustomers = await RecommendationEngine.getHighValueCustomers();
+    const customers = await LeadgenManager.getCustomers();
     
     // 创建推荐面板模态框
     const modal = document.createElement('div');
@@ -14185,19 +14186,19 @@ async function showRecommendations() {
                 <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;">
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
                         <div style="text-align: center;">
-                            <div style="font-size: 24px; font-weight: 800; color: var(--primary-color);">${LeadgenManager.getCustomers().length}</div>
+                            <div style="font-size: 24px; font-weight: 800; color: var(--primary-color);">${customers.length}</div>
                             <div style="font-size: 14px; color: var(--text-sub);">总客户数</div>
                         </div>
                         <div style="text-align: center;">
-                            <div style="font-size: 24px; font-weight: 800; color: #10b981;">${LeadgenManager.getCustomers().filter(c => c.status === 'closed').length}</div>
+                            <div style="font-size: 24px; font-weight: 800; color: #10b981;">${customers.filter(c => c.status === 'closed').length}</div>
                             <div style="font-size: 14px; color: var(--text-sub);">已成交</div>
                         </div>
                         <div style="text-align: center;">
-                            <div style="font-size: 24px; font-weight: 800; color: #6366f1;">${LeadgenManager.getCustomers().filter(c => c.status === 'high-intent').length}</div>
+                            <div style="font-size: 24px; font-weight: 800; color: #6366f1;">${customers.filter(c => c.status === 'high-intent').length}</div>
                             <div style="font-size: 14px; color: var(--text-sub);">高意向</div>
                         </div>
                         <div style="text-align: center;">
-                            <div style="font-size: 24px; font-weight: 800; color: #f59e0b;">${LeadgenManager.getCustomers().filter(c => c.status === 'following').length}</div>
+                            <div style="font-size: 24px; font-weight: 800; color: #f59e0b;">${customers.filter(c => c.status === 'following').length}</div>
                             <div style="font-size: 14px; color: var(--text-sub);">跟进中</div>
                         </div>
                     </div>

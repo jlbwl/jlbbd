@@ -14848,11 +14848,14 @@ class AIChatWindow {
         const mainContainer = document.createElement('div');
         mainContainer.id = 'aiChatMainContainer';
         mainContainer.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             width: 90%;
             max-width: 1200px;
             display: flex;
             gap: 20px;
-            margin: 40px auto 0;
             z-index: 99999;
         `;
         
@@ -15003,15 +15006,10 @@ class AIChatWindow {
         const commandLibrary = document.getElementById('aiCommandLibrary');
         
         if (mainContainer && chatWindow && commandLibrary) {
-            // 将主容器添加到主内容区域
-            const mainContent = document.querySelector('.main-content');
-            if (mainContent) {
-                // 移除从 body 中
-                if (mainContainer.parentElement === document.body) {
-                    document.body.removeChild(mainContainer);
-                }
-                // 添加到主内容区域
-                mainContent.appendChild(mainContainer);
+            // 将主容器添加到 body
+            if (mainContainer.parentElement !== document.body) {
+                mainContainer.parentElement.removeChild(mainContainer);
+                document.body.appendChild(mainContainer);
             }
             
             // 显示所有元素
@@ -15041,6 +15039,9 @@ class AIChatWindow {
             }
             
             this.showAllMenus();
+            
+            // 恢复所有视图部分的显示
+            document.querySelectorAll('.view-section').forEach(el => el.style.display = 'block');
         }
     }
     
@@ -15073,6 +15074,9 @@ class AIChatWindow {
             
             // 显示所有菜单
             this.showAllMenus();
+            
+            // 显示所有视图部分
+            document.querySelectorAll('.view-section').forEach(el => el.style.display = 'block');
             
             // 切换到对应视图
             switchView(viewId);
@@ -15236,6 +15240,9 @@ class AIChatWindow {
             
             // 移除小精灵图标
             fairyIcon.remove();
+            
+            // 隐藏所有视图部分
+            document.querySelectorAll('.view-section').forEach(el => el.style.display = 'none');
             
             // 隐藏所有菜单
             this.hideAllMenus();

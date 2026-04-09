@@ -6943,40 +6943,56 @@ function initDataSync() {
     
     // 定期检查数据更新
     let lastDataHash = '';
+    let lastCheckTime = 0;
+    const MIN_CHECK_INTERVAL = 5000; // 最小检查间隔，避免频繁操作
+    
     setInterval(function() {
         if (App) {
-            // 第一阶段：只加载数据和计算哈希
+            const now = Date.now();
+            
+            // 限制检查频率，避免短时间内重复执行
+            if (now - lastCheckTime < MIN_CHECK_INTERVAL) {
+                return;
+            }
+            
+            lastCheckTime = now;
+            
+            // 第一阶段：只检查 localStorage 数据是否有变化
             setTimeout(function() {
                 try {
-                    // 先加载本地数据
-                    App.loadLocal();
+                    // 先获取 localStorage 数据的基本信息，避免完整加载和解析
+                    const raw = localStorage.getItem('jlb_data_v8_enc');
                     
-                    // 更高效地检测数据变化：只比较数据长度和最后修改时间
-                    const dataLength = JSON.stringify(App.data).length;
-                    const lastModified = App.data.lastModified || 0;
-                    const currentHash = `${dataLength}-${lastModified}`;
-                    
-                    if (currentHash !== lastDataHash) {
-                        // 第二阶段：使用requestAnimationFrame进行DOM操作，避免阻塞主线程
-                        if (typeof requestAnimationFrame === 'function') {
-                            requestAnimationFrame(function() {
-                                try {
-                                    App.refreshAll();
-                                    lastDataHash = currentHash;
-                                } catch (e) {
-                                    console.log('Refresh error:', e);
-                                }
-                            });
-                        } else {
-                            // 降级到setTimeout
-                            setTimeout(function() {
-                                try {
-                                    App.refreshAll();
-                                    lastDataHash = currentHash;
-                                } catch (e) {
-                                    console.log('Refresh error:', e);
-                                }
-                            }, 0);
+                    if (raw) {
+                        // 只计算原始数据的长度，不进行解密和解析
+                        const dataLength = raw.length;
+                        const currentHash = `${dataLength}`;
+                        
+                        if (currentHash !== lastDataHash) {
+                            // 第二阶段：使用requestAnimationFrame进行DOM操作，避免阻塞主线程
+                            if (typeof requestAnimationFrame === 'function') {
+                                requestAnimationFrame(function() {
+                                    try {
+                                        // 只在数据确实变化时才加载和刷新
+                                        App.loadLocal();
+                                        App.refreshAll();
+                                        lastDataHash = currentHash;
+                                    } catch (e) {
+                                        console.log('Refresh error:', e);
+                                    }
+                                });
+                            } else {
+                                // 降级到setTimeout
+                                setTimeout(function() {
+                                    try {
+                                        App.loadLocal();
+                                        App.refreshAll();
+                                        lastDataHash = currentHash;
+                                    } catch (e) {
+                                        console.log('Refresh error:', e);
+                                    }
+                                }, 0);
+                            }
                         }
                     }
                 } catch (e) {

@@ -14897,7 +14897,12 @@ class AIChatWindow {
                     🎤
                 </button>
                 <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
-                    <input type="text" id="chatInput" class="chat-input-field" placeholder="请输入您的指令..." style="width: 100%; padding: 12px 16px; border: 1px solid var(--border-color, #e0e0e0); border-radius: 22px; font-size: 14px; outline: none; focus: border-color: var(--primary-color, #3b82f6);">
+                    <div style="position: relative;">
+                        <input type="text" id="chatInput" class="chat-input-field" placeholder="请输入您的指令..." style="width: 100%; padding: 12px 16px; border: 1px solid var(--border-color, #e0e0e0); border-radius: 22px; font-size: 14px; outline: none; focus: border-color: var(--primary-color, #3b82f6);">
+                        <div id="chatInputSuggestions" class="chat-input-suggestions" style="position: absolute; bottom: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; background: var(--card-bg, #fff); border: 1px solid var(--border-color, #e0e0e0); border-radius: 8px 8px 0 0; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 99999; display: none; margin-bottom: 5px;">
+                            <!-- 建议将在这里动态添加 -->
+                        </div>
+                    </div>
                     <div style="font-size: 12px; color: var(--text-sub, #666); text-align: center;">
                         您可以：添加客户、查找数据、修改信息、删除记录、生成分析报告
                     </div>
@@ -14992,6 +14997,92 @@ class AIChatWindow {
         
         // 语音按钮点击事件
         document.getElementById('voiceBtn').addEventListener('click', () => this.toggleVoiceRecognition());
+        
+        // 输入框输入事件，实现自动关联提示词
+        document.getElementById('chatInput').addEventListener('input', () => this.handleInput());
+        
+        // 点击其他地方关闭建议
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.chat-input')) {
+                document.getElementById('chatInputSuggestions').style.display = 'none';
+            }
+        });
+    }
+    
+    // 输入处理，实现自动关联提示词
+    handleInput() {
+        const input = document.getElementById('chatInput');
+        const suggestions = document.getElementById('chatInputSuggestions');
+        const inputValue = input.value.trim().toLowerCase();
+        
+        if (inputValue.length === 0) {
+            suggestions.style.display = 'none';
+            return;
+        }
+        
+        // 提示词指令库
+        const commands = [
+            '添加新客户，姓名张三，公司ABC',
+            '查找所有高意向客户',
+            '将张三的状态改为已成交',
+            '删除客户李四',
+            '生成盈利分析报告',
+            '生成盈利分析报告 本周',
+            '生成盈利分析报告 本月',
+            '生成近7日收单趋势图表',
+            '生成渠道利润TOP5图表',
+            '生成团队交单排行榜图表',
+            '生成审核状态分布图表',
+            '生成结算状态分布图表',
+            '生成项目状态分布图表',
+            '生成今日经营日报',
+            '查询历史经营日报 2024-01-01 到 2024-01-31',
+            '帮助',
+            '打开今日待办',
+            '打开收单列表',
+            '打开表单管理',
+            '打开工作流管理',
+            '打开客户管理',
+            '打开智能获客',
+            '打开回收站',
+            '打开审计日志',
+            '打开设置'
+        ];
+        
+        // 匹配提示词
+        const matchedCommands = commands.filter(command => 
+            command.toLowerCase().includes(inputValue)
+        );
+        
+        if (matchedCommands.length > 0) {
+            // 显示建议
+            suggestions.innerHTML = '';
+            matchedCommands.forEach(command => {
+                const suggestionItem = document.createElement('div');
+                suggestionItem.style.cssText = `
+                    padding: 10px 15px;
+                    cursor: pointer;
+                    font-size: 14px;
+                    color: var(--text-main, #333);
+                    border-bottom: 1px solid var(--border-color, #e0e0e0);
+                `;
+                suggestionItem.addEventListener('mouseenter', () => {
+                    suggestionItem.style.backgroundColor = 'var(--background-color, #f5f5f5)';
+                });
+                suggestionItem.addEventListener('mouseleave', () => {
+                    suggestionItem.style.backgroundColor = '';
+                });
+                suggestionItem.textContent = command;
+                suggestionItem.addEventListener('click', () => {
+                    input.value = command;
+                    suggestions.style.display = 'none';
+                });
+                suggestions.appendChild(suggestionItem);
+            });
+            suggestions.style.display = 'block';
+        } else {
+            suggestions.style.display = 'none';
+        }
     }
     
     showChatWindow() {

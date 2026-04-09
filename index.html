@@ -14826,6 +14826,415 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 console.log('✅ 智能获客模块已加载');
+
+// AI 聊天窗口功能
+class AIChatWindow {
+    constructor() {
+        this.isListening = false;
+        this.recognizer = null;
+        this.chatHistory = [];
+        this.init();
+    }
+    
+    init() {
+        this.createChatWindow();
+        this.bindEvents();
+        this.showChatWindow();
+        this.hideAllMenus();
+        this.sendWelcomeMessage();
+    }
+    
+    createChatWindow() {
+        const chatWindow = document.createElement('div');
+        chatWindow.id = 'aiChatWindow';
+        chatWindow.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            max-width: 600px;
+            height: 80%;
+            max-height: 700px;
+            background: var(--card-bg, #fff);
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        `;
+        
+        chatWindow.innerHTML = `
+            <div class="chat-header" style="padding: 20px; border-bottom: 1px solid var(--border-color, #e0e0e0); display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 20px;">
+                        🤖
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: var(--text-main, #333);">AI 智能助手</h3>
+                        <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-sub, #666);">随时为您服务</p>
+                    </div>
+                </div>
+                <button id="closeChatBtn" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-sub, #666); padding: 0; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 50%; hover: background: var(--background-color, #f5f5f5);">
+                    ×
+                </button>
+            </div>
+            
+            <div id="chatMessages" class="chat-messages" style="flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
+                <!-- 消息将在这里动态添加 -->
+            </div>
+            
+            <div class="chat-input" style="padding: 20px; border-top: 1px solid var(--border-color, #e0e0e0); display: flex; gap: 10px; align-items: flex-end;">
+                <button id="voiceBtn" class="voice-btn" style="background: var(--primary-color, #3b82f6); color: white; border: none; border-radius: 50%; width: 44px; height: 44px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">
+                    🎤
+                </button>
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+                    <input type="text" id="chatInput" class="chat-input-field" placeholder="请输入您的指令..." style="width: 100%; padding: 12px 16px; border: 1px solid var(--border-color, #e0e0e0); border-radius: 22px; font-size: 14px; outline: none; focus: border-color: var(--primary-color, #3b82f6);">
+                    <div style="font-size: 12px; color: var(--text-sub, #666); text-align: center;">
+                        您可以：添加客户、查找数据、修改信息、删除记录、生成分析报告
+                    </div>
+                </div>
+                <button id="sendBtn" class="send-btn" style="background: var(--primary-color, #3b82f6); color: white; border: none; border-radius: 22px; padding: 12px 20px; cursor: pointer; font-size: 14px; font-weight: 600; flex-shrink: 0;">
+                    发送
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(chatWindow);
+    }
+    
+    bindEvents() {
+        // 发送按钮点击事件
+        document.getElementById('sendBtn').addEventListener('click', () => this.sendMessage());
+        
+        // 输入框回车事件
+        document.getElementById('chatInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.sendMessage();
+            }
+        });
+        
+        // 语音按钮点击事件
+        document.getElementById('voiceBtn').addEventListener('click', () => this.toggleVoiceRecognition());
+        
+        // 关闭按钮点击事件
+        document.getElementById('closeChatBtn').addEventListener('click', () => this.hideChatWindow());
+    }
+    
+    showChatWindow() {
+        const chatWindow = document.getElementById('aiChatWindow');
+        if (chatWindow) {
+            chatWindow.style.display = 'flex';
+        }
+    }
+    
+    hideChatWindow() {
+        const chatWindow = document.getElementById('aiChatWindow');
+        if (chatWindow) {
+            chatWindow.style.display = 'none';
+            this.showAllMenus();
+        }
+    }
+    
+    hideAllMenus() {
+        // 隐藏所有菜单项
+        const menus = document.querySelectorAll('.sidebar-btn, .nav-menu, .menu-item');
+        menus.forEach(menu => {
+            if (menu.style.display !== 'none') {
+                menu.dataset.originalDisplay = menu.style.display;
+                menu.style.display = 'none';
+            }
+        });
+    }
+    
+    showAllMenus() {
+        // 恢复所有菜单项
+        const menus = document.querySelectorAll('.sidebar-btn, .nav-menu, .menu-item');
+        menus.forEach(menu => {
+            if (menu.dataset.originalDisplay) {
+                menu.style.display = menu.dataset.originalDisplay;
+                delete menu.dataset.originalDisplay;
+            } else {
+                menu.style.display = '';
+            }
+        });
+    }
+    
+    sendMessage() {
+        const inputField = document.getElementById('chatInput');
+        const message = inputField.value.trim();
+        
+        if (message) {
+            // 添加用户消息
+            this.addMessage('user', message);
+            inputField.value = '';
+            
+            // 处理消息
+            this.processMessage(message);
+        }
+    }
+    
+    addMessage(sender, content) {
+        const messagesContainer = document.getElementById('chatMessages');
+        const messageElement = document.createElement('div');
+        
+        messageElement.style.cssText = `
+            display: flex;
+            ${sender === 'user' ? 'justify-content: flex-end;' : 'justify-content: flex-start;'}
+            margin-bottom: 12px;
+        `;
+        
+        messageElement.innerHTML = `
+            <div style="
+                max-width: 70%;
+                padding: 12px 16px;
+                border-radius: 18px;
+                ${sender === 'user' ? 
+                    'background: var(--primary-color, #3b82f6); color: white; border-bottom-right-radius: 4px;' : 
+                    'background: var(--background-color, #f5f5f5); color: var(--text-main, #333); border-bottom-left-radius: 4px;'}
+            ">
+                ${content}
+            </div>
+        `;
+        
+        messagesContainer.appendChild(messageElement);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        
+        // 保存到聊天历史
+        this.chatHistory.push({ sender, content, timestamp: new Date() });
+    }
+    
+    sendWelcomeMessage() {
+        const welcomeMessage = `
+            您好！我是您的 AI 智能助手，随时为您服务。
+            
+            您可以通过我执行以下操作：
+            1. 添加客户："添加新客户，姓名张三，公司ABC"
+            2. 查找数据："查找所有高意向客户"
+            3. 修改信息："将张三的状态改为已成交"
+            4. 删除记录："删除客户李四"
+            5. 生成分析："生成盈利分析报告"
+            
+            您可以使用文字或语音输入指令。
+        `;
+        this.addMessage('ai', welcomeMessage);
+    }
+    
+    async processMessage(message) {
+        // 模拟 AI 思考
+        this.addMessage('ai', '正在处理您的请求...');
+        
+        // 简单的命令解析
+        try {
+            if (message.includes('添加') && message.includes('客户')) {
+                await this.handleAddCustomer(message);
+            } else if (message.includes('查找') || message.includes('搜索')) {
+                await this.handleSearchCustomers(message);
+            } else if (message.includes('修改') || message.includes('更新')) {
+                await this.handleUpdateCustomer(message);
+            } else if (message.includes('删除') && message.includes('客户')) {
+                await this.handleDeleteCustomer(message);
+            } else if (message.includes('分析') || message.includes('报告')) {
+                await this.handleGenerateReport(message);
+            } else if (message.includes('帮助') || message.includes('指令')) {
+                this.sendWelcomeMessage();
+            } else {
+                this.addMessage('ai', '抱歉，我不太理解您的指令。您可以尝试说："添加客户"、"查找数据"、"修改信息"、"删除记录"或"生成分析"。');
+            }
+        } catch (error) {
+            console.error('处理消息出错:', error);
+            this.addMessage('ai', '处理您的请求时出现错误，请稍后再试。');
+        }
+        
+        // 移除思考消息
+        const messagesContainer = document.getElementById('chatMessages');
+        if (messagesContainer.lastElementChild) {
+            messagesContainer.removeChild(messagesContainer.lastElementChild);
+        }
+    }
+    
+    async handleAddCustomer(message) {
+        // 简单的客户信息提取
+        const nameMatch = message.match(/姓名([^，,]+)/);
+        const companyMatch = message.match(/公司([^，,]+)/);
+        const wechatMatch = message.match(/微信([^，,]+)/);
+        const sourceMatch = message.match(/来源([^，,]+)/);
+        
+        const customer = {
+            name: nameMatch ? nameMatch[1].trim() : '未知',
+            company: companyMatch ? companyMatch[1].trim() : '',
+            wechat: wechatMatch ? wechatMatch[1].trim() : '',
+            source: sourceMatch ? sourceMatch[1].trim() : '其他',
+            status: 'lead',
+            score: 50
+        };
+        
+        await LeadgenManager.addCustomer(customer);
+        this.addMessage('ai', `成功添加客户：${customer.name} (${customer.company || '无公司'})`);
+    }
+    
+    async handleSearchCustomers(message) {
+        const customers = await LeadgenManager.getCustomers();
+        let filteredCustomers = customers;
+        
+        if (message.includes('高意向')) {
+            filteredCustomers = customers.filter(c => c.status === 'high-intent');
+        } else if (message.includes('已成交')) {
+            filteredCustomers = customers.filter(c => c.status === 'closed');
+        } else if (message.includes('跟进')) {
+            filteredCustomers = customers.filter(c => c.status === 'following');
+        }
+        
+        if (filteredCustomers.length === 0) {
+            this.addMessage('ai', '没有找到符合条件的客户。');
+        } else {
+            let response = `找到 ${filteredCustomers.length} 个客户：\n`;
+            filteredCustomers.forEach((customer, index) => {
+                response += `${index + 1}. ${customer.name} - ${getStatusText(customer.status)} - ${customer.score}分\n`;
+            });
+            this.addMessage('ai', response);
+        }
+    }
+    
+    async handleUpdateCustomer(message) {
+        const nameMatch = message.match(/([^，,]+)的状态改为([^，,]+)/);
+        if (nameMatch) {
+            const [, name, status] = nameMatch;
+            const customers = await LeadgenManager.getCustomers();
+            const customer = customers.find(c => c.name === name.trim());
+            
+            if (customer) {
+                const statusMap = {
+                    '线索': 'lead',
+                    '跟进': 'following',
+                    '高意向': 'high-intent',
+                    '已成交': 'closed',
+                    '已流失': 'lost'
+                };
+                
+                const newStatus = statusMap[status.trim()] || status.trim();
+                await LeadgenManager.updateCustomer(customer.id, { status: newStatus });
+                this.addMessage('ai', `成功将 ${name.trim()} 的状态更新为 ${status.trim()}。`);
+            } else {
+                this.addMessage('ai', `未找到客户 ${name.trim()}。`);
+            }
+        } else {
+            this.addMessage('ai', '请使用正确的格式修改客户信息，例如："将张三的状态改为已成交"。');
+        }
+    }
+    
+    async handleDeleteCustomer(message) {
+        const nameMatch = message.match(/删除客户([^，,]+)/);
+        if (nameMatch) {
+            const name = nameMatch[1].trim();
+            const customers = await LeadgenManager.getCustomers();
+            const customer = customers.find(c => c.name === name);
+            
+            if (customer) {
+                await LeadgenManager.deleteCustomer(customer.id);
+                this.addMessage('ai', `成功删除客户 ${name}。`);
+            } else {
+                this.addMessage('ai', `未找到客户 ${name}。`);
+            }
+        } else {
+            this.addMessage('ai', '请使用正确的格式删除客户，例如："删除客户李四"。');
+        }
+    }
+    
+    async handleGenerateReport(message) {
+        const customers = await LeadgenManager.getCustomers();
+        
+        // 简单的盈利分析
+        const totalCustomers = customers.length;
+        const closedCustomers = customers.filter(c => c.status === 'closed').length;
+        const conversionRate = totalCustomers > 0 ? (closedCustomers / totalCustomers * 100).toFixed(2) : '0.00';
+        
+        const report = `
+            📊 盈利分析报告
+            
+            总客户数：${totalCustomers}
+            已成交客户：${closedCustomers}
+            转化率：${conversionRate}%
+            
+            客户状态分布：
+            - 线索：${customers.filter(c => c.status === 'lead').length}
+            - 跟进：${customers.filter(c => c.status === 'following').length}
+            - 高意向：${customers.filter(c => c.status === 'high-intent').length}
+            - 已成交：${closedCustomers}
+            - 已流失：${customers.filter(c => c.status === 'lost').length}
+            
+            平均客户评分：${customers.length > 0 ? (customers.reduce((sum, c) => sum + (c.score || 0), 0) / customers.length).toFixed(2) : '0.00'}
+        `;
+        
+        this.addMessage('ai', report);
+    }
+    
+    toggleVoiceRecognition() {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            this.addMessage('ai', '抱歉，您的浏览器不支持语音识别功能。');
+            return;
+        }
+        
+        if (this.isListening) {
+            // 停止录音
+            if (this.recognizer) {
+                this.recognizer.stop();
+            }
+            this.isListening = false;
+            document.getElementById('voiceBtn').textContent = '🎤';
+            document.getElementById('voiceBtn').style.background = 'var(--primary-color, #3b82f6)';
+        } else {
+            // 开始录音
+            this.recognizer = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            this.recognizer.lang = 'zh-CN';
+            this.recognizer.continuous = false;
+            this.recognizer.interimResults = false;
+            
+            this.recognizer.onstart = () => {
+                this.isListening = true;
+                document.getElementById('voiceBtn').textContent = '🔴';
+                document.getElementById('voiceBtn').style.background = 'var(--danger-color, #ef4444)';
+                this.addMessage('ai', '正在聆听...');
+            };
+            
+            this.recognizer.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById('chatInput').value = transcript;
+                this.sendMessage();
+            };
+            
+            this.recognizer.onerror = (event) => {
+                console.error('语音识别错误:', event.error);
+                this.addMessage('ai', '语音识别失败，请重试。');
+                this.isListening = false;
+                document.getElementById('voiceBtn').textContent = '🎤';
+                document.getElementById('voiceBtn').style.background = 'var(--primary-color, #3b82f6)';
+            };
+            
+            this.recognizer.onend = () => {
+                this.isListening = false;
+                document.getElementById('voiceBtn').textContent = '🎤';
+                document.getElementById('voiceBtn').style.background = 'var(--primary-color, #3b82f6)';
+                
+                // 移除聆听消息
+                const messagesContainer = document.getElementById('chatMessages');
+                if (messagesContainer.lastElementChild) {
+                    messagesContainer.removeChild(messagesContainer.lastElementChild);
+                }
+            };
+            
+            this.recognizer.start();
+        }
+    }
+}
+
+// 初始化 AI 聊天窗口
+window.addEventListener('DOMContentLoaded', () => {
+    window.aiChatWindow = new AIChatWindow();
+});
+
+console.log('✅ AI 聊天窗口已加载');
 </script>
 
 </body>

@@ -11,7 +11,7 @@
     "修复CDN资源跟踪防护阻止存储访问的问题，添加crossorigin属性并更新库版本",
     "修复密码字段不在表单中的问题，将登录表单包装在<form>标签中",
     "优化setInterval handler执行时间，只有当数据发生变化时才执行渲染操作",
-    "修复密码输入字段的autocomplete属性问题，添加autocomplete="new-password"",
+    "修复密码输入字段的autocomplete属性问题，添加autocomplete=\"new-password\"",
     "进一步优化setInterval handler执行时间，使用setTimeout避免阻塞主线程",
     "修复密码表单的可访问性问题，添加可选隐藏的用户名字段",
     "优化switchView函数，将耗时操作移到setTimeout中，避免阻塞主线程",

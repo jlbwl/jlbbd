@@ -15023,7 +15023,8 @@ class AIChatWindow {
     
     async processMessage(message) {
         // 模拟 AI 思考
-        this.addMessage('ai', '正在处理您的请求...');
+        const thinkingMessage = '正在处理您的请求...';
+        this.addMessage('ai', thinkingMessage);
         
         // 简单的命令解析
         try {
@@ -15049,8 +15050,12 @@ class AIChatWindow {
         
         // 移除思考消息
         const messagesContainer = document.getElementById('chatMessages');
-        if (messagesContainer.lastElementChild) {
-            messagesContainer.removeChild(messagesContainer.lastElementChild);
+        const messages = messagesContainer.querySelectorAll('.message');
+        for (let i = messages.length - 1; i >= 0; i--) {
+            if (messages[i].textContent.trim() === thinkingMessage) {
+                messagesContainer.removeChild(messages[i]);
+                break;
+            }
         }
     }
     

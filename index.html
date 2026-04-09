@@ -9,7 +9,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="version" content="1.1.2">
+<meta name="version" content="1.2.0">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css" crossorigin="anonymous">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
@@ -32,6 +32,674 @@ function debounce(func, wait) {
         timeout = setTimeout(later, wait);
     };
 }
+
+// 虚拟滚动类
+class VirtualScroll {
+    constructor(options) {
+        this.container = options.container;
+        this.itemHeight = options.itemHeight || 120;
+        this.buffer = options.buffer || 5;
+        this.renderItem = options.renderItem;
+        this.items = [];
+        this.scrollTop = 0;
+        this.visibleStart = 0;
+        this.visibleEnd = 0;
+        
+        this.init();
+    }
+    
+    init() {
+        this.wrapper = document.createElement('div');
+        this.wrapper.style.cssText = 'position: relative; overflow-y: auto; height: 100%;';
+        
+        this.content = document.createElement('div');
+        this.content.style.cssText = 'position: relative;';
+        
+        this.wrapper.appendChild(this.content);
+        this.container.appendChild(this.wrapper);
+        
+        this.wrapper.addEventListener('scroll', debounce(() => {
+            this.handleScroll();
+        }, 16));
+    }
+    
+    setItems(items) {
+        this.items = items;
+        this.updateContent();
+        this.render();
+    }
+    
+    updateContent() {
+        const totalHeight = this.items.length * this.itemHeight;
+        this.content.style.height = `${totalHeight}px`;
+    }
+    
+    handleScroll() {
+        this.scrollTop = this.wrapper.scrollTop;
+        this.render();
+    }
+    
+    render() {
+        const containerHeight = this.wrapper.clientHeight;
+        const visibleCount = Math.ceil(containerHeight / this.itemHeight);
+        
+        this.visibleStart = Math.max(0, Math.floor(this.scrollTop / this.itemHeight) - this.buffer);
+        this.visibleEnd = Math.min(this.items.length, this.visibleStart + visibleCount + this.buffer * 2);
+        
+        const fragment = document.createDocumentFragment();
+        
+        for (let i = this.visibleStart; i < this.visibleEnd; i++) {
+            const item = this.items[i];
+            if (item) {
+                const element = this.renderItem(item, i);
+                element.style.position = 'absolute';
+                element.style.top = `${i * this.itemHeight}px`;
+                element.style.width = '100%';
+                fragment.appendChild(element);
+            }
+        }
+        
+        const oldElements = this.content.querySelectorAll('.virtual-item');
+        oldElements.forEach(el => el.remove());
+        
+        const wrapper = document.createElement('div');
+        wrapper.className = 'virtual-item';
+        wrapper.appendChild(fragment);
+        this.content.appendChild(wrapper);
+    }
+    
+    scrollTo(index) {
+        const scrollTop = index * this.itemHeight;
+        this.wrapper.scrollTop = scrollTop;
+    }
+    
+    destroy() {
+        if (this.wrapper && this.wrapper.parentNode) {
+            this.wrapper.parentNode.removeChild(this.wrapper);
+        }
+    }
+}
+
+// 虚拟滚动实例存储
+const virtualScrollInstances = {};
+
+// 渲染单个客户卡片
+function renderCustomerCard(customer) {
+    // 记录访问日志
+    AccessLogger.log('view', 'customer', { customerId: customer.id, customerName: customer.name });
+    
+    const card = document.createElement('div');
+    card.className = 'customer-card';
+    card.style.cssText = 'background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 10px; cursor: pointer; transition: all 0.3s ease; box-sizing: border-box;';
+    card.onclick = () => showCustomerDetail(customer.id);
+    
+    // 脱敏处理敏感数据
+    const maskedWechat = EncryptionManager.maskSensitiveData(customer.wechat, 'wechat');
+    
+    card.innerHTML = `
+        <div style="font-weight: 600; margin-bottom: 8px;">${customer.name}</div>
+        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px;">公司：${customer.company || '-'}</div>
+        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px;">规模：${customer.companySize || '-'}</div>
+        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px;">微信：${maskedWechat}</div>
+        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px;">来源：${customer.source || '-'}</div>
+        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px;">评分：${customer.score || 0}</div>
+        ${customer.tags && customer.tags.length > 0 ? `
+        <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px;">
+            ${customer.tags.map(tag => `
+                <span style="background: rgba(37, 99, 235, 0.1); color: var(--primary-color); padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;">${tag}</span>
+            `).join('')}
+        </div>
+        ` : ''}
+        <div style="margin-top: 8px; display: flex; gap: 4px; flex-wrap: wrap;">
+            <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'lead')">线索</button>
+            <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'following')">跟进</button>
+            <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'high-intent')">高意向</button>
+            <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'closed')">已成交</button>
+            <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'lost')">已流失</button>
+        </div>
+        <button class="btn btn-sm btn-danger" style="font-size: 10px; padding: 2px 6px; margin-top: 8px;" onclick="event.stopPropagation(); deleteCustomer('${customer.id}')">删除</button>
+    `;
+    
+    return card;
+}
+
+// 全局加载管理器
+const LoadingManager = {
+    overlay: null,
+    counter: 0,
+    
+    show(message = '加载中...') {
+        this.counter++;
+        
+        if (!this.overlay) {
+            this.overlay = document.createElement('div');
+            this.overlay.id = 'globalLoadingOverlay';
+            this.overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(255, 255, 255, 0.9);
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                z-index: 99999;
+                backdrop-filter: blur(4px);
+            `;
+            
+            this.overlay.innerHTML = `
+                <div class="loading-spinner" style="
+                    width: 50px;
+                    height: 50px;
+                    border: 4px solid #e5e7eb;
+                    border-top-color: #2563eb;
+                    border-radius: 50%;
+                    animation: spin 0.8s linear infinite;
+                "></div>
+                <div id="loadingMessage" style="
+                    margin-top: 16px;
+                    font-size: 16px;
+                    color: #374151;
+                    font-weight: 500;
+                ">${message}</div>
+            `;
+            
+            document.body.appendChild(this.overlay);
+            
+            // 添加旋转动画样式
+            if (!document.getElementById('loadingStyles')) {
+                const style = document.createElement('style');
+                style.id = 'loadingStyles';
+                style.textContent = `
+                    @keyframes spin {
+                        to { transform: rotate(360deg); }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        } else {
+            document.getElementById('loadingMessage').textContent = message;
+            this.overlay.style.display = 'flex';
+        }
+    },
+    
+    hide() {
+        this.counter--;
+        
+        if (this.counter <= 0) {
+            this.counter = 0;
+            if (this.overlay) {
+                this.overlay.style.display = 'none';
+            }
+        }
+    },
+    
+    updateMessage(message) {
+        const msgElement = document.getElementById('loadingMessage');
+        if (msgElement) {
+            msgElement.textContent = message;
+        }
+    }
+};
+
+// 骨架屏组件
+function createSkeletonCard() {
+    const skeleton = document.createElement('div');
+    skeleton.className = 'skeleton-card';
+    skeleton.style.cssText = `
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 10px;
+        animation: skeleton-loading 1.5s ease-in-out infinite;
+    `;
+    
+    skeleton.innerHTML = `
+        <div class="skeleton-line" style="width: 60%; height: 16px; background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; border-radius: 4px; margin-bottom: 8px; animation: skeleton-shimmer 1.5s ease-in-out infinite;"></div>
+        <div class="skeleton-line" style="width: 80%; height: 12px; background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; border-radius: 4px; margin-bottom: 6px; animation: skeleton-shimmer 1.5s ease-in-out infinite;"></div>
+        <div class="skeleton-line" style="width: 70%; height: 12px; background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; border-radius: 4px; margin-bottom: 6px; animation: skeleton-shimmer 1.5s ease-in-out infinite;"></div>
+        <div class="skeleton-line" style="width: 50%; height: 12px; background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; border-radius: 4px; margin-bottom: 6px; animation: skeleton-shimmer 1.5s ease-in-out infinite;"></div>
+        <div class="skeleton-line" style="width: 65%; height: 12px; background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; border-radius: 4px;"></div>
+    `;
+    
+    return skeleton;
+}
+
+// 添加骨架屏动画样式
+(function addSkeletonStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes skeleton-shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        
+        .skeleton-loading {
+            opacity: 0.7;
+        }
+    `;
+    document.head.appendChild(style);
+})();
+
+// 数据加密管理器
+const EncryptionManager = {
+    // 加密密钥（实际应用中应该从用户输入获取）
+    key: 'jlbbd-secret-key-2026',
+    
+    // 加密数据
+    encrypt(data) {
+        try {
+            const jsonString = JSON.stringify(data);
+            const encrypted = CryptoJS.AES.encrypt(jsonString, this.key).toString();
+            return encrypted;
+        } catch (error) {
+            console.error('加密失败:', error);
+            return null;
+        }
+    },
+    
+    // 解密数据
+    decrypt(encryptedData) {
+        try {
+            const bytes = CryptoJS.AES.decrypt(encryptedData, this.key);
+            const decryptedString = bytes.toString(CryptoJS.enc.Utf8);
+            return JSON.parse(decryptedString);
+        } catch (error) {
+            console.error('解密失败:', error);
+            return null;
+        }
+    },
+    
+    // 敏感数据脱敏
+    maskSensitiveData(value, type = 'phone') {
+        if (!value) return '-';
+        
+        const str = String(value);
+        
+        switch (type) {
+            case 'phone':
+                // 手机号脱敏：138****1234
+                if (str.length === 11) {
+                    return str.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2');
+                }
+                return str;
+                
+            case 'wechat':
+                // 微信号脱敏：显示前3位和后2位
+                if (str.length > 5) {
+                    return str.substring(0, 3) + '***' + str.substring(str.length - 2);
+                }
+                return str;
+                
+            case 'email':
+                // 邮箱脱敏：a***@example.com
+                const atIndex = str.indexOf('@');
+                if (atIndex > 1) {
+                    return str.substring(0, 1) + '***' + str.substring(atIndex);
+                }
+                return str;
+                
+            case 'idcard':
+                // 身份证脱敏：显示前6位和后4位
+                if (str.length === 18) {
+                    return str.substring(0, 6) + '********' + str.substring(14);
+                }
+                return str;
+                
+            default:
+                return str;
+        }
+    },
+    
+    // 加密敏感字段
+    encryptSensitiveFields(data) {
+        const sensitiveFields = ['wechat', 'phone', 'email', 'idcard'];
+        const encrypted = { ...data };
+        
+        sensitiveFields.forEach(field => {
+            if (encrypted[field]) {
+                encrypted[field] = this.encrypt(encrypted[field]);
+            }
+        });
+        
+        return encrypted;
+    },
+    
+    // 解密敏感字段
+    decryptSensitiveFields(data) {
+        const sensitiveFields = ['wechat', 'phone', 'email', 'idcard'];
+        const decrypted = { ...data };
+        
+        sensitiveFields.forEach(field => {
+            if (decrypted[field]) {
+                const decryptedValue = this.decrypt(decrypted[field]);
+                if (decryptedValue) {
+                    decrypted[field] = decryptedValue;
+                }
+            }
+        });
+        
+        return decrypted;
+    }
+};
+
+// 数据访问日志
+const AccessLogger = {
+    logs: [],
+    maxLogs: 1000,
+    
+    log(action, resource, details = {}) {
+        const entry = {
+            timestamp: new Date().toISOString(),
+            action,
+            resource,
+            details,
+            userAgent: navigator.userAgent
+        };
+        
+        this.logs.unshift(entry);
+        
+        // 限制日志数量
+        if (this.logs.length > this.maxLogs) {
+            this.logs = this.logs.slice(0, this.maxLogs);
+        }
+        
+        // 保存到 localStorage
+        this.save();
+    },
+    
+    save() {
+        try {
+            localStorage.setItem('accessLogs', JSON.stringify(this.logs.slice(0, 100)));
+        } catch (error) {
+            console.error('保存访问日志失败:', error);
+        }
+    },
+    
+    load() {
+        try {
+            const saved = localStorage.getItem('accessLogs');
+            if (saved) {
+                this.logs = JSON.parse(saved);
+            }
+        } catch (error) {
+            console.error('加载访问日志失败:', error);
+        }
+    },
+    
+    getLogs(limit = 50) {
+        return this.logs.slice(0, limit);
+    },
+    
+    clear() {
+        this.logs = [];
+        localStorage.removeItem('accessLogs');
+    }
+};
+
+// 页面加载时初始化访问日志
+AccessLogger.load();
+
+// 插件管理器
+const PluginManager = {
+    plugins: new Map(),
+    hooks: new Map(),
+    enabled: true,
+    
+    // 注册插件
+    register(plugin) {
+        if (!plugin.id || !plugin.name) {
+            console.error('插件必须包含 id 和 name 属性');
+            return false;
+        }
+        
+        if (this.plugins.has(plugin.id)) {
+            console.error(`插件 ${plugin.id} 已存在`);
+            return false;
+        }
+        
+        // 验证插件结构
+        const requiredMethods = ['activate', 'deactivate'];
+        for (const method of requiredMethods) {
+            if (typeof plugin[method] !== 'function') {
+                console.error(`插件 ${plugin.id} 缺少必需方法: ${method}`);
+                return false;
+            }
+        }
+        
+        this.plugins.set(plugin.id, {
+            ...plugin,
+            active: false,
+            installedAt: new Date().toISOString()
+        });
+        
+        console.log(`插件 ${plugin.name} 注册成功`);
+        return true;
+    },
+    
+    // 激活插件
+    activate(pluginId) {
+        const plugin = this.plugins.get(pluginId);
+        if (!plugin) {
+            console.error(`插件 ${pluginId} 不存在`);
+            return false;
+        }
+        
+        if (plugin.active) {
+            console.warn(`插件 ${pluginId} 已经激活`);
+            return true;
+        }
+        
+        try {
+            plugin.activate(this.getAPI());
+            plugin.active = true;
+            console.log(`插件 ${plugin.name} 激活成功`);
+            return true;
+        } catch (error) {
+            console.error(`激活插件 ${pluginId} 失败:`, error);
+            return false;
+        }
+    },
+    
+    // 停用插件
+    deactivate(pluginId) {
+        const plugin = this.plugins.get(pluginId);
+        if (!plugin) {
+            console.error(`插件 ${pluginId} 不存在`);
+            return false;
+        }
+        
+        if (!plugin.active) {
+            console.warn(`插件 ${pluginId} 未激活`);
+            return true;
+        }
+        
+        try {
+            plugin.deactivate();
+            plugin.active = false;
+            
+            // 移除插件注册的所有钩子
+            this.hooks.forEach((callbacks, hookName) => {
+                this.hooks.set(hookName, callbacks.filter(cb => cb.pluginId !== pluginId));
+            });
+            
+            console.log(`插件 ${plugin.name} 停用成功`);
+            return true;
+        } catch (error) {
+            console.error(`停用插件 ${pluginId} 失败:`, error);
+            return false;
+        }
+    },
+    
+    // 卸载插件
+    uninstall(pluginId) {
+        const plugin = this.plugins.get(pluginId);
+        if (!plugin) {
+            console.error(`插件 ${pluginId} 不存在`);
+            return false;
+        }
+        
+        if (plugin.active) {
+            this.deactivate(pluginId);
+        }
+        
+        this.plugins.delete(pluginId);
+        console.log(`插件 ${pluginId} 卸载成功`);
+        return true;
+    },
+    
+    // 注册钩子
+    on(hookName, callback, pluginId) {
+        if (!this.hooks.has(hookName)) {
+            this.hooks.set(hookName, []);
+        }
+        
+        this.hooks.get(hookName).push({
+            callback,
+            pluginId
+        });
+    },
+    
+    // 触发钩子
+    emit(hookName, data) {
+        const callbacks = this.hooks.get(hookName);
+        if (!callbacks || callbacks.length === 0) {
+            return data;
+        }
+        
+        let result = data;
+        for (const { callback } of callbacks) {
+            try {
+                result = callback(result);
+            } catch (error) {
+                console.error(`执行钩子 ${hookName} 失败:`, error);
+            }
+        }
+        
+        return result;
+    },
+    
+    // 获取插件API
+    getAPI() {
+        return {
+            on: (hookName, callback, pluginId) => this.on(hookName, callback, pluginId),
+            emit: (hookName, data) => this.emit(hookName, data),
+            showToast: (message, type = 'info') => showToast(message, type),
+            showLoading: (message) => LoadingManager.show(message),
+            hideLoading: () => LoadingManager.hide(),
+            logAccess: (action, resource, details) => AccessLogger.log(action, resource, details)
+        };
+    },
+    
+    // 获取所有插件
+    getAllPlugins() {
+        return Array.from(this.plugins.values());
+    },
+    
+    // 获取已激活的插件
+    getActivePlugins() {
+        return Array.from(this.plugins.values()).filter(p => p.active);
+    },
+    
+    // 保存插件状态
+    save() {
+        const pluginStates = {};
+        this.plugins.forEach((plugin, id) => {
+            pluginStates[id] = plugin.active;
+        });
+        localStorage.setItem('pluginStates', JSON.stringify(pluginStates));
+    },
+    
+    // 加载插件状态
+    load() {
+        try {
+            const saved = localStorage.getItem('pluginStates');
+            if (saved) {
+                const pluginStates = JSON.parse(saved);
+                Object.keys(pluginStates).forEach(id => {
+                    if (pluginStates[id]) {
+                        this.activate(id);
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('加载插件状态失败:', error);
+        }
+    }
+};
+
+// 示例插件：微信通知插件
+const WeChatNotificationPlugin = {
+    id: 'wechat-notification',
+    name: '微信通知插件',
+    version: '1.0.0',
+    description: '在客户状态变更时发送微信通知',
+    author: 'JLBB Team',
+    
+    activate(api) {
+        this.api = api;
+        
+        // 注册钩子：客户状态变更
+        api.on('customer.status.changed', (data) => {
+            this.sendNotification(data);
+        }, this.id);
+        
+        console.log('微信通知插件已激活');
+    },
+    
+    deactivate() {
+        console.log('微信通知插件已停用');
+    },
+    
+    sendNotification(data) {
+        // 模拟发送微信通知
+        console.log('发送微信通知:', data);
+        this.api.showToast(`微信通知：客户 ${data.customerName} 状态已更新为 ${data.newStatus}`, 'success');
+        this.api.logAccess('notification', 'wechat', data);
+    }
+};
+
+// 示例插件：数据备份插件
+const DataBackupPlugin = {
+    id: 'data-backup',
+    name: '数据备份插件',
+    version: '1.0.0',
+    description: '自动备份客户数据到云端',
+    author: 'JLBB Team',
+    
+    activate(api) {
+        this.api = api;
+        
+        // 注册钩子：数据变更
+        api.on('data.changed', (data) => {
+            this.backupData(data);
+        }, this.id);
+        
+        console.log('数据备份插件已激活');
+    },
+    
+    deactivate() {
+        console.log('数据备份插件已停用');
+    },
+    
+    backupData(data) {
+        // 模拟数据备份
+        console.log('备份数据:', data);
+        // 实际应用中可以调用云存储API
+    }
+};
+
+// 注册内置插件
+PluginManager.register(WeChatNotificationPlugin);
+PluginManager.register(DataBackupPlugin);
+
+// 页面加载时恢复插件状态
+setTimeout(() => {
+    PluginManager.load();
+}, 1000);
 
 // 立即检测是否是扫码访问，在页面加载的最早阶段
 (function() {
@@ -1200,7 +1868,7 @@ th {
                         <button class="btn btn-primary" onclick="addNewCustomer()">➕ 新增客户</button>
                         <button class="btn btn-outline" onclick="exportCustomers('json')">📤 导出JSON</button>
                         <button class="btn btn-outline" onclick="exportCustomers('csv')">📤 导出Excel</button>
-                        <input type="file" id="importFile" accept=".json,.csv" style="display: none;" onchange="importCustomers()">
+                        <input type="file" id="importFile" accept=".json,.csv,.xlsx,.xls" style="display: none;" onchange="importCustomers()">
                         <button class="btn btn-outline" onclick="document.getElementById('importFile').click()">📥 导入</button>
                     </div>
                 </div>
@@ -1221,35 +1889,35 @@ th {
                             <span>线索</span>
                             <span id="leadCount" class="status-count">0</span>
                         </div>
-                        <div id="leadList" class="customer-list" style="min-height: 200px; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: var(--bg-color);"></div>
+                        <div id="leadList" class="customer-list" style="height: 400px; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: var(--bg-color); overflow: hidden;"></div>
                     </div>
                     <div class="status-column" data-status="following">
                         <div style="font-weight: 600; margin-bottom: 12px; display: flex; justify-content: space-between;">
                             <span>跟进</span>
                             <span id="followingCount" class="status-count">0</span>
                         </div>
-                        <div id="followingList" class="customer-list" style="min-height: 200px; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: var(--bg-color);"></div>
+                        <div id="followingList" class="customer-list" style="height: 400px; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: var(--bg-color); overflow: hidden;"></div>
                     </div>
                     <div class="status-column" data-status="high-intent">
                         <div style="font-weight: 600; margin-bottom: 12px; display: flex; justify-content: space-between;">
                             <span>高意向</span>
                             <span id="high-intentCount" class="status-count">0</span>
                         </div>
-                        <div id="high-intentList" class="customer-list" style="min-height: 200px; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: var(--bg-color);"></div>
+                        <div id="high-intentList" class="customer-list" style="height: 400px; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: var(--bg-color); overflow: hidden;"></div>
                     </div>
                     <div class="status-column" data-status="closed">
                         <div style="font-weight: 600; margin-bottom: 12px; display: flex; justify-content: space-between;">
                             <span>已成交</span>
                             <span id="closedCount" class="status-count">0</span>
                         </div>
-                        <div id="closedList" class="customer-list" style="min-height: 200px; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: var(--bg-color);"></div>
+                        <div id="closedList" class="customer-list" style="height: 400px; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: var(--bg-color); overflow: hidden;"></div>
                     </div>
                     <div class="status-column" data-status="lost">
                         <div style="font-weight: 600; margin-bottom: 12px; display: flex; justify-content: space-between;">
                             <span>已流失</span>
                             <span id="lostCount" class="status-count">0</span>
                         </div>
-                        <div id="lostList" class="customer-list" style="min-height: 200px; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: var(--bg-color);"></div>
+                        <div id="lostList" class="customer-list" style="height: 400px; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: var(--bg-color); overflow: hidden;"></div>
                     </div>
                 </div>
             </div>
@@ -12224,40 +12892,172 @@ async function importCustomers() {
     
     if (!file) return;
     
-    const reader = new FileReader();
-    reader.onload = async function(e) {
-        try {
-            let data;
-            if (file.name.endsWith('.json')) {
-                data = JSON.parse(e.target.result);
-            } else if (file.name.endsWith('.csv')) {
-                data = parseCSV(e.target.result);
+    // 显示加载状态
+    LoadingManager.show('正在解析文件...');
+    
+    try {
+        let data;
+        const fileName = file.name.toLowerCase();
+        
+        if (fileName.endsWith('.json')) {
+            const text = await file.text();
+            data = JSON.parse(text);
+        } else if (fileName.endsWith('.csv')) {
+            const text = await file.text();
+            data = parseCSV(text);
+        } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+            // 支持 Excel 格式
+            const arrayBuffer = await file.arrayBuffer();
+            const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            data = XLSX.utils.sheet_to_json(firstSheet);
+        } else {
+            LoadingManager.hide();
+            alert('不支持的文件格式！支持格式：JSON、CSV、Excel（.xlsx/.xls）');
+            return;
+        }
+        
+        LoadingManager.updateMessage('正在验证数据...');
+        
+        // 数据验证
+        if (!Array.isArray(data)) {
+            data = [data];
+        }
+        
+        // 显示导入预览
+        showImportPreview(data, file.name);
+        
+    } catch (error) {
+        LoadingManager.hide();
+        console.error('导入失败:', error);
+        alert('导入失败：' + error.message);
+    } finally {
+        fileInput.value = '';
+    }
+}
+
+// 显示导入预览
+function showImportPreview(data, fileName) {
+    LoadingManager.hide();
+    
+    const modal = document.createElement('div');
+    modal.id = 'importPreviewModal';
+    modal.className = 'modal-overlay';
+    modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 10000;';
+    
+    const previewData = data.slice(0, 5);
+    const totalRows = data.length;
+    
+    modal.innerHTML = `
+        <div class="modal" style="background: var(--card-bg); border-radius: 12px; padding: 24px; max-width: 800px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0; color: var(--primary-color); font-size: 18px;">📥 导入预览</h2>
+                <button class="close-btn" onclick="closeImportPreviewModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-sub);">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 16px; padding: 12px; background: rgba(37, 99, 235, 0.1); border-radius: 8px;">
+                    <div style="font-weight: 600; color: var(--primary-color);">文件名：${fileName}</div>
+                    <div style="font-size: 14px; color: var(--text-sub); margin-top: 4px;">共 ${totalRows} 条数据</div>
+                </div>
+                
+                <div style="margin-bottom: 16px;">
+                    <div style="font-weight: 600; margin-bottom: 8px;">数据预览（前5条）：</div>
+                    <div style="border: 1px solid var(--border-color); border-radius: 8px; overflow: auto; max-height: 300px;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                            <thead style="background: var(--bg-color); position: sticky; top: 0;">
+                                <tr>
+                                    <th style="padding: 8px; border-bottom: 1px solid var(--border-color); text-align: left;">姓名</th>
+                                    <th style="padding: 8px; border-bottom: 1px solid var(--border-color); text-align: left;">公司</th>
+                                    <th style="padding: 8px; border-bottom: 1px solid var(--border-color); text-align: left;">微信</th>
+                                    <th style="padding: 8px; border-bottom: 1px solid var(--border-color); text-align: left;">来源</th>
+                                    <th style="padding: 8px; border-bottom: 1px solid var(--border-color); text-align: left;">评分</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${previewData.map(row => `
+                                    <tr>
+                                        <td style="padding: 8px; border-bottom: 1px solid var(--border-color);">${row.name || row.姓名 || '-'}</td>
+                                        <td style="padding: 8px; border-bottom: 1px solid var(--border-color);">${row.company || row.公司 || '-'}</td>
+                                        <td style="padding: 8px; border-bottom: 1px solid var(--border-color);">${row.wechat || row.微信 || '-'}</td>
+                                        <td style="padding: 8px; border-bottom: 1px solid var(--border-color);">${row.source || row.来源 || '-'}</td>
+                                        <td style="padding: 8px; border-bottom: 1px solid var(--border-color);">${row.score || row.评分 || 0}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button class="btn btn-outline" onclick="closeImportPreviewModal()">取消</button>
+                    <button class="btn btn-primary" onclick="confirmImport(${JSON.stringify(data).replace(/"/g, '&quot;')})">确认导入</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+// 关闭导入预览模态框
+function closeImportPreviewModal() {
+    const modal = document.getElementById('importPreviewModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// 确认导入
+async function confirmImport(data) {
+    closeImportPreviewModal();
+    
+    LoadingManager.show('正在导入数据...');
+    
+    try {
+        const total = data.length;
+        let imported = 0;
+        let failed = 0;
+        
+        // 分批导入，每批100条
+        const batchSize = 100;
+        const batches = [];
+        
+        for (let i = 0; i < data.length; i += batchSize) {
+            batches.push(data.slice(i, i + batchSize));
+        }
+        
+        for (let i = 0; i < batches.length; i++) {
+            const batch = batches[i];
+            const success = await LeadgenManager.importCustomers(batch);
+            
+            if (success) {
+                imported += batch.length;
             } else {
-                alert('不支持的文件格式');
-                return;
+                failed += batch.length;
             }
             
-            const success = await LeadgenManager.importCustomers(data);
-            if (success) {
-                alert('导入成功！');
-                await renderCustomerLists();
-                await renderTagFilters();
-            } else {
-                alert('导入失败，请检查文件格式');
-            }
-        } catch (error) {
-            console.error('导入客户数据失败:', error);
-            alert('导入失败，请检查文件格式');
-        } finally {
-            // 重置文件输入
-            fileInput.value = '';
+            // 更新进度
+            const progress = Math.round(((i + 1) / batches.length) * 100);
+            LoadingManager.updateMessage(`正在导入数据... ${progress}% (${imported}/${total})`);
         }
-    };
-    
-    if (file.name.endsWith('.json')) {
-        reader.readAsText(file);
-    } else if (file.name.endsWith('.csv')) {
-        reader.readAsText(file);
+        
+        LoadingManager.hide();
+        
+        // 刷新列表
+        await renderCustomerLists();
+        await renderTagFilters();
+        
+        // 显示结果
+        let message = `导入完成！成功：${imported} 条`;
+        if (failed > 0) {
+            message += `，失败：${failed} 条`;
+        }
+        alert(message);
+        
+    } catch (error) {
+        LoadingManager.hide();
+        console.error('导入失败:', error);
+        alert('导入失败：' + error.message);
     }
 }
 
@@ -12307,62 +13107,63 @@ function mapStatusFromText(statusText) {
 
 // 渲染客户列表
 async function renderCustomerLists() {
-    const customers = await LeadgenManager.getCustomers();
+    // 显示加载状态
+    LoadingManager.show('加载客户数据...');
     
-    // 按状态分组
-    const byStatus = {
-        lead: [],
-        following: [],
-        'high-intent': [],
-        closed: [],
-        lost: []
-    };
-    
-    customers.forEach(customer => {
-        if (byStatus[customer.status]) {
-            byStatus[customer.status].push(customer);
-        }
-    });
-    
-    // 渲染每个状态的客户列表
-    Object.keys(byStatus).forEach(status => {
-        const listElement = document.getElementById(`${status}List`);
-        const countElement = document.getElementById(`${status}Count`);
+    try {
+        const customers = await LeadgenManager.getCustomers();
         
-        if (listElement && countElement) {
-            countElement.textContent = byStatus[status].length;
-            
-            if (byStatus[status].length === 0) {
-                listElement.innerHTML = '<div style="text-align: center; color: var(--text-sub); padding: 20px;">暂无客户</div>';
-            } else {
-                listElement.innerHTML = byStatus[status].map(customer => `
-                    <div class="customer-card" style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 10px; cursor: pointer; transition: all 0.3s ease;" onclick="showCustomerDetail('${customer.id}')">
-                        <div style="font-weight: 600; margin-bottom: 8px;">${customer.name}</div>
-                        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px;">公司：${customer.company || '-'}</div>
-                        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px;">规模：${customer.companySize || '-'}</div>
-                        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px;">微信：${customer.wechat || '-'}</div>
-                        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px;">来源：${customer.source || '-'}</div>
-                        <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px;">评分：${customer.score || 0}</div>
-                        ${customer.tags && customer.tags.length > 0 ? `
-                        <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px;">
-                            ${customer.tags.map(tag => `
-                                <span style="background: rgba(37, 99, 235, 0.1); color: var(--primary-color); padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;">${tag}</span>
-                            `).join('')}
-                        </div>
-                        ` : ''}
-                        <div style="margin-top: 8px; display: flex; gap: 4px; flex-wrap: wrap;">
-                            <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'lead')">线索</button>
-                            <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'following')">跟进</button>
-                            <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'high-intent')">高意向</button>
-                            <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'closed')">已成交</button>
-                            <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'lost')">已流失</button>
-                        </div>
-                        <button class="btn btn-sm btn-danger" style="font-size: 10px; padding: 2px 6px; margin-top: 8px;" onclick="event.stopPropagation(); deleteCustomer('${customer.id}')">删除</button>
-                    </div>
-                `).join('');
+        // 按状态分组
+        const byStatus = {
+            lead: [],
+            following: [],
+            'high-intent': [],
+            closed: [],
+            lost: []
+        };
+        
+        customers.forEach(customer => {
+            if (byStatus[customer.status]) {
+                byStatus[customer.status].push(customer);
             }
-        }
-    });
+        });
+        
+        // 渲染每个状态的客户列表
+        Object.keys(byStatus).forEach(status => {
+            const listElement = document.getElementById(`${status}List`);
+            const countElement = document.getElementById(`${status}Count`);
+            
+            if (listElement && countElement) {
+                countElement.textContent = byStatus[status].length;
+                
+                // 清空容器并显示骨架屏
+                listElement.innerHTML = '';
+                
+                if (byStatus[status].length === 0) {
+                    listElement.innerHTML = '<div style="text-align: center; color: var(--text-sub); padding: 20px;">暂无客户</div>';
+                } else if (byStatus[status].length > 20) {
+                    // 使用虚拟滚动（客户数量超过20时）
+                    if (!virtualScrollInstances[status]) {
+                        virtualScrollInstances[status] = new VirtualScroll({
+                            container: listElement,
+                            itemHeight: 160,
+                            buffer: 3,
+                            renderItem: (customer, index) => renderCustomerCard(customer)
+                        });
+                    }
+                    virtualScrollInstances[status].setItems(byStatus[status]);
+                } else {
+                    // 客户数量较少时直接渲染
+                    byStatus[status].forEach(customer => {
+                        listElement.appendChild(renderCustomerCard(customer));
+                    });
+                }
+            }
+        });
+    } finally {
+        // 隐藏加载状态
+        LoadingManager.hide();
+    }
 }
 
 // 新增客户 - 使用模态框
@@ -12530,7 +13331,21 @@ function showToast(message, type = 'info') {
 
 // 更新客户状态
 async function updateCustomerStatus(customerId, status) {
+    // 获取客户信息
+    const customers = await LeadgenManager.getCustomers();
+    const customer = customers.find(c => c.id === customerId);
+    
     await LeadgenManager.updateCustomerStatus(customerId, status);
+    
+    // 触发插件钩子：客户状态变更
+    PluginManager.emit('customer.status.changed', {
+        customerId,
+        customerName: customer?.name || '未知',
+        oldStatus: customer?.status || 'unknown',
+        newStatus: status,
+        timestamp: new Date().toISOString()
+    });
+    
     await renderCustomerLists();
 }
 

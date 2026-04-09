@@ -15206,7 +15206,19 @@ class AIChatWindow {
             
             this.recognizer.onerror = (event) => {
                 console.error('语音识别错误:', event.error);
-                this.addMessage('ai', '语音识别失败，请重试。');
+                
+                let errorMessage = '语音识别失败，请重试。';
+                if (event.error === 'network') {
+                    errorMessage = '网络连接失败，请检查网络连接后重试。';
+                } else if (event.error === 'not-allowed') {
+                    errorMessage = '麦克风权限被拒绝，请在浏览器设置中允许麦克风访问。';
+                } else if (event.error === 'no-speech') {
+                    errorMessage = '未检测到语音，请大声说话。';
+                } else if (event.error === 'audio-capture') {
+                    errorMessage = '无法访问麦克风，请检查麦克风是否正常。';
+                }
+                
+                this.addMessage('ai', errorMessage);
                 this.isListening = false;
                 document.getElementById('voiceBtn').textContent = '🎤';
                 document.getElementById('voiceBtn').style.background = 'var(--primary-color, #3b82f6)';

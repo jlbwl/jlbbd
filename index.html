@@ -14956,6 +14956,18 @@ class AIChatWindow {
                     
                     <h4 style="margin: 15px 0 10px 0; color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">❓ 帮助</h4>
                     <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='帮助';">帮助</p>
+                    
+                    <h4 style="margin: 15px 0 10px 0; color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">🧭 菜单导航</h4>
+                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='打开数据看板';">打开数据看板</p>
+                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='打开今日待办';">打开今日待办</p>
+                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='打开收单列表';">打开收单列表</p>
+                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='打开表单管理';">打开表单管理</p>
+                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='打开工作流管理';">打开工作流管理</p>
+                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='打开客户管理';">打开客户管理</p>
+                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='打开智能获客';">打开智能获客</p>
+                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='打开回收站';">打开回收站</p>
+                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='打开审计日志';">打开审计日志</p>
+                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='打开设置';">打开设置</p>
                 </div>
             </div>
         `;
@@ -15034,6 +15046,45 @@ class AIChatWindow {
             }
             
             this.showAllMenus();
+        }
+    }
+    
+    handleMenuNavigation(message) {
+        let viewId = '';
+        
+        if (message.includes('数据看板')) {
+            viewId = 'dashboard';
+        } else if (message.includes('今日待办')) {
+            viewId = 'todo';
+        } else if (message.includes('收单列表')) {
+            viewId = 'list';
+        } else if (message.includes('表单管理')) {
+            viewId = 'formManager';
+        } else if (message.includes('工作流管理')) {
+            viewId = 'workflow';
+        } else if (message.includes('客户管理')) {
+            viewId = 'customer';
+        } else if (message.includes('智能获客')) {
+            viewId = 'leadgen';
+        } else if (message.includes('回收站')) {
+            viewId = 'recycle';
+        } else if (message.includes('审计日志')) {
+            viewId = 'logs';
+        } else if (message.includes('设置')) {
+            viewId = 'settings';
+        }
+        
+        if (viewId) {
+            // 关闭 AI 智能助手
+            this.hideChatWindow();
+            
+            // 显示所有菜单
+            this.showAllMenus();
+            
+            // 切换到对应视图
+            switchView(viewId);
+        } else {
+            this.addMessage('ai', '抱歉，无法识别您要打开的菜单。请尝试使用更明确的指令，例如："打开数据看板"、"打开今日待办"等。');
         }
     }
     
@@ -15168,10 +15219,12 @@ class AIChatWindow {
                 await this.handleGenerateChart(message);
             } else if (message.includes('经营日报') || message.includes('日报')) {
                 await this.handleDailyReport(message);
+            } else if (message.includes('打开') && (message.includes('看板') || message.includes('待办') || message.includes('列表') || message.includes('管理') || message.includes('回收站') || message.includes('日志') || message.includes('设置'))) {
+                this.handleMenuNavigation(message);
             } else if (message.includes('帮助') || message.includes('指令')) {
                 this.sendWelcomeMessage();
             } else {
-                this.addMessage('ai', '抱歉，我不太理解您的指令。您可以尝试说："添加客户"、"查找数据"、"修改信息"、"删除记录"、"生成分析"、"生成图表"或"生成经营日报"。');
+                this.addMessage('ai', '抱歉，我不太理解您的指令。您可以尝试说："添加客户"、"查找数据"、"修改信息"、"删除记录"、"生成分析"、"生成图表"、"生成经营日报"或"打开数据看板"。');
             }
         } catch (error) {
             console.error('处理消息出错:', error);

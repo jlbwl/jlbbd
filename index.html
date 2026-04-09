@@ -15149,7 +15149,90 @@ class AIChatWindow {
     
     async handleGenerateReport(message) {
         // 从 App.data 读取收单数据
-        const orders = App.data || [];
+        let orders = App.data || [];
+        
+        // 解析时间段
+        let timeRange = 'all';
+        let timeRangeText = '所有时间';
+        
+        if (message.includes('本周')) {
+            timeRange = 'week';
+            timeRangeText = '本周';
+        } else if (message.includes('本月')) {
+            timeRange = 'month';
+            timeRangeText = '本月';
+        } else if (message.includes('上周')) {
+            timeRange = 'lastWeek';
+            timeRangeText = '上周';
+        } else if (message.includes('上月')) {
+            timeRange = 'lastMonth';
+            timeRangeText = '上月';
+        } else if (message.includes('最近7天') || message.includes('近7天')) {
+            timeRange = '7days';
+            timeRangeText = '最近7天';
+        } else if (message.includes('最近30天') || message.includes('近30天')) {
+            timeRange = '30days';
+            timeRangeText = '最近30天';
+        }
+        
+        // 根据时间段过滤数据
+        if (timeRange !== 'all') {
+            const now = new Date();
+            let startDate;
+            
+            switch (timeRange) {
+                case 'week':
+                    // 本周（从周一开始）
+                    startDate = new Date(now);
+                    startDate.setDate(now.getDate() - now.getDay() + 1);
+                    startDate.setHours(0, 0, 0, 0);
+                    break;
+                case 'month':
+                    // 本月
+                    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                    break;
+                case 'lastWeek':
+                    // 上周
+                    startDate = new Date(now);
+                    startDate.setDate(now.getDate() - now.getDay() - 6);
+                    startDate.setHours(0, 0, 0, 0);
+                    const lastWeekEnd = new Date(now);
+                    lastWeekEnd.setDate(now.getDate() - now.getDay());
+                    lastWeekEnd.setHours(23, 59, 59, 999);
+                    orders = orders.filter(o => {
+                        const orderDate = new Date(o.time || o.createdAt || o.settleTime);
+                        return orderDate >= startDate && orderDate <= lastWeekEnd;
+                    });
+                    break;
+                case 'lastMonth':
+                    // 上月
+                    startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+                    orders = orders.filter(o => {
+                        const orderDate = new Date(o.time || o.createdAt || o.settleTime);
+                        return orderDate >= startDate && orderDate <= lastMonthEnd;
+                    });
+                    break;
+                case '7days':
+                    // 最近7天
+                    startDate = new Date(now);
+                    startDate.setDate(now.getDate() - 7);
+                    break;
+                case '30days':
+                    // 最近30天
+                    startDate = new Date(now);
+                    startDate.setDate(now.getDate() - 30);
+                    break;
+            }
+            
+            // 过滤数据（除了上周和上月，它们有特殊处理）
+            if (['week', 'month', '7days', '30days'].includes(timeRange)) {
+                orders = orders.filter(o => {
+                    const orderDate = new Date(o.time || o.createdAt || o.settleTime);
+                    return orderDate >= startDate;
+                });
+            }
+        }
         
         // 简单的盈利分析
         const totalOrders = orders.length;
@@ -15174,7 +15257,7 @@ class AIChatWindow {
         });
         
         const report = `
-            📊 盈利分析报告
+            📊 盈利分析报告（${timeRangeText}）
             
             总订单数：${totalOrders}
             已结算订单：${settledOrders}

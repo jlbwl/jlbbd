@@ -15125,6 +15125,7 @@ class AIChatWindow {
             z-index: 99999;
             animation: float 3s ease-in-out infinite;
             transition: all 0.3s ease;
+            user-select: none;
         `;
         
         // 添加浮动动画
@@ -15139,14 +15140,113 @@ class AIChatWindow {
                 transform: scale(1.1);
                 box-shadow: 0 15px 40px rgba(0,0,0,0.4);
             }
+            #aiFairyIcon.dragging {
+                cursor: grabbing;
+                animation: none;
+                transform: scale(1.1);
+                box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+            }
         `;
         document.head.appendChild(style);
         
         // 设置图标内容
         fairyIcon.textContent = '🧚';
         
+        // 拖拽功能
+        let isDragging = false;
+        let offsetX, offsetY;
+        
+        fairyIcon.addEventListener('mousedown', (e) => {
+            if (e.button === 0) { // 只处理左键
+                isDragging = true;
+                fairyIcon.classList.add('dragging');
+                
+                // 计算鼠标相对于图标的位置
+                const rect = fairyIcon.getBoundingClientRect();
+                offsetX = e.clientX - rect.left;
+                offsetY = e.clientY - rect.top;
+                
+                // 阻止默认行为和冒泡
+                e.preventDefault();
+            }
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                // 计算新的位置
+                const newX = e.clientX - offsetX;
+                const newY = e.clientY - offsetY;
+                
+                // 确保图标不会超出屏幕
+                const screenWidth = window.innerWidth;
+                const screenHeight = window.innerHeight;
+                const iconWidth = fairyIcon.offsetWidth;
+                const iconHeight = fairyIcon.offsetHeight;
+                
+                const clampedX = Math.max(0, Math.min(newX, screenWidth - iconWidth));
+                const clampedY = Math.max(0, Math.min(newY, screenHeight - iconHeight));
+                
+                // 更新位置
+                fairyIcon.style.left = `${clampedX}px`;
+                fairyIcon.style.top = `${clampedY}px`;
+                fairyIcon.style.right = 'auto';
+            }
+        });
+        
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                fairyIcon.classList.remove('dragging');
+            }
+        });
+        
+        // 触摸设备支持
+        fairyIcon.addEventListener('touchstart', (e) => {
+            isDragging = true;
+            fairyIcon.classList.add('dragging');
+            
+            const touch = e.touches[0];
+            const rect = fairyIcon.getBoundingClientRect();
+            offsetX = touch.clientX - rect.left;
+            offsetY = touch.clientY - rect.top;
+            
+            e.preventDefault();
+        });
+        
+        document.addEventListener('touchmove', (e) => {
+            if (isDragging) {
+                const touch = e.touches[0];
+                const newX = touch.clientX - offsetX;
+                const newY = touch.clientY - offsetY;
+                
+                const screenWidth = window.innerWidth;
+                const screenHeight = window.innerHeight;
+                const iconWidth = fairyIcon.offsetWidth;
+                const iconHeight = fairyIcon.offsetHeight;
+                
+                const clampedX = Math.max(0, Math.min(newX, screenWidth - iconWidth));
+                const clampedY = Math.max(0, Math.min(newY, screenHeight - iconHeight));
+                
+                fairyIcon.style.left = `${clampedX}px`;
+                fairyIcon.style.top = `${clampedY}px`;
+                fairyIcon.style.right = 'auto';
+                
+                e.preventDefault();
+            }
+        });
+        
+        document.addEventListener('touchend', () => {
+            if (isDragging) {
+                isDragging = false;
+                fairyIcon.classList.remove('dragging');
+            }
+        });
+        
         // 添加点击事件
         fairyIcon.addEventListener('click', () => {
+            // 关闭 AI 智能助手
+            this.hideChatWindow();
+            
             // 移除小精灵图标
             fairyIcon.remove();
             

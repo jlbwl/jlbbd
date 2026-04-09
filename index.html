@@ -1663,7 +1663,7 @@ th {
     <div class="sidebar">
         <div class="sidebar-title"><span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);border-radius:4px;margin-right:6px;vertical-align:middle;color:white;font-size:14px;font-weight:bold;">金</span> 金卢比 Ultimate</div>
         <div class="sidebar-nav">
-            <button class="sidebar-btn active" onclick="switchView('dashboard')"><span>📊</span> 数据看板</button>
+            <button class="sidebar-btn active" onclick="switchView('dashboard')" style="display: none;"><span>📊</span> 数据看板</button>
             <button class="sidebar-btn" onclick="switchView('todo')"><span>📋</span> 今日待办</button>
             <button class="sidebar-btn" onclick="switchView('list')"><span>📝</span> 收单列表</button>
             <button class="sidebar-btn" onclick="switchView('formManager')"><span>📄</span> 表单管理</button>
@@ -14955,7 +14955,6 @@ class AIChatWindow {
                     <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='帮助';">帮助</p>
                     
                     <h4 style="margin: 15px 0 10px 0; color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">🧭 菜单导航</h4>
-                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='打开数据看板';">打开数据看板</p>
                     <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='打开今日待办';">打开今日待办</p>
                     <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='打开收单列表';">打开收单列表</p>
                     <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='打开表单管理';">打开表单管理</p>
@@ -15004,15 +15003,15 @@ class AIChatWindow {
         const commandLibrary = document.getElementById('aiCommandLibrary');
         
         if (mainContainer && chatWindow && commandLibrary) {
-            // 将主容器添加到页面主体
-            const viewDashboard = document.getElementById('view-dashboard');
-            if (viewDashboard) {
+            // 将主容器添加到主内容区域
+            const mainContent = document.querySelector('.main-content');
+            if (mainContent) {
                 // 移除从 body 中
                 if (mainContainer.parentElement === document.body) {
                     document.body.removeChild(mainContainer);
                 }
-                // 添加到数据看板视图中
-                viewDashboard.appendChild(mainContainer);
+                // 添加到主内容区域
+                mainContent.appendChild(mainContainer);
             }
             
             // 显示所有元素
@@ -15048,9 +15047,7 @@ class AIChatWindow {
     handleMenuNavigation(message) {
         let viewId = '';
         
-        if (message.includes('数据看板')) {
-            viewId = 'dashboard';
-        } else if (message.includes('今日待办')) {
+        if (message.includes('今日待办')) {
             viewId = 'todo';
         } else if (message.includes('收单列表')) {
             viewId = 'list';
@@ -15240,8 +15237,8 @@ class AIChatWindow {
             // 移除小精灵图标
             fairyIcon.remove();
             
-            // 切换到首页
-            switchView('dashboard');
+            // 切换到今日待办
+            switchView('todo');
             
             // 显示 AI 智能助手
             this.showChatWindow();

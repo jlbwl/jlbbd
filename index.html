@@ -15131,8 +15131,8 @@ class AIChatWindow {
             
             this.showAllMenus();
             
-            // 恢复所有视图内容的显示
-            document.querySelectorAll('.view-section').forEach(el => el.style.display = 'block');
+            // 恢复到默认视图（今日待办）
+            switchView('todo');
         }
     }
     
@@ -15165,9 +15165,6 @@ class AIChatWindow {
             
             // 显示所有菜单
             this.showAllMenus();
-            
-            // 恢复所有视图内容的显示
-            document.querySelectorAll('.view-section').forEach(el => el.style.display = 'block');
             
             // 切换到对应视图
             switchView(viewId);
@@ -15332,8 +15329,8 @@ class AIChatWindow {
             // 移除小精灵图标
             fairyIcon.remove();
             
-            // 隐藏所有视图内容
-            document.querySelectorAll('.view-section').forEach(el => el.style.display = 'none');
+            // 移除所有视图的 active 类，隐藏所有视图
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
             
             // 隐藏所有菜单
             this.hideAllMenus();

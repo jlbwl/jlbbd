@@ -1692,7 +1692,7 @@ th {
                 <button class="btn btn-outline" onclick="openHistoryReportModal()">📅 历史经营日报查询</button>
                 <button class="btn btn-primary" onclick="generateDailyReport()">📋 生成今日经营日报 (复制文本)</button>
             </div>
-            <div class="chart-grid">
+            <div class="chart-grid" style="display: none;">
                 <div class="chart-card"><h3>📈 近7日收单趋势</h3><canvas id="chartTrend"></canvas></div>
                 <div class="chart-card"><h3>💰 渠道利润 TOP5</h3><canvas id="chartChannel"></canvas></div>
                 <div class="chart-card"><h3>🏆 团队交单排行榜</h3><canvas id="chartTeamRank"></canvas></div>
@@ -15015,6 +15015,13 @@ class AIChatWindow {
             3. 修改信息："将张三的状态改为已成交"
             4. 删除记录："删除客户李四"
             5. 生成分析："生成盈利分析报告"
+            6. 生成图表：
+               - "生成近7日收单趋势图表"
+               - "生成渠道利润TOP5图表"
+               - "生成团队交单排行榜图表"
+               - "生成审核状态分布图表"
+               - "生成结算状态分布图表"
+               - "生成项目状态分布图表"
             
             您可以使用文字或语音输入指令。
         `;
@@ -15038,10 +15045,12 @@ class AIChatWindow {
                 await this.handleDeleteCustomer(message);
             } else if (message.includes('分析') || message.includes('报告')) {
                 await this.handleGenerateReport(message);
+            } else if (message.includes('图表') || message.includes('趋势') || message.includes('排行榜') || message.includes('分布')) {
+                await this.handleGenerateChart(message);
             } else if (message.includes('帮助') || message.includes('指令')) {
                 this.sendWelcomeMessage();
             } else {
-                this.addMessage('ai', '抱歉，我不太理解您的指令。您可以尝试说："添加客户"、"查找数据"、"修改信息"、"删除记录"或"生成分析"。');
+                this.addMessage('ai', '抱歉，我不太理解您的指令。您可以尝试说："添加客户"、"查找数据"、"修改信息"、"删除记录"、"生成分析"或"生成图表"。');
             }
         } catch (error) {
             console.error('处理消息出错:', error);
@@ -15456,6 +15465,234 @@ class AIChatWindow {
                 }
             });
         }, 200);
+        
+        // 滚动到底部
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    
+    async handleGenerateChart(message) {
+        // 创建图表容器
+        const chatMessages = document.getElementById('chatMessages');
+        const chartContainer = document.createElement('div');
+        chartContainer.style.cssText = `
+            margin: 10px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            max-width: 100%;
+        `;
+        
+        // 解析要生成的图表类型
+        let chartType = '';
+        let chartTitle = '';
+        
+        if (message.includes('近7日') || message.includes('收单趋势')) {
+            chartType = 'trend';
+            chartTitle = '📈 近7日收单趋势';
+        } else if (message.includes('渠道利润') || message.includes('TOP5')) {
+            chartType = 'channel';
+            chartTitle = '💰 渠道利润 TOP5';
+        } else if (message.includes('团队') || message.includes('排行榜')) {
+            chartType = 'team';
+            chartTitle = '🏆 团队交单排行榜';
+        } else if (message.includes('审核') || message.includes('审核状态')) {
+            chartType = 'qual';
+            chartTitle = '✅ 审核状态分布';
+        } else if (message.includes('结算') || message.includes('结算状态')) {
+            chartType = 'status';
+            chartTitle = '📊 结算状态分布';
+        } else if (message.includes('项目') || message.includes('项目状态')) {
+            chartType = 'project';
+            chartTitle = '📋 项目状态分布';
+        } else {
+            this.addMessage('ai', '请指定要生成的图表类型，例如："生成近7日收单趋势图表"、"生成渠道利润TOP5图表"等。');
+            return;
+        }
+        
+        // 添加图表标题
+        const chartTitleElement = document.createElement('h4');
+        chartTitleElement.textContent = chartTitle;
+        chartTitleElement.style.cssText = `
+            margin: 0 0 15px 0;
+            font-size: 14px;
+            color: #333;
+        `;
+        chartContainer.appendChild(chartTitleElement);
+        
+        // 创建图表容器
+        const chartDiv = document.createElement('div');
+        chartDiv.style.cssText = `
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            height: 300px;
+        `;
+        chartContainer.appendChild(chartDiv);
+        
+        // 创建 canvas 元素
+        const canvas = document.createElement('canvas');
+        canvas.id = `aiChart_${Date.now()}`;
+        canvas.style.cssText = `
+            width: 100% !important;
+            height: 100% !important;
+        `;
+        chartDiv.appendChild(canvas);
+        
+        // 添加到聊天消息容器
+        chatMessages.appendChild(chartContainer);
+        
+        // 渲染图表
+        setTimeout(() => {
+            try {
+                const ctx = document.getElementById(canvas.id).getContext('2d');
+                let chart;
+                
+                switch (chartType) {
+                    case 'trend':
+                        // 近7日收单趋势
+                        const { days, amounts } = ChartUtils.getRecent7DaysData();
+                        chart = new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: days,
+                                datasets: [{
+                                    label: '推广费',
+                                    data: amounts,
+                                    borderColor: ChartUtils.colors.primary,
+                                    tension: 0.3,
+                                    fill: true,
+                                    backgroundColor: 'rgba(37,99,235,0.1)'
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: false } }
+                            }
+                        });
+                        break;
+                    
+                    case 'channel':
+                        // 渠道利润 TOP5
+                        const sortedCh = ChartUtils.getTopChannelsData();
+                        chart = new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: sortedCh.map(x=>x[0]),
+                                datasets: [{
+                                    label: '利润',
+                                    data: sortedCh.map(x=>x[1]),
+                                    backgroundColor: ChartUtils.colors.success
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                indexAxis: 'y',
+                                plugins: { legend: { display: false } }
+                            }
+                        });
+                        break;
+                    
+                    case 'team':
+                        // 团队交单排行榜
+                        const teamRankData = ChartUtils.getTeamRankData();
+                        chart = new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: teamRankData.map(x=>x[0]),
+                                datasets: [{
+                                    label: '交单量',
+                                    data: teamRankData.map(x=>x[1]),
+                                    backgroundColor: ChartUtils.colors.orange
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                indexAxis: 'x',
+                                plugins: { legend: { display: false } }
+                            }
+                        });
+                        break;
+                    
+                    case 'qual':
+                        // 审核状态分布
+                        const { qCount, uCount, pCount } = ChartUtils.getQualificationData();
+                        chart = new Chart(ctx, {
+                            type: 'doughnut',
+                            data: {
+                                labels: ['合格','无数据','未审核'],
+                                datasets: [{
+                                    data: [qCount, uCount, pCount],
+                                    backgroundColor: [ChartUtils.colors.success, ChartUtils.colors.danger, ChartUtils.colors.gray]
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                cutout: '70%',
+                                plugins: { legend: { position: 'bottom' } }
+                            }
+                        });
+                        break;
+                    
+                    case 'status':
+                        // 结算状态分布
+                        const { sCount, usCount, rCount } = ChartUtils.getStatusData();
+                        chart = new Chart(ctx, {
+                            type: 'pie',
+                            data: {
+                                labels: ['已结算','未结算', '已审核待结算'],
+                                datasets: [{
+                                    data: [sCount, usCount, rCount],
+                                    backgroundColor: [ChartUtils.colors.success, ChartUtils.colors.warning, ChartUtils.colors.info]
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { position: 'bottom' } }
+                            }
+                        });
+                        break;
+                    
+                    case 'project':
+                        // 项目状态分布
+                        const projectData = ChartUtils.getProjectData();
+                        chart = new Chart(ctx, {
+                            type: 'pie',
+                            data: {
+                                labels: projectData.map(x=>x[0]),
+                                datasets: [{
+                                    data: projectData.map(x=>x[1]),
+                                    backgroundColor: [
+                                        '#667eea',
+                                        '#764ba2',
+                                        '#f093fb',
+                                        '#4facfe',
+                                        '#00f2fe',
+                                        '#43e97b',
+                                        '#38f9d7',
+                                        '#fa709a'
+                                    ]
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { position: 'bottom' } }
+                            }
+                        });
+                        break;
+                }
+            } catch (error) {
+                console.error('生成图表出错:', error);
+                this.addMessage('ai', '生成图表时出错，请稍后再试。');
+            }
+        }, 100);
         
         // 滚动到底部
         chatMessages.scrollTop = chatMessages.scrollHeight;

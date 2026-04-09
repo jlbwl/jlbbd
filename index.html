@@ -15148,28 +15148,49 @@ class AIChatWindow {
     }
     
     async handleGenerateReport(message) {
-        const customers = await LeadgenManager.getCustomers();
+        // 从 App.data 读取收单数据
+        const orders = App.data || [];
         
         // 简单的盈利分析
-        const totalCustomers = customers.length;
-        const closedCustomers = customers.filter(c => c.status === 'closed').length;
-        const conversionRate = totalCustomers > 0 ? (closedCustomers / totalCustomers * 100).toFixed(2) : '0.00';
+        const totalOrders = orders.length;
+        const settledOrders = orders.filter(o => o.status === 'settled').length;
+        const conversionRate = totalOrders > 0 ? (settledOrders / totalOrders * 100).toFixed(2) : '0.00';
+        
+        // 计算总金额和总利润
+        const totalAmount = orders.reduce((sum, o) => sum + (parseFloat(o.amount) || 0), 0);
+        const totalProfit = orders.reduce((sum, o) => {
+            const profit = (parseFloat(o.channelPrice) || 0) - (parseFloat(o.amount) || 0);
+            return sum + profit;
+        }, 0);
+        
+        // 按收款方式统计
+        const methodStats = {};
+        orders.forEach(o => {
+            const method = o.method || '其他';
+            if (!methodStats[method]) {
+                methodStats[method] = 0;
+            }
+            methodStats[method]++;
+        });
         
         const report = `
             📊 盈利分析报告
             
-            总客户数：${totalCustomers}
-            已成交客户：${closedCustomers}
-            转化率：${conversionRate}%
+            总订单数：${totalOrders}
+            已结算订单：${settledOrders}
+            结算率：${conversionRate}%
             
-            客户状态分布：
-            - 线索：${customers.filter(c => c.status === 'lead').length}
-            - 跟进：${customers.filter(c => c.status === 'following').length}
-            - 高意向：${customers.filter(c => c.status === 'high-intent').length}
-            - 已成交：${closedCustomers}
-            - 已流失：${customers.filter(c => c.status === 'lost').length}
+            总推广费：¥${totalAmount.toFixed(2)}
+            总利润：¥${totalProfit.toFixed(2)}
+            平均利润：${totalOrders > 0 ? (totalProfit / totalOrders).toFixed(2) : '0.00'}
             
-            平均客户评分：${customers.length > 0 ? (customers.reduce((sum, c) => sum + (c.score || 0), 0) / customers.length).toFixed(2) : '0.00'}
+            收款方式分布：
+            ${Object.entries(methodStats).map(([method, count]) => `- ${method}：${count}单`).join('\n            ')}
+            
+            订单状态分布：
+            - 已结算：${orders.filter(o => o.status === 'settled').length}
+            - 已审核：${orders.filter(o => o.status === 'reviewed').length}
+            - 未结算：${orders.filter(o => o.status !== 'settled' && o.status !== 'reviewed').length}
         `;
         
         this.addMessage('ai', report);

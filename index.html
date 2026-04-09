@@ -14999,6 +14999,12 @@ class AIChatWindow {
     }
     
     showChatWindow() {
+        // 移除小精灵图标
+        const existingFairy = document.getElementById('aiFairyIcon');
+        if (existingFairy) {
+            existingFairy.remove();
+        }
+        
         const mainContainer = document.getElementById('aiChatMainContainer');
         const chatWindow = document.getElementById('aiChatWindow');
         const commandLibrary = document.getElementById('aiCommandLibrary');
@@ -15083,9 +15089,76 @@ class AIChatWindow {
             
             // 切换到对应视图
             switchView(viewId);
+            
+            // 创建小精灵图标
+            this.createFairyIcon();
         } else {
             this.addMessage('ai', '抱歉，无法识别您要打开的菜单。请尝试使用更明确的指令，例如："打开数据看板"、"打开今日待办"等。');
         }
+    }
+    
+    createFairyIcon() {
+        // 移除已有的小精灵图标
+        const existingFairy = document.getElementById('aiFairyIcon');
+        if (existingFairy) {
+            existingFairy.remove();
+        }
+        
+        // 创建小精灵图标
+        const fairyIcon = document.createElement('div');
+        fairyIcon.id = 'aiFairyIcon';
+        fairyIcon.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            z-index: 99999;
+            animation: float 3s ease-in-out infinite;
+            transition: all 0.3s ease;
+        `;
+        
+        // 添加浮动动画
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes float {
+                0% { transform: translateY(0px); }
+                50% { transform: translateY(-10px); }
+                100% { transform: translateY(0px); }
+            }
+            #aiFairyIcon:hover {
+                transform: scale(1.1);
+                box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // 设置图标内容
+        fairyIcon.textContent = '🧚';
+        
+        // 添加点击事件
+        fairyIcon.addEventListener('click', () => {
+            // 移除小精灵图标
+            fairyIcon.remove();
+            
+            // 切换到首页
+            switchView('dashboard');
+            
+            // 显示 AI 智能助手
+            this.showChatWindow();
+        });
+        
+        // 添加到 body
+        document.body.appendChild(fairyIcon);
     }
     
     hideAllMenus() {

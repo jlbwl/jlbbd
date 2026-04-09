@@ -15256,6 +15256,14 @@ class AIChatWindow {
             methodStats[method]++;
         });
         
+        // 按订单状态统计
+        const statusStats = {
+            settled: orders.filter(o => o.status === 'settled').length,
+            reviewed: orders.filter(o => o.status === 'reviewed').length,
+            pending: orders.filter(o => o.status !== 'settled' && o.status !== 'reviewed').length
+        };
+        
+        // 生成文本报告
         const report = `
             📊 盈利分析报告（${timeRangeText}）
             
@@ -15271,12 +15279,172 @@ class AIChatWindow {
             ${Object.entries(methodStats).map(([method, count]) => `- ${method}：${count}单`).join('\n            ')}
             
             订单状态分布：
-            - 已结算：${orders.filter(o => o.status === 'settled').length}
-            - 已审核：${orders.filter(o => o.status === 'reviewed').length}
-            - 未结算：${orders.filter(o => o.status !== 'settled' && o.status !== 'reviewed').length}
+            - 已结算：${statusStats.settled}
+            - 已审核：${statusStats.reviewed}
+            - 未结算：${statusStats.pending}
         `;
         
+        // 添加文本报告
         this.addMessage('ai', report);
+        
+        // 生成图表
+        this.generateCharts(orders, methodStats, statusStats, timeRangeText);
+    }
+    
+    generateCharts(orders, methodStats, statusStats, timeRangeText) {
+        // 创建图表容器
+        const chatMessages = document.getElementById('chatMessages');
+        const chartContainer = document.createElement('div');
+        chartContainer.style.cssText = `
+            margin: 10px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        `;
+        
+        // 添加图表标题
+        const chartTitle = document.createElement('h4');
+        chartTitle.textContent = `📊 数据可视化（${timeRangeText}）`;
+        chartTitle.style.cssText = `
+            margin: 0 0 15px 0;
+            font-size: 14px;
+            color: #333;
+        `;
+        chartContainer.appendChild(chartTitle);
+        
+        // 创建图表网格
+        const chartGrid = document.createElement('div');
+        chartGrid.style.cssText = `
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        `;
+        chartContainer.appendChild(chartGrid);
+        
+        // 收款方式分布饼图
+        const methodChartDiv = document.createElement('div');
+        methodChartDiv.style.cssText = `
+            background: white;
+            padding: 10px;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        `;
+        const methodChartTitle = document.createElement('p');
+        methodChartTitle.textContent = '收款方式分布';
+        methodChartTitle.style.cssText = `
+            margin: 0 0 10px 0;
+            font-size: 12px;
+            color: #666;
+        `;
+        methodChartDiv.appendChild(methodChartTitle);
+        const methodCanvas = document.createElement('canvas');
+        methodCanvas.id = `methodChart_${Date.now()}`;
+        methodCanvas.width = 200;
+        methodCanvas.height = 200;
+        methodChartDiv.appendChild(methodCanvas);
+        chartGrid.appendChild(methodChartDiv);
+        
+        // 订单状态分布饼图
+        const statusChartDiv = document.createElement('div');
+        statusChartDiv.style.cssText = `
+            background: white;
+            padding: 10px;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        `;
+        const statusChartTitle = document.createElement('p');
+        statusChartTitle.textContent = '订单状态分布';
+        statusChartTitle.style.cssText = `
+            margin: 0 0 10px 0;
+            font-size: 12px;
+            color: #666;
+        `;
+        statusChartDiv.appendChild(statusChartTitle);
+        const statusCanvas = document.createElement('canvas');
+        statusCanvas.id = `statusChart_${Date.now()}`;
+        statusCanvas.width = 200;
+        statusCanvas.height = 200;
+        statusChartDiv.appendChild(statusCanvas);
+        chartGrid.appendChild(statusChartDiv);
+        
+        // 添加到聊天消息容器
+        chatMessages.appendChild(chartContainer);
+        
+        // 渲染收款方式分布饼图
+        setTimeout(() => {
+            const methodCtx = document.getElementById(methodCanvas.id).getContext('2d');
+            new Chart(methodCtx, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(methodStats),
+                    datasets: [{
+                        data: Object.values(methodStats),
+                        backgroundColor: [
+                            '#667eea',
+                            '#764ba2',
+                            '#f093fb',
+                            '#4facfe',
+                            '#00f2fe',
+                            '#43e97b',
+                            '#38f9d7'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }, 100);
+        
+        // 渲染订单状态分布饼图
+        setTimeout(() => {
+            const statusCtx = document.getElementById(statusCanvas.id).getContext('2d');
+            new Chart(statusCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['已结算', '已审核', '未结算'],
+                    datasets: [{
+                        data: [statusStats.settled, statusStats.reviewed, statusStats.pending],
+                        backgroundColor: [
+                            '#43e97b',
+                            '#4facfe',
+                            '#f093fb'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }, 200);
+        
+        // 滚动到底部
+        chatMessages.scrollTop = chatMessages.scrollHeight;
     }
     
     toggleVoiceRecognition() {

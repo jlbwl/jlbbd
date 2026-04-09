@@ -1682,7 +1682,7 @@ th {
             <div class="toolbar-actions"><span id="userRoleBadge" class="status-tag status-settled">ADMIN</span><button class="btn btn-outline btn-sm" onclick="toggleTheme()">🌙</button></div>
         </div>
         <div id="view-dashboard" class="view-section active">
-            <div class="header-stats">
+            <div class="header-stats" style="display: none;">
                 <div class="stat-card"><div class="stat-label">收单总记录</div><div class="stat-value" id="dashTotal">0</div></div>
                 <div class="stat-card"><div class="stat-label">结算总金额</div><div class="stat-value" id="dashAmount">¥0</div></div>
                 <div class="stat-card profit"><div class="stat-label">预估总利润</div><div class="stat-value" id="dashProfit">¥0</div><div class="stat-sub" id="dashProfitRate">利润率 0%</div></div>
@@ -14852,7 +14852,7 @@ class AIChatWindow {
             max-width: 1200px;
             display: flex;
             gap: 20px;
-            margin: 20px auto 0;
+            margin: 40px auto 0;
             z-index: 99999;
         `;
         
@@ -15004,19 +15004,15 @@ class AIChatWindow {
         const commandLibrary = document.getElementById('aiCommandLibrary');
         
         if (mainContainer && chatWindow && commandLibrary) {
-            // 将主容器添加到统计卡片下方
-            const headerStats = document.querySelector('.header-stats');
-            if (headerStats) {
-                // 确保主容器在统计卡片的父容器中
-                const parentContainer = headerStats.parentElement;
-                if (parentContainer) {
-                    // 移除从 body 中
-                    if (mainContainer.parentElement === document.body) {
-                        document.body.removeChild(mainContainer);
-                    }
-                    // 添加到统计卡片下方
-                    parentContainer.appendChild(mainContainer);
+            // 将主容器添加到页面主体
+            const viewDashboard = document.getElementById('view-dashboard');
+            if (viewDashboard) {
+                // 移除从 body 中
+                if (mainContainer.parentElement === document.body) {
+                    document.body.removeChild(mainContainer);
                 }
+                // 添加到数据看板视图中
+                viewDashboard.appendChild(mainContainer);
             }
             
             // 显示所有元素

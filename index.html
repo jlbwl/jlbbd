@@ -1730,7 +1730,7 @@ th {
                 </div>
             </div>
             <div style="margin-bottom: 20px; padding: 15px; background: rgba(37, 99, 235, 0.05); border-radius: 8px;" id="todoBatchActions">
-                <div style="display: flex; gap: 10px; align-items: center;">
+                <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
                     <span style="font-size: 13px; color: var(--text-sub);">批量操作：</span>
                     <select id="todoBatchStatus" style="padding: 6px 12px; border-radius: 4px; border: 1px solid var(--border-color);">
                         <option value="">结算状态...</option>
@@ -1746,6 +1746,19 @@ th {
                     </select>
                     <button class="btn btn-primary btn-sm" onclick="applyTodoBatchReview()">应用</button>
                     <button class="btn btn-outline btn-sm" onclick="clearTodoBatchSelection()">取消</button>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center; padding-top: 10px; border-top: 1px solid rgba(37, 99, 235, 0.2);">
+                    <span style="font-size: 13px; color: var(--text-sub);">批量筛选：</span>
+                    <select id="todoFilterGroup" style="padding: 6px 12px; border-radius: 4px; border: 1px solid var(--border-color);">
+                        <option value="">群号简称...</option>
+                        <!-- 群号简称选项将动态生成 -->
+                    </select>
+                    <select id="todoFilterProject" style="padding: 6px 12px; border-radius: 4px; border: 1px solid var(--border-color);">
+                        <option value="">项目...</option>
+                        <!-- 项目选项将动态生成 -->
+                    </select>
+                    <button class="btn btn-outline btn-sm" onclick="applyTodoFilter()">筛选</button>
+                    <button class="btn btn-outline btn-sm" onclick="resetTodoFilter()">重置</button>
                 </div>
             </div>
             <div id="todoList" style="max-height: calc(100vh - 350px); overflow-y: auto;">
@@ -3937,6 +3950,9 @@ function renderTodoList(filter = 'all') {
     const todoList = document.getElementById('todoList');
     if (!todoList) return;
     
+    // 初始化筛选选项
+    initTodoFilter();
+    
     // 更新统计卡片
     updateTodoStats();
     
@@ -4026,7 +4042,7 @@ function renderTodoList(filter = 'all') {
         }
         
         return `
-            <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 10px; border-left: 4px solid ${borderColor};">
+            <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 10px; border-left: 4px solid ${borderColor};" data-group="${item.group || ''}" data-project="${item.project || ''}">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <input type="checkbox" class="todo-checkbox" value="${item.id}" style="width: 16px; height: 16px; cursor: pointer;" onchange="updateTodoBatchButton()">
@@ -4204,6 +4220,76 @@ function clearTodoBatchSelection() {
     
     // 更新按钮文本
     updateTodoBatchButton();
+}
+
+// 填充待办筛选下拉选项
+function populateTodoFilterOptions() {
+    const groupSelect = document.getElementById('todoFilterGroup');
+    const projectSelect = document.getElementById('todoFilterProject');
+    
+    if (!groupSelect || !projectSelect) return;
+    
+    // 清空现有选项
+    groupSelect.innerHTML = '<option value="">群号简称...</option>';
+    projectSelect.innerHTML = '<option value="">项目...</option>';
+    
+    // 收集所有群号简称和项目
+    const groups = new Set();
+    const projects = new Set();
+    
+    App.data.forEach(item => {
+        if (item.group) groups.add(item.group);
+        if (item.project) projects.add(item.project);
+    });
+    
+    // 添加群号简称选项
+    Array.from(groups).sort().forEach(group => {
+        const option = document.createElement('option');
+        option.value = group;
+        option.textContent = group;
+        groupSelect.appendChild(option);
+    });
+    
+    // 添加项目选项
+    Array.from(projects).sort().forEach(project => {
+        const option = document.createElement('option');
+        option.value = project;
+        option.textContent = project;
+        projectSelect.appendChild(option);
+    });
+}
+
+// 应用待办筛选
+function applyTodoFilter() {
+    const group = document.getElementById('todoFilterGroup').value;
+    const project = document.getElementById('todoFilterProject').value;
+    
+    // 过滤待办列表
+    const todoList = document.getElementById('todoList');
+    if (!todoList) return;
+    
+    const todos = Array.from(todoList.children);
+    todos.forEach(todo => {
+        const todoGroup = todo.getAttribute('data-group');
+        const todoProject = todo.getAttribute('data-project');
+        
+        const groupMatch = !group || todoGroup === group;
+        const projectMatch = !project || todoProject === project;
+        
+        todo.style.display = (groupMatch && projectMatch) ? '' : 'none';
+    });
+}
+
+// 重置待办筛选
+function resetTodoFilter() {
+    document.getElementById('todoFilterGroup').value = '';
+    document.getElementById('todoFilterProject').value = '';
+    applyTodoFilter();
+}
+
+// 初始化待办筛选
+function initTodoFilter() {
+    populateTodoFilterOptions();
 }
 
 function formatDate(s) { if(!s) return '-'; const d = new Date(s); if(isNaN(d.getTime())) return s; return d.toISOString().split('T')[0]; }

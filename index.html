@@ -1760,6 +1760,10 @@ th {
                     <button class="btn btn-outline btn-sm" onclick="applyTodoFilter()">筛选</button>
                     <button class="btn btn-outline btn-sm" onclick="resetTodoFilter()">重置</button>
                 </div>
+                <div style="display: flex; gap: 10px; align-items: center; padding-top: 10px; border-top: 1px solid rgba(37, 99, 235, 0.2);">
+                    <span style="font-size: 13px; color: var(--text-sub);">推广费合计：</span>
+                    <span id="todoAmountTotal" style="font-size: 13px; font-weight: 600; color: var(--text-main);">¥0.00</span>
+                </div>
             </div>
             <div id="todoList" style="max-height: calc(100vh - 350px); overflow-y: auto;">
                 <!-- 待办列表将在这里动态生成 -->
@@ -4159,6 +4163,22 @@ function updateTodoBatchButton() {
     if (applyBtn) {
         applyBtn.textContent = checkboxes.length > 0 ? `应用 (${checkboxes.length})` : '应用';
     }
+    
+    // 计算选中数据的推广费累计值
+    let totalAmount = 0;
+    checkboxes.forEach(cb => {
+        const itemId = cb.value;
+        const item = App.data.find(item => item.id === itemId);
+        if (item) {
+            totalAmount += parseFloat(item.amount) || 0;
+        }
+    });
+    
+    // 显示推广费合计
+    const amountTotalEl = document.getElementById('todoAmountTotal');
+    if (amountTotalEl) {
+        amountTotalEl.textContent = `¥${totalAmount.toFixed(2)}`;
+    }
 }
 
 // 应用今日待办批量审核
@@ -4217,6 +4237,12 @@ function clearTodoBatchSelection() {
     const todoBatchQualified = document.getElementById('todoBatchQualified');
     if (todoBatchStatus) todoBatchStatus.value = '';
     if (todoBatchQualified) todoBatchQualified.value = '';
+    
+    // 重置推广费合计
+    const amountTotalEl = document.getElementById('todoAmountTotal');
+    if (amountTotalEl) {
+        amountTotalEl.textContent = '¥0.00';
+    }
     
     // 更新按钮文本
     updateTodoBatchButton();

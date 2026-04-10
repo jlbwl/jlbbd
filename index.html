@@ -1759,6 +1759,8 @@ th {
                     </select>
                     <button class="btn btn-outline btn-sm" onclick="applyTodoFilter()">筛选</button>
                     <button class="btn btn-outline btn-sm" onclick="resetTodoFilter()">重置</button>
+                    <button class="btn btn-outline btn-sm" onclick="selectAllFilteredTodos()">全部选中</button>
+                    <button class="btn btn-outline btn-sm" onclick="deselectAllFilteredTodos()">全部取消</button>
                 </div>
                 <div style="display: flex; gap: 10px; align-items: center; padding-top: 10px; border-top: 1px solid rgba(37, 99, 235, 0.2);">
                     <span style="font-size: 13px; color: var(--text-sub);">推广费合计：</span>
@@ -4316,6 +4318,46 @@ function resetTodoFilter() {
 // 初始化待办筛选
 function initTodoFilter() {
     populateTodoFilterOptions();
+}
+
+// 全选筛选出的数据
+function selectAllFilteredTodos() {
+    const todoList = document.getElementById('todoList');
+    if (!todoList) return;
+    
+    const todos = Array.from(todoList.children);
+    todos.forEach(todo => {
+        // 只选择显示的项目（即筛选出的数据）
+        if (todo.style.display !== 'none') {
+            const checkbox = todo.querySelector('.todo-checkbox');
+            if (checkbox) {
+                checkbox.checked = true;
+            }
+        }
+    });
+    
+    // 更新按钮状态和推广费合计
+    updateTodoBatchButton();
+}
+
+// 全取消筛选出的数据
+function deselectAllFilteredTodos() {
+    const todoList = document.getElementById('todoList');
+    if (!todoList) return;
+    
+    const todos = Array.from(todoList.children);
+    todos.forEach(todo => {
+        // 只取消显示的项目（即筛选出的数据）
+        if (todo.style.display !== 'none') {
+            const checkbox = todo.querySelector('.todo-checkbox');
+            if (checkbox) {
+                checkbox.checked = false;
+            }
+        }
+    });
+    
+    // 更新按钮状态和推广费合计
+    updateTodoBatchButton();
 }
 
 function formatDate(s) { if(!s) return '-'; const d = new Date(s); if(isNaN(d.getTime())) return s; return d.toISOString().split('T')[0]; }

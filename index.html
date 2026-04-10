@@ -1422,6 +1422,7 @@ tbody tr.anomaly { background: rgba(239, 68, 68, 0.1); border-left: 3px solid va
 .status-reviewing { background: #dbeafe; color: #1e40af; }
 .qual-pending { background: #f1f5f9; color: #475569; border: 1px solid var(--border-color); }
 .qual-ok { background: #d1fae5; color: #065f46; }
+.qual-disqualified { background: #fef3c7; color: #92400e; border: 1px solid #fbbf24; }
 .qual-no { background: #fee2e2; color: #991b1b; }
 .profit-positive { color: var(--success-color); font-weight: bold; }
 .profit-negative { color: var(--danger-color); font-weight: bold; }
@@ -1730,6 +1731,7 @@ th {
                     <select id="todoBatchQualified" style="padding: 6px 12px; border-radius: 4px; border: 1px solid var(--border-color);">
                         <option value="">审核状态...</option>
                         <option value="qualified">合格</option>
+                        <option value="disqualified">不合格</option>
                         <option value="unqualified">无数据</option>
                         <option value="pending">未审核</option>
                     </select>
@@ -1754,7 +1756,7 @@ th {
             <div id="listBatchPanel">
                 <span style="font-weight:700; color:var(--primary-color); font-size:13px;">🛠️ 已选中 <span id="selectedCount" style="color:var(--danger-color)">0</span> 条数据，执行批量修改：</span>
                 <div class="batch-control-group"><label>群号简称:</label><div class="search-dropdown-container" style="position:relative;"><input type="text" id="listBatchGroup" placeholder="输入群号简称" style="width:100px;" oninput="handleGroupSearch(this, 'listBatch')" autocomplete="off"><div class="search-dropdown-list" id="listBatchGroupDropdown"></div></div><button class="btn-batch-apply" onclick="applyListBatchChange('group')">应用</button></div>
-                <div class="batch-control-group"><label>审核状态:</label><select id="listBatchQual"><option value="">不修改</option><option value="pending">未审核</option><option value="qualified">合格</option><option value="unqualified">无数据</option></select><button class="btn-batch-apply" onclick="applyListBatchChange('qualified')">应用</button></div>
+                <div class="batch-control-group"><label>审核状态:</label><select id="listBatchQual"><option value="">不修改</option><option value="pending">未审核</option><option value="qualified">合格</option><option value="disqualified">不合格</option><option value="unqualified">无数据</option></select><button class="btn-batch-apply" onclick="applyListBatchChange('qualified')">应用</button></div>
                 <div class="batch-control-group"><label>结算状态:</label><select id="listBatchStatus"><option value="">不修改</option><option value="unsettled">未结算</option><option value="reviewed">已审核待结算</option><option value="settled">已结算</option></select><button class="btn-batch-apply" onclick="applyListBatchChange('status')">应用</button></div>
                 <div class="batch-control-group"><label>结算时间:</label><input type="date" id="listBatchSettle"><button class="btn-batch-apply" onclick="applyListBatchChange('settleTime')">应用</button></div>
             </div>
@@ -2005,7 +2007,7 @@ th {
                 <div><label>结算金额</label><input type="number" step="0.01" id="eSettleAmount" style="width:100%; padding:8px;"></div>
                 <div><label>结算时间</label><input type="date" id="eSettle" style="width:100%; padding:8px;"></div>
                 <div><label>状态</label><select id="eStatus" style="width:100%; padding:8px;"><option value="unsettled">未结算</option><option value="reviewed">已审核待结算</option><option value="settled">已结算</option></select></div>
-                <div><label>审核情况</label><select id="eQual" style="width:100%; padding:8px;"><option value="pending">未审核</option><option value="qualified">合格</option><option value="unqualified">无数据</option></select></div>
+                <div><label>审核情况</label><select id="eQual" style="width:100%; padding:8px;"><option value="pending">未审核</option><option value="qualified">合格</option><option value="disqualified">不合格</option><option value="unqualified">无数据</option></select></div>
             </div>
         </div>
         <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('editModal')">取消</button><button class="btn btn-primary" onclick="saveEdit()">保存</button></div>
@@ -2034,6 +2036,7 @@ th {
                         <select id="batchQualified" style="padding: 6px 12px; border-radius: 4px; border: 1px solid var(--border-color);">
                             <option value="">审核状态...</option>
                             <option value="qualified">合格</option>
+                            <option value="disqualified">不合格</option>
                             <option value="unqualified">无数据</option>
                             <option value="pending">未审核</option>
                         </select>
@@ -2063,7 +2066,7 @@ th {
                 <div><label>兼职姓名</label><input type="text" id="reviewCustomer" style="width:100%; padding:8px;"></div>
                 <div><label>结算日期</label><input type="date" id="reviewSettleTime" style="width:100%; padding:8px;"></div>
                 <div><label>结算状态</label><select id="reviewStatus" style="width:100%; padding:8px;"><option value="unsettled">未结算</option><option value="reviewed">已审核待结算</option><option value="settled">已结算</option></select></div>
-                <div><label>审核状态</label><select id="reviewQualified" style="width:100%; padding:8px;"><option value="pending">未审核</option><option value="qualified">合格</option><option value="unqualified">无数据</option></select></div>
+                <div><label>审核状态</label><select id="reviewQualified" style="width:100%; padding:8px;"><option value="pending">未审核</option><option value="qualified">合格</option><option value="disqualified">不合格</option><option value="unqualified">无数据</option></select></div>
             </div>
         </div>
         <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('reviewSettleModal')">取消</button><button class="btn btn-primary" onclick="saveReviewSettlement()">保存并解除预警</button></div>
@@ -3724,7 +3727,7 @@ function renderAnomalyList(filter = 'all') {
                     <div><span style="color: var(--text-sub);">做单时间：</span>${item.time || '未设置'}</div>
                     ${isOverdue ? `<div><span style="color: var(--text-sub);">结算日期：</span>${item.settleTime || '未设置'}</div>` : ''}
                     ${isOverdue ? `<div><span style="color: var(--text-sub);">结算状态：</span>${item.status === 'unsettled' ? '未结算' : (item.status === 'reviewed' ? '已审核待结算' : '已结算')}</div>` : ''}
-                    ${isOverdue ? `<div><span style="color: var(--text-sub);">审核状态：</span>${item.qualified === 'pending' ? '未审核' : item.qualified === 'qualified' ? '合格' : '无数据'}</div>` : ''}
+                    ${isOverdue ? `<div><span style="color: var(--text-sub);">审核状态：</span>${item.qualified === 'pending' ? '未审核' : item.qualified === 'qualified' ? '合格' : item.qualified === 'disqualified' ? '不合格' : '无数据'}</div>` : ''}
                     <div><span style="color: var(--text-sub);">渠道：</span>${item.channel || item.channelName || '未设置'}</div>
                     <div><span style="color: var(--text-sub);">兼职姓名：</span>${item.customer || '未设置'}</div>
                     <div><span style="color: var(--text-sub);">群号简称：</span>${item.group || '未设置'}</div>
@@ -4033,7 +4036,7 @@ function renderTodoList(filter = 'all') {
                     <div><span style="color: var(--text-sub);">做单时间：</span>${item.time || '未设置'}</div>
                     ${isOverdue ? `<div><span style="color: var(--text-sub);">结算日期：</span>${item.settleTime || '未设置'}</div>` : ''}
                     ${isOverdue ? `<div><span style="color: var(--text-sub);">结算状态：</span>${item.status === 'unsettled' ? '未结算' : (item.status === 'reviewed' ? '已审核待结算' : '已结算')}</div>` : ''}
-                    ${isOverdue ? `<div><span style="color: var(--text-sub);">审核状态：</span>${item.qualified === 'pending' ? '未审核' : item.qualified === 'qualified' ? '合格' : '无数据'}</div>` : ''}
+                    ${isOverdue ? `<div><span style="color: var(--text-sub);">审核状态：</span>${item.qualified === 'pending' ? '未审核' : item.qualified === 'qualified' ? '合格' : item.qualified === 'disqualified' ? '不合格' : '无数据'}</div>` : ''}
                     <div><span style="color: var(--text-sub);">渠道：</span>${item.channel || item.channelName || '未设置'}</div>
                     <div><span style="color: var(--text-sub);">兼职姓名：</span>${item.customer || '未设置'}</div>
                     <div><span style="color: var(--text-sub);">群号简称：</span>${item.group || '未设置'}</div>
@@ -4200,7 +4203,7 @@ function clearTodoBatchSelection() {
 
 function formatDate(s) { if(!s) return '-'; const d = new Date(s); if(isNaN(d.getTime())) return s; return d.toISOString().split('T')[0]; }
 function getTimestamp(dateStr) { if (!dateStr) return -1; let ts = Date.parse(dateStr); if (!isNaN(ts)) return ts; ts = Date.parse(String(dateStr).replace(/\//g, '-')); return isNaN(ts) ? -1 : ts; }
-function getQualLabel(val) { if(val === 'qualified') return '<span class="status-tag qual-ok">合格</span>'; if(val === 'unqualified') return '<span class="status-tag qual-no">无数据</span>'; return '<span class="status-tag qual-pending">未审核</span>'; }
+function getQualLabel(val) { if(val === 'qualified') return '<span class="status-tag qual-ok">合格</span>'; if(val === 'disqualified') return '<span class="status-tag qual-disqualified">不合格</span>'; if(val === 'unqualified') return '<span class="status-tag qual-no">无数据</span>'; return '<span class="status-tag qual-pending">未审核</span>'; }
 function generateDailyReport() {
     console.log('generateDailyReport function called');
     const today = new Date().toISOString().split('T')[0];
@@ -5706,16 +5709,16 @@ function renderCharts() {
     });
     
     // 4. 审核情况图
-    const { qCount, uCount, pCount } = ChartUtils.getQualificationData();
+    const { qCount, dCount, uCount, pCount } = ChartUtils.getQualificationData();
     chartConfigs.push({
         canvasId: 'chartQual',
         chartId: 't3',
         type: 'doughnut',
         data: {
-            labels: ['合格','无数据','未审核'],
+            labels: ['合格','不合格','无数据','未审核'],
             datasets: [{
-                data: [qCount, uCount, pCount],
-                backgroundColor: [ChartUtils.colors.success, ChartUtils.colors.danger, ChartUtils.colors.gray]
+                data: [qCount, dCount, uCount, pCount],
+                backgroundColor: [ChartUtils.colors.success, ChartUtils.colors.warning, ChartUtils.colors.danger, ChartUtils.colors.gray]
             }]
         },
         options: {
@@ -5913,7 +5916,7 @@ function confirmExportExcel() {
                         let val = item[col.key];
                         if (col.key === 'profit') val = (parseFloat(item.channelPrice)||0) - (parseFloat(item.amount)||0);
                         else if (col.key === 'status') val = item.status === 'settled' ? '已结' : (item.status === 'reviewed' ? '已审核待结算' : '未结');
-                        else if (col.key === 'qualified') val = item.qualified === 'qualified' ? '合格' : (item.qualified === 'unqualified' ? '无数据' : '未审');
+                        else if (col.key === 'qualified') val = item.qualified === 'qualified' ? '合格' : (item.qualified === 'disqualified' ? '不合格' : (item.qualified === 'unqualified' ? '无数据' : '未审'));
                         else if (['amount', 'channelPrice', 'profit'].includes(col.key)) val = parseFloat(val) || 0;
                         else if (['time', 'settleTime'].includes(col.key)) val = formatDate(item[col.key]);
                         row[col.label] = val;
@@ -5954,7 +5957,7 @@ async function importFromExcel(input) {
                     method: row["收款"]||'支付宝',
                     settleTime: row["结算时间"]||'',
                     status: row["状态"]==='已结'?'settled':'unsettled',
-                    qualified: row["审核"]==='合格'?'qualified':(row["审核"]==='无数据'?'unqualified':'pending')
+                    qualified: row["审核"]==='合格'?'qualified':(row["审核"]==='不合格'?'disqualified':(row["审核"]==='无数据'?'unqualified':'pending'))
                 };
                 
                 if(newItem.channelName) {
@@ -6287,10 +6290,11 @@ const ChartUtils = {
      */
     getQualificationData() {
         const qCount = App.data.filter(x=>x.qualified==='qualified').length;
+        const dCount = App.data.filter(x=>x.qualified==='disqualified').length;
         const uCount = App.data.filter(x=>x.qualified==='unqualified').length;
         const pCount = App.data.filter(x=>x.qualified==='pending'||!x.qualified).length;
         
-        return { qCount, uCount, pCount };
+        return { qCount, dCount, uCount, pCount };
     },
     
     /**
@@ -16086,14 +16090,14 @@ class AIChatWindow {
                     
                     case 'qual':
                         // 审核状态分布
-                        const { qCount, uCount, pCount } = ChartUtils.getQualificationData();
+                        const { qCount, dCount, uCount, pCount } = ChartUtils.getQualificationData();
                         chart = new Chart(ctx, {
                             type: 'doughnut',
                             data: {
-                                labels: ['合格','无数据','未审核'],
+                                labels: ['合格','不合格','无数据','未审核'],
                                 datasets: [{
-                                    data: [qCount, uCount, pCount],
-                                    backgroundColor: [ChartUtils.colors.success, ChartUtils.colors.danger, ChartUtils.colors.gray]
+                                    data: [qCount, dCount, uCount, pCount],
+                                    backgroundColor: [ChartUtils.colors.success, ChartUtils.colors.warning, ChartUtils.colors.danger, ChartUtils.colors.gray]
                                 }]
                             },
                             options: {

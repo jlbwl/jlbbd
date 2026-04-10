@@ -3722,13 +3722,11 @@ function renderAnomalyList(filter = 'all') {
                 </div>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; font-size: 13px;">
                     <div><span style="color: var(--text-sub);">推广费：</span><strong>¥${amount.toFixed(2)}</strong></div>
-                    <div><span style="color: var(--text-sub);">渠道价格：</span><strong>¥${channelPrice.toFixed(2)}</strong></div>
                     ${!isOverdue ? `<div><span style="color: var(--text-sub);">预估利润：</span><strong style="color: ${isNegative ? 'var(--danger-color)' : 'var(--success-color);'}">¥${profit.toFixed(2)}</strong></div>` : ''}
                     <div><span style="color: var(--text-sub);">做单时间：</span>${item.time || '未设置'}</div>
                     ${isOverdue ? `<div><span style="color: var(--text-sub);">结算日期：</span>${item.settleTime || '未设置'}</div>` : ''}
                     ${isOverdue ? `<div><span style="color: var(--text-sub);">结算状态：</span>${item.status === 'unsettled' ? '未结算' : (item.status === 'reviewed' ? '已审核待结算' : '已结算')}</div>` : ''}
                     ${isOverdue ? `<div><span style="color: var(--text-sub);">审核状态：</span>${item.qualified === 'pending' ? '未审核' : item.qualified === 'qualified' ? '合格' : item.qualified === 'disqualified' ? '不合格' : '无数据'}</div>` : ''}
-                    <div><span style="color: var(--text-sub);">渠道：</span>${item.channel || item.channelName || '未设置'}</div>
                     <div><span style="color: var(--text-sub);">兼职姓名：</span>${item.customer || '未设置'}</div>
                     <div><span style="color: var(--text-sub);">群号简称：</span>${item.group || '未设置'}</div>
                     ${isOverdue ? `<div style="margin-top: 10px; display: flex; gap: 8px;"><button class="btn btn-primary btn-sm" onclick="reviewAndSettle('${item.id}')">审核结算</button></div>` : ''}
@@ -4031,13 +4029,11 @@ function renderTodoList(filter = 'all') {
                 </div>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; font-size: 13px;">
                     <div><span style="color: var(--text-sub);">推广费：</span><strong>¥${amount.toFixed(2)}</strong></div>
-                    <div><span style="color: var(--text-sub);">渠道价格：</span><strong>¥${channelPrice.toFixed(2)}</strong></div>
                     ${!isOverdue ? `<div><span style="color: var(--text-sub);">预估利润：</span><strong style="color: ${isNegative ? 'var(--danger-color)' : 'var(--success-color);'}">¥${profit.toFixed(2)}</strong></div>` : ''}
                     <div><span style="color: var(--text-sub);">做单时间：</span>${item.time || '未设置'}</div>
                     ${isOverdue ? `<div><span style="color: var(--text-sub);">结算日期：</span>${item.settleTime || '未设置'}</div>` : ''}
                     ${isOverdue ? `<div><span style="color: var(--text-sub);">结算状态：</span>${item.status === 'unsettled' ? '未结算' : (item.status === 'reviewed' ? '已审核待结算' : '已结算')}</div>` : ''}
                     ${isOverdue ? `<div><span style="color: var(--text-sub);">审核状态：</span>${item.qualified === 'pending' ? '未审核' : item.qualified === 'qualified' ? '合格' : item.qualified === 'disqualified' ? '不合格' : '无数据'}</div>` : ''}
-                    <div><span style="color: var(--text-sub);">渠道：</span>${item.channel || item.channelName || '未设置'}</div>
                     <div><span style="color: var(--text-sub);">兼职姓名：</span>${item.customer || '未设置'}</div>
                     <div><span style="color: var(--text-sub);">群号简称：</span>${item.group || '未设置'}</div>
                 </div>

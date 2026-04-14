@@ -4261,11 +4261,33 @@ function populateTodoFilterOptions() {
     groupSelect.innerHTML = '<option value="">群号简称...</option>';
     projectSelect.innerHTML = '<option value="">项目...</option>';
     
-    // 收集所有群号简称和项目
+    // 收集今日待办列表中的群号简称和项目（使用与 renderTodoList 相同的过滤逻辑）
     const groups = new Set();
     const projects = new Set();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     
-    App.data.forEach(item => {
+    const todos = App.data.filter(item => {
+        const amount = parseFloat(item.amount) || 0;
+        const channelPrice = parseFloat(item.channelPrice) || 0;
+        const profit = channelPrice - amount;
+        
+        // 检查是否超时未结算
+        const isOverdue = () => {
+            const settleDate = item.settleTime ? new Date(item.settleTime) : null;
+            if (!settleDate) return false;
+            settleDate.setHours(0, 0, 0, 0);
+            const isSettleDatePassed = settleDate <= today;
+            const isUnsettled = item.status === 'unsettled';
+            const isUnreviewed = item.qualified === 'pending';
+            return isSettleDatePassed && (isUnsettled || isUnreviewed);
+        };
+        
+        const isNegativeUnverified = profit < 0 && !item.verified;
+        return isNegativeUnverified || amount > (App.config.riskLimit || 10000) || isOverdue();
+    });
+    
+    todos.forEach(item => {
         if (item.group) groups.add(item.group);
         if (item.project) projects.add(item.project);
     });

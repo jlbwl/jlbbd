@@ -8980,6 +8980,13 @@ switchView = function(viewId, event) {
     if (viewId === 'todo') {
         renderTodoList();
     }
+    // 特殊处理 AI 视图
+    if (viewId === 'ai') {
+        // 确保 AI 智能助手的事件绑定和初始化
+        if (window.aiChatWindow) {
+            window.aiChatWindow.init();
+        }
+    }
 };
 
 // 定义saveForm函数
@@ -16616,22 +16623,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
 console.log('✅ AI 聊天窗口已加载');
 
-// 修改 switchView 函数，确保 AI 视图正确显示
-if (typeof originalSwitchView === 'undefined') {
-    var originalSwitchView = switchView;
-}
-switchView = function(viewId, event) {
-    // 调用原始函数
-    originalSwitchView(viewId, event);
-    
-    // 特殊处理 AI 视图
-    if (viewId === 'ai') {
-        // 确保 AI 智能助手的事件绑定和初始化
-        if (window.aiChatWindow) {
-            window.aiChatWindow.init();
-        }
-    }
-};
+
 </script>
 
 </body>

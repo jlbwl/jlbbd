@@ -1687,15 +1687,7 @@ th {
                 <div class="chart-card"><h3>📊 结算状态分布</h3><canvas id="chartStatus"></canvas></div>
                 <div class="chart-card"><h3>📋 项目状态分布</h3><canvas id="chartProject"></canvas></div>
             </div>
-            <!-- 日历图表容器 -->
-            <div id="profitCalendarContainer" style="width: 100%; margin-top: 20px;">
-                <div class="chart-card" style="width: 100%; padding: 20px;">
-                    <h3 style="font-size: 16px; color: var(--text-main); margin-bottom: 20px;">📅 每日盈利利润日历</h3>
-                    <div style="position: relative; height: 600px; width: 100%;">
-                        <canvas id="profitCalendar"></canvas>
-                    </div>
-                </div>
-            </div>
+
         </div>
         <div id="view-todo" class="view-section">
             <div class="header-stats">
@@ -3565,16 +3557,6 @@ function switchView(viewId, event) {
             btn.classList.add('active');
         }
     }
-    // 控制每日盈利利润日历的显示和隐藏
-    const profitCalendarContainer = document.getElementById('profitCalendarContainer');
-    if (profitCalendarContainer) {
-        if (viewId === 'dashboard') {
-            profitCalendarContainer.style.display = 'block';
-        } else {
-            profitCalendarContainer.style.display = 'none';
-        }
-    }
-    
     // 将耗时操作移到setTimeout中，避免阻塞主线程
     setTimeout(function() {
         if(viewId === 'dashboard') renderCharts();
@@ -5981,48 +5963,7 @@ function renderCharts() {
         }
     });
     
-    // 7. 每日盈利利润日历图
-    const dailyProfitData = ChartUtils.getDailyProfitData();
-    chartConfigs.push({
-        canvasId: 'profitCalendar',
-        chartId: 't7',
-        type: 'bar',
-        data: {
-            labels: dailyProfitData.labels,
-            datasets: [{
-                label: '每日盈利利润',
-                data: dailyProfitData.values,
-                backgroundColor: dailyProfitData.values.map(value => value >= 0 ? '#10b981' : '#ef4444'),
-                borderColor: dailyProfitData.values.map(value => value >= 0 ? '#059669' : '#dc2626'),
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                title: {
-                    display: false
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: '利润 (¥)'
-                    }
-                },
-                x: {
-                    title: {
-                        display: true,
-                        text: '日期'
-                    }
-                }
-            }
-        }
-    });
+
     
     // 使用懒加载渲染图表
     lazyLoadCharts(chartConfigs);
@@ -6597,40 +6538,7 @@ const ChartUtils = {
         return Object.entries(teamMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
     },
     
-    /**
-     * 获取每日盈利利润数据
-     * @returns {Object} 每日盈利利润数据，包含labels和values
-     */
-    getDailyProfitData() {
-        const dailyProfit = {};
-        
-        // 遍历所有数据，按日期分组计算利润
-        App.data.forEach(item => {
-            if (!item.time) return;
-            
-            // 提取日期部分（YYYY-MM-DD）
-            const date = item.time.split(' ')[0];
-            if (!date) return;
-            
-            // 计算利润
-            const amount = parseFloat(item.amount) || 0;
-            const channelPrice = parseFloat(item.channelPrice) || 0;
-            const profit = channelPrice - amount;
-            
-            // 累加到对应日期
-            if (!dailyProfit[date]) {
-                dailyProfit[date] = 0;
-            }
-            dailyProfit[date] += profit;
-        });
-        
-        // 转换为数组并排序
-        const sortedDates = Object.keys(dailyProfit).sort();
-        const labels = sortedDates;
-        const values = sortedDates.map(date => dailyProfit[date]);
-        
-        return { labels, values };
-    },
+
     
     /**
      * 图表颜色配置

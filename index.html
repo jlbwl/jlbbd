@@ -3311,7 +3311,7 @@ const App = {
         if(navCustomer.style.display !== 'none') renderPresetTable();
         startAutoLogout();
         // 启用 AI 智能助手输入框
-        if (window.aiChatWindow) {
+        if (window.aiChatWindow && typeof window.aiChatWindow.enableInput === 'function') {
             window.aiChatWindow.enableInput();
         }
     }
@@ -3630,10 +3630,10 @@ function switchView(viewId, event) {
     setTimeout(function() {
         if(viewId === 'dashboard') renderCharts();
         if(viewId === 'customer') { renderPresetTable(); document.getElementById('presetSearchInput').value = ''; document.getElementById('presetSearchDropdown').style.display = 'none'; }
-        if(viewId === 'leadgen') { renderLeadgenDashboard(); }
+        if(viewId === 'leadgen' && typeof renderLeadgenDashboard === 'function') { renderLeadgenDashboard(); }
         if(viewId === 'list') { document.querySelectorAll('.row-cb').forEach(cb => cb.checked = false); updateBatchPanel(); }
-        if(viewId === 'formManager') FormManager.renderFormList();
-        if(viewId === 'workflow') WorkflowManager.renderWorkflowList();
+        if(viewId === 'formManager' && typeof renderFormManager === 'function') { renderFormManager(); }
+        if(viewId === 'workflow' && typeof WorkflowManager !== 'undefined' && typeof WorkflowManager.renderWorkflowList === 'function') { WorkflowManager.renderWorkflowList(); }
     }, 0);
 }
 function sortTable(key, isNumber = false) {
@@ -16617,10 +16617,12 @@ window.addEventListener('DOMContentLoaded', () => {
 console.log('✅ AI 聊天窗口已加载');
 
 // 修改 switchView 函数，确保 AI 视图正确显示
-const originalSwitchView = switchView;
-switchView = function(viewId) {
+if (typeof originalSwitchView === 'undefined') {
+    var originalSwitchView = switchView;
+}
+switchView = function(viewId, event) {
     // 调用原始函数
-    originalSwitchView(viewId);
+    originalSwitchView(viewId, event);
     
     // 特殊处理 AI 视图
     if (viewId === 'ai') {

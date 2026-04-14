@@ -1651,7 +1651,7 @@ th {
     <div class="sidebar">
         <div class="sidebar-title"><span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);border-radius:4px;margin-right:6px;vertical-align:middle;color:white;font-size:14px;font-weight:bold;">金</span> 金卢比 Ultimate</div>
         <div class="sidebar-nav">
-            <button class="sidebar-btn active" onclick="switchView('dashboard')" style="display: none !important;"><span>📊</span> 数据看板</button>
+
             <button class="sidebar-btn" onclick="switchView('todo')"><span>📋</span> 今日待办</button>
             <button class="sidebar-btn" onclick="switchView('list')"><span>📝</span> 收单列表</button>
             <button class="sidebar-btn" onclick="switchView('formManager')"><span>📄</span> 表单管理</button>
@@ -1669,7 +1669,7 @@ th {
             <div class="app-title"><span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);border-radius:3px;margin-right:6px;vertical-align:middle;color:white;font-size:12px;font-weight:bold;">金</span> 金卢比 Ultimate <span id="appVersion" style="font-size:12px; color:var(--text-sub); font-weight:normal; margin-left:10px;">v1.3.0</span></div>
             <div class="toolbar-actions"><span id="userRoleBadge" class="status-tag status-settled">ADMIN</span><button class="btn btn-outline btn-sm" onclick="toggleTheme()">🌙</button></div>
         </div>
-        <div id="view-dashboard" class="view-section active">
+        <div id="view-dashboard" class="view-section">
             <div class="header-stats" style="display: none;">
                 <div class="stat-card"><div class="stat-label">收单总记录</div><div class="stat-value" id="dashTotal">0</div></div>
                 <div class="stat-card"><div class="stat-label">结算总金额</div><div class="stat-value" id="dashAmount">¥0</div></div>
@@ -1689,7 +1689,7 @@ th {
             </div>
 
         </div>
-        <div id="view-todo" class="view-section">
+        <div id="view-todo" class="view-section active">
             <div class="header-stats">
                 <div class="stat-card todo-filter-card" id="todoCardAll" onclick="filterTodoList('all')" style="cursor: pointer; transition: all 0.3s ease;">
                     <div class="stat-label">全部待办</div>

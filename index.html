@@ -1660,6 +1660,7 @@ th {
             <button class="sidebar-btn" id="navLeadgen" onclick="switchView('leadgen')" style="display:none;"><span>🎯</span> 智能获客</button>
             <button class="sidebar-btn" onclick="switchView('recycle')"><span>♻️</span> 回收站</button>
             <button class="sidebar-btn" onclick="switchView('logs')"><span>🛡️</span> 审计日志</button>
+            <button class="sidebar-btn" onclick="switchView('ai')"><span>🤖</span> AI 智能助手</button>
             <button class="sidebar-btn" onclick="switchView('settings')"><span>⚙️</span> 设置</button>
         </div>
         <div class="sidebar-footer"><button class="btn btn-outline" style="width: 100%;" onclick="logout()">🚪 退出登录</button></div>
@@ -1668,6 +1669,74 @@ th {
         <div class="top-toolbar">
             <div class="app-title"><span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);border-radius:3px;margin-right:6px;vertical-align:middle;color:white;font-size:12px;font-weight:bold;">金</span> 金卢比 Ultimate <span id="appVersion" style="font-size:12px; color:var(--text-sub); font-weight:normal; margin-left:10px;">v1.3.0</span></div>
             <div class="toolbar-actions"><span id="userRoleBadge" class="status-tag status-settled">ADMIN</span><button class="btn btn-outline btn-sm" onclick="toggleTheme()">🌙</button></div>
+        </div>
+        <div id="view-ai" class="view-section">
+            <div id="aiChatMainContainer" style="width: 100%; height: calc(100vh - 120px); display: flex; gap: 20px;">
+                <div id="aiChatWindow" style="flex: 1; background: var(--card-bg, #fff); border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; flex-direction: column; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                    <div class="chat-header" style="padding: 20px; border-bottom: 1px solid var(--border-color, #e0e0e0); display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 20px;">
+                                🤖
+                            </div>
+                            <div>
+                                <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: var(--text-main, #333);">AI 智能助手</h3>
+                                <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-sub, #666);">随时为您服务</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="chatMessages" class="chat-messages" style="flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
+                        <!-- 消息将在这里动态添加 -->
+                    </div>
+                    
+                    <div class="chat-input" style="padding: 20px; border-top: 1px solid var(--border-color, #e0e0e0); display: flex; gap: 10px; align-items: flex-end;">
+                        <button id="voiceBtn" class="voice-btn" style="background: var(--primary-color, #3b82f6); color: white; border: none; border-radius: 50%; width: 44px; height: 44px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">
+                            🎤
+                        </button>
+                        <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+                            <div style="position: relative;">
+                                <input type="text" id="chatInput" class="chat-input-field" placeholder="请输入您的指令..." style="width: 100%; padding: 12px 16px; border: 1px solid var(--border-color, #e0e0e0); border-radius: 22px; font-size: 14px; outline: none; focus: border-color: var(--primary-color, #3b82f6);">
+                                <div id="chatInputSuggestions" class="chat-input-suggestions" style="position: absolute; bottom: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; background: var(--card-bg, #fff); border: 1px solid var(--border-color, #e0e0e0); border-radius: 8px 8px 0 0; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 99999; display: none; margin-bottom: 5px;">
+                                    <!-- 建议将在这里动态添加 -->
+                                </div>
+                            </div>
+                            <div style="font-size: 12px; color: var(--text-sub, #666); text-align: center;">
+                                您可以：添加客户、查找数据、修改信息、删除记录、生成分析报告
+                            </div>
+                        </div>
+                        <button id="sendBtn" class="send-btn" style="background: var(--primary-color, #3b82f6); color: white; border: none; border-radius: 22px; padding: 12px 20px; cursor: pointer; font-size: 14px; font-weight: 600; flex-shrink: 0;">
+                            发送
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="aiCommandLibrary" style="width: 300px; min-width: 280px; background: var(--card-bg, #fff); border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; flex-direction: column; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                    <div style="padding: 20px; border-bottom: 1px solid var(--border-color, #e0e0e0);">
+                        <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: var(--text-main, #333);">📚 提示词指令库</h3>
+                        <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-sub, #666);">点击指令直接使用</p>
+                    </div>
+                    <div style="flex: 1; padding: 15px; overflow-y: auto;">
+                        <div style="font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; font-size: 13px; line-height: 1.6;">
+                            <h4 style="margin: 0 0 10px 0; color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">📥 客户管理</h4>
+                            <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='添加新客户，姓名张三，公司ABC';">添加新客户，姓名张三，公司ABC</p>
+                            <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='查找所有高意向客户';">查找所有高意向客户</p>
+                            <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='将张三的状态改为已成交';">将张三的状态改为已成交</p>
+                            <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='删除客户李四';">删除客户李四</p>
+                            
+                            <h4 style="margin: 15px 0 10px 0; color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">📊 数据分析</h4>
+                            <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='生成盈利分析报告';">生成盈利分析报告</p>
+                            <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='生成盈利分析报告 本周';">生成盈利分析报告 本周</p>
+                            <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='生成盈利分析报告 本月';">生成盈利分析报告 本月</p>
+                            
+                            <h4 style="margin: 15px 0 10px 0; color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">📈 图表生成</h4>
+                            <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='生成近7日收单趋势图表';">生成近7日收单趋势图表</p>
+                            <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='生成渠道利润TOP5图表';">生成渠道利润TOP5图表</p>
+                            <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='生成团队交单排行榜图表';">生成团队交单排行榜图表</p>
+                            <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='生成审核状态分布图表';">生成审核状态分布图表</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         <div id="view-dashboard" class="view-section">
             <div class="header-stats" style="display: none;">
@@ -16490,10 +16559,77 @@ class AIChatWindow {
 
 // 初始化 AI 聊天窗口
 window.addEventListener('DOMContentLoaded', () => {
+    // 覆盖 AIChatWindow 类的 createChatWindow 方法
+    AIChatWindow.prototype.createChatWindow = function() {
+        // 不再创建新的DOM元素，使用静态HTML结构
+        // 确保聊天消息容器为空
+        const chatMessages = document.getElementById('chatMessages');
+        if (chatMessages) {
+            chatMessages.innerHTML = '';
+        }
+    };
+    
+    // 覆盖 AIChatWindow 类的 init 方法
+    AIChatWindow.prototype.init = function() {
+        this.createChatWindow();
+        this.bindEvents();
+        this.sendWelcomeMessage();
+        // 不再默认禁用输入框，因为系统已经移除了登录验证
+        this.enableInput();
+    };
+    
+    // 覆盖 AIChatWindow 类的 handleMenuNavigation 方法
+    AIChatWindow.prototype.handleMenuNavigation = function(message) {
+        let viewId = '';
+        
+        if (message.includes('今日待办')) {
+            viewId = 'todo';
+        } else if (message.includes('收单列表')) {
+            viewId = 'list';
+        } else if (message.includes('表单管理')) {
+            viewId = 'formManager';
+        } else if (message.includes('工作流管理')) {
+            viewId = 'workflow';
+        } else if (message.includes('客户管理')) {
+            viewId = 'customer';
+        } else if (message.includes('智能获客')) {
+            viewId = 'leadgen';
+        } else if (message.includes('回收站')) {
+            viewId = 'recycle';
+        } else if (message.includes('审计日志')) {
+            viewId = 'logs';
+        } else if (message.includes('设置')) {
+            viewId = 'settings';
+        }
+        
+        if (viewId) {
+            // 切换到对应视图
+            switchView(viewId);
+        } else {
+            this.addMessage('ai', '抱歉，无法识别您要打开的菜单。请尝试使用更明确的指令，例如："打开数据看板"、"打开今日待办"等。');
+        }
+    };
+    
+    // 初始化 AI 聊天窗口
     window.aiChatWindow = new AIChatWindow();
 });
 
 console.log('✅ AI 聊天窗口已加载');
+
+// 修改 switchView 函数，确保 AI 视图正确显示
+const originalSwitchView = switchView;
+switchView = function(viewId) {
+    // 调用原始函数
+    originalSwitchView(viewId);
+    
+    // 特殊处理 AI 视图
+    if (viewId === 'ai') {
+        // 确保 AI 智能助手的事件绑定和初始化
+        if (window.aiChatWindow) {
+            window.aiChatWindow.init();
+        }
+    }
+};
 </script>
 
 </body>

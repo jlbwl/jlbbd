@@ -1688,7 +1688,7 @@ th {
                 <div class="chart-card"><h3>📋 项目状态分布</h3><canvas id="chartProject"></canvas></div>
             </div>
             <!-- 日历图表容器 -->
-            <div style="width: 100%; margin-top: 20px;">
+            <div style="width: 100%; margin-top: 20px; display: none;">
                 <div class="chart-card" style="width: 100%; padding: 20px;">
                     <h3 style="font-size: 16px; color: var(--text-main); margin-bottom: 20px;">📅 每日盈利利润日历</h3>
                     <div style="position: relative; height: 600px; width: 100%;">
@@ -15184,16 +15184,14 @@ class AIChatWindow {
         mainContainer.id = 'aiChatMainContainer';
         mainContainer.style.cssText = `
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 1200px;
             display: flex;
-            justify-content: center;
-            align-items: center;
+            gap: 20px;
             z-index: 99999;
-            backdrop-filter: blur(5px);
         `;
         
         // 创建 AI 智能助手窗口
@@ -15201,7 +15199,7 @@ class AIChatWindow {
         chatWindow.id = 'aiChatWindow';
         chatWindow.style.cssText = `
             flex: 1;
-            max-width: 600px;
+            min-width: 400px;
             height: 70%;
             max-height: 600px;
             background: var(--card-bg, #fff);

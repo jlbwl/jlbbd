@@ -3227,7 +3227,6 @@ const App = {
      * @description 显示主应用界面并设置权限
      */
     enterApp() {
-        document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('mainApp').style.display = 'flex';
         document.getElementById('userRoleBadge').innerText = this.currentUser.role.toUpperCase();
         // 更新版本号显示

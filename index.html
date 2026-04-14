@@ -15130,7 +15130,8 @@ class AIChatWindow {
         this.showChatWindow();
         this.hideAllMenus();
         this.sendWelcomeMessage();
-        this.disableInput();
+        // 不再默认禁用输入框，因为系统已经移除了登录验证
+        this.enableInput();
     }
     
     disableInput() {

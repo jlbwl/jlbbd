@@ -1688,7 +1688,7 @@ th {
                 <div class="chart-card"><h3>📋 项目状态分布</h3><canvas id="chartProject"></canvas></div>
             </div>
             <!-- 日历图表容器 -->
-            <div style="width: 100%; margin-top: 20px; display: none;">
+            <div id="profitCalendarContainer" style="width: 100%; margin-top: 20px;">
                 <div class="chart-card" style="width: 100%; padding: 20px;">
                     <h3 style="font-size: 16px; color: var(--text-main); margin-bottom: 20px;">📅 每日盈利利润日历</h3>
                     <div style="position: relative; height: 600px; width: 100%;">
@@ -3565,6 +3565,16 @@ function switchView(viewId, event) {
             btn.classList.add('active');
         }
     }
+    // 控制每日盈利利润日历的显示和隐藏
+    const profitCalendarContainer = document.getElementById('profitCalendarContainer');
+    if (profitCalendarContainer) {
+        if (viewId === 'dashboard') {
+            profitCalendarContainer.style.display = 'block';
+        } else {
+            profitCalendarContainer.style.display = 'none';
+        }
+    }
+    
     // 将耗时操作移到setTimeout中，避免阻塞主线程
     setTimeout(function() {
         if(viewId === 'dashboard') renderCharts();

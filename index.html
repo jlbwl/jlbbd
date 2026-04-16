@@ -16545,7 +16545,6 @@ function createCommandLibrary() {
     compassMenu.style.position = 'fixed';
     compassMenu.style.top = '50%';
     compassMenu.style.left = '50%';
-    compassMenu.style.transform = 'translate(-50%, -50%)';
     compassMenu.style.zIndex = '999999';
     compassMenu.style.transition = 'all 0.3s ease';
     
@@ -16576,8 +16575,77 @@ function createCommandLibrary() {
     centerBtn.style.position = 'relative';
     centerBtn.style.zIndex = '2';
     centerBtn.style.transition = 'transform 0.3s ease, box-shadow 0.3s ease';
-    centerBtn.innerHTML = '<span style="font-size:24px; color:white;">📚</span>';
+    centerBtn.innerHTML = '<span style="font-size:24px; color:white;">🦋</span>';
     compassMenu.appendChild(centerBtn);
+    
+    // 蝴蝶动画和移动
+    let isHovered = false;
+    let moveInterval;
+    
+    // 翅膀煽动动画
+    function flapWings() {
+        centerBtn.style.transform = 'rotate(0deg) scale(1)';
+        setTimeout(() => {
+            centerBtn.style.transform = 'rotate(0deg) scale(1.1)';
+        }, 200);
+        setTimeout(() => {
+            centerBtn.style.transform = 'rotate(0deg) scale(1)';
+        }, 400);
+    }
+    
+    // 随机移动
+    function startRandomMove() {
+        if (isHovered) return;
+        
+        moveInterval = setInterval(() => {
+            if (isHovered) return;
+            
+            // 随机移动距离和方向
+            const moveX = (Math.random() - 0.5) * 20;
+            const moveY = (Math.random() - 0.5) * 20;
+            
+            // 获取当前位置
+            const currentLeft = parseFloat(compassMenu.style.left) || 50;
+            const currentTop = parseFloat(compassMenu.style.top) || 50;
+            
+            // 计算新位置，确保在屏幕内
+            let newLeft = currentLeft + moveX;
+            let newTop = currentTop + moveY;
+            
+            // 边界检查
+            newLeft = Math.max(10, Math.min(90, newLeft));
+            newTop = Math.max(10, Math.min(90, newTop));
+            
+            // 更新位置
+            compassMenu.style.left = newLeft + '%';
+            compassMenu.style.top = newTop + '%';
+            
+            // 煽动翅膀
+            flapWings();
+        }, 3000); // 每3秒移动一次
+    }
+    
+    // 停止移动
+    function stopRandomMove() {
+        if (moveInterval) {
+            clearInterval(moveInterval);
+            moveInterval = null;
+        }
+    }
+    
+    // 鼠标悬停事件
+    centerBtn.addEventListener('mouseenter', function() {
+        isHovered = true;
+        stopRandomMove();
+    });
+    
+    centerBtn.addEventListener('mouseleave', function() {
+        isHovered = false;
+        startRandomMove();
+    });
+    
+    // 开始随机移动
+    startRandomMove();
     
     // 收集所有命令
     const allCommands = [];

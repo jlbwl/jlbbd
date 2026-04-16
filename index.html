@@ -10,6 +10,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="version" content="1.2.0">
+<script>
+    // 在window对象上直接定义showCompassCommands函数，确保它在任何时候都可用
+    window.showCompassCommands = function() {
+        console.log('showCompassCommands被调用');
+    };
+</script>
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css" crossorigin="anonymous">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
@@ -16523,6 +16530,179 @@ class AIChatWindow {
     }
 }
 
+
+
+// 创建并显示提示词罗盘按钮
+function createCommandLibrary() {
+    // 检查是否已经存在提示词罗盘按钮
+    if (document.getElementById('aiCommandLibrary')) {
+        return;
+    }
+    
+    // 创建主容器
+    const commandLibrary = document.createElement('div');
+    commandLibrary.id = 'aiCommandLibrary';
+    commandLibrary.style.position = 'fixed';
+    commandLibrary.style.top = '30px';
+    commandLibrary.style.right = '30px';
+    commandLibrary.style.width = '60px';
+    commandLibrary.style.height = '60px';
+    commandLibrary.style.borderRadius = '50%';
+    commandLibrary.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+    commandLibrary.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+    commandLibrary.style.display = 'flex';
+    commandLibrary.style.alignItems = 'center';
+    commandLibrary.style.justifyContent = 'center';
+    commandLibrary.style.cursor = 'pointer';
+    commandLibrary.style.transition = 'all 0.3s ease';
+    commandLibrary.style.zIndex = '999999';
+    commandLibrary.style.visibility = 'visible';
+    commandLibrary.style.opacity = '1';
+    commandLibrary.style.pointerEvents = 'auto';
+    commandLibrary.style.userSelect = 'none';
+    
+    // 创建按钮（使用div替代button，避免onclick属性问题）
+    const compassButton = document.createElement('div');
+    compassButton.className = 'compass-center';
+    compassButton.style.width = '100%';
+    compassButton.style.height = '100%';
+    compassButton.style.borderRadius = '50%';
+    compassButton.style.display = 'flex';
+    compassButton.style.alignItems = 'center';
+    compassButton.style.justifyContent = 'center';
+    compassButton.style.fontSize = '24px';
+    compassButton.style.color = 'white';
+    compassButton.style.transition = 'all 0.3s ease';
+    compassButton.style.cursor = 'pointer';
+    compassButton.textContent = '📚';
+    
+    // 创建弹窗
+    const popup = document.createElement('div');
+    popup.id = 'compassCommandsPopup';
+    popup.style.position = 'absolute';
+    popup.style.bottom = '100%';
+    popup.style.right = '0';
+    popup.style.width = '300px';
+    popup.style.background = 'white';
+    popup.style.borderRadius = '8px';
+    popup.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+    popup.style.padding = '15px';
+    popup.style.marginBottom = '20px';
+    popup.style.display = 'none';
+    popup.style.zIndex = '100000';
+    
+    // 弹窗头部
+    const popupHeader = document.createElement('div');
+    popupHeader.style.display = 'flex';
+    popupHeader.style.justifyContent = 'space-between';
+    popupHeader.style.alignItems = 'center';
+    popupHeader.style.marginBottom = '10px';
+    
+    const popupTitle = document.createElement('h4');
+    popupTitle.style.margin = '0';
+    popupTitle.style.fontSize = '16px';
+    popupTitle.style.fontWeight = '600';
+    popupTitle.style.color = 'var(--text-main, #333)';
+    popupTitle.textContent = '提示词指令';
+    
+    // 使用div替代button作为关闭按钮
+    const closeButton = document.createElement('div');
+    closeButton.style.fontSize = '18px';
+    closeButton.style.cursor = 'pointer';
+    closeButton.style.color = 'var(--text-sub, #666)';
+    closeButton.textContent = '×';
+    
+    popupHeader.appendChild(popupTitle);
+    popupHeader.appendChild(closeButton);
+    
+    // 命令列表
+    const commandsList = document.createElement('div');
+    commandsList.id = 'compassCommandsList';
+    commandsList.style.maxHeight = '200px';
+    commandsList.style.overflowY = 'auto';
+    
+    popup.appendChild(popupHeader);
+    popup.appendChild(commandsList);
+    
+    // 组装
+    commandLibrary.appendChild(compassButton);
+    commandLibrary.appendChild(popup);
+    
+    // 绑定事件
+    compassButton.addEventListener('mouseenter', function() {
+        this.style.transform = 'scale(1.1)';
+    });
+    
+    compassButton.addEventListener('mouseleave', function() {
+        this.style.transform = 'scale(1)';
+    });
+    
+    compassButton.addEventListener('click', function() {
+        // 清空现有内容
+        commandsList.innerHTML = '';
+        
+        // 添加所有命令
+        const commandsByCategory = AIChatWindow.commandsByCategory;
+        Object.entries(commandsByCategory).forEach(([category, commands]) => {
+            const categoryHeader = document.createElement('div');
+            categoryHeader.style.margin = '10px 0 5px 0';
+            categoryHeader.style.fontWeight = '600';
+            categoryHeader.style.color = 'var(--primary-color, #3b82f6)';
+            categoryHeader.style.fontSize = '14px';
+            categoryHeader.textContent = category;
+            commandsList.appendChild(categoryHeader);
+            
+            commands.forEach(command => {
+                const commandItem = document.createElement('div');
+                commandItem.style.margin = '3px 0';
+                commandItem.style.padding = '5px';
+                commandItem.style.borderRadius = '4px';
+                commandItem.style.cursor = 'pointer';
+                commandItem.style.fontSize = '13px';
+                commandItem.style.transition = 'background-color 0.2s';
+                commandItem.textContent = command;
+                
+                commandItem.addEventListener('mouseenter', function() {
+                    this.style.backgroundColor = 'var(--background-color, #f5f5f5)';
+                });
+                
+                commandItem.addEventListener('mouseleave', function() {
+                    this.style.backgroundColor = '';
+                });
+                
+                commandItem.addEventListener('click', function() {
+                    const chatInput = document.getElementById('chatInput');
+                    if (chatInput) {
+                        chatInput.value = command;
+                    }
+                    popup.style.display = 'none';
+                });
+                
+                commandsList.appendChild(commandItem);
+            });
+        });
+        
+        // 显示弹窗
+        popup.style.display = 'block';
+    });
+    
+    closeButton.addEventListener('click', function() {
+        popup.style.display = 'none';
+    });
+    
+    // 点击其他地方关闭弹窗
+    document.addEventListener('click', function(e) {
+        if (popup && popup.style.display === 'block' && !commandLibrary.contains(e.target)) {
+            popup.style.display = 'none';
+        }
+    });
+    
+    // 添加到body
+    document.body.appendChild(commandLibrary);
+}
+
+
+
 // 初始化 AI 聊天窗口
 window.addEventListener('DOMContentLoaded', () => {
     // 覆盖 AIChatWindow 类的 createChatWindow 方法
@@ -16572,137 +16752,12 @@ window.addEventListener('DOMContentLoaded', () => {
             // 切换到对应视图
             switchView(viewId);
         } else {
-            this.addMessage('ai', '抱歉，无法识别您要打开的菜单。请尝试使用更明确的指令，例如："打开数据看板"、"打开今日待办"等。');
+            this.addMessage('ai', '抱歉，无法识别您要打开的菜单。请尝试使用更明确的指令，例如：\'打开数据看板\'、\'打开今日待办\'等。');
         }
     };
     
     // 初始化 AI 聊天窗口
     window.aiChatWindow = new AIChatWindow();
-    
-    // 创建并显示提示词悬浮精灵按钮
-    function createCommandLibrary() {
-        // 检查是否已经存在提示词悬浮精灵按钮
-        if (document.getElementById('aiCommandLibrary')) {
-            return;
-        }
-        
-        // 创建提示词悬浮精灵按钮
-        const commandLibrary = document.createElement('div');
-        commandLibrary.id = 'aiCommandLibrary';
-        commandLibrary.style.cssText = `
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            z-index: 99999;
-        `;
-        
-        // 生成提示词悬浮精灵按钮内容
-        let commandLibraryContent = `
-            <div class="compass-center" style="
-                width: 100%;
-                height: 100%;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 24px;
-                color: white;
-                transition: all 0.3s ease;
-            " onmouseenter="this.style.transform = 'scale(1.1)'" onmouseleave="this.style.transform = 'scale(1)'" onclick="showCompassCommands()">
-                📚
-            </div>
-            
-            <!-- 命令弹窗 -->
-            <div id="compassCommandsPopup" style="
-                position: absolute;
-                bottom: 100%;
-                right: 0;
-                width: 300px;
-                background: white;
-                border-radius: 8px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-                padding: 15px;
-                margin-bottom: 20px;
-                display: none;
-                z-index: 100000;
-            ">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <h4 style="margin: 0; font-size: 16px; font-weight: 600; color: var(--text-main, #333);">提示词指令</h4>
-                    <button onclick="document.getElementById('compassCommandsPopup').style.display = 'none'" style="
-                        background: none;
-                        border: none;
-                        font-size: 18px;
-                        cursor: pointer;
-                        color: var(--text-sub, #666);
-                    ">×</button>
-                </div>
-                <div id="compassCommandsList" style="max-height: 200px; overflow-y: auto;">
-                    <!-- 命令将在这里动态添加 -->
-                </div>
-            </div>
-        `;
-        
-        commandLibrary.innerHTML = commandLibraryContent;
-        
-        // 将提示词悬浮精灵按钮直接添加到 body 中
-        document.body.appendChild(commandLibrary);
-    }
-    
-    // 显示命令弹窗
-    function showCompassCommands() {
-        const popup = document.getElementById('compassCommandsPopup');
-        const commandsList = document.getElementById('compassCommandsList');
-        
-        // 清空现有内容
-        commandsList.innerHTML = '';
-        
-        // 添加所有命令
-        const commandsByCategory = AIChatWindow.commandsByCategory;
-        Object.entries(commandsByCategory).forEach(([category, commands]) => {
-            const categoryHeader = document.createElement('div');
-            categoryHeader.style.cssText = 'margin: 10px 0 5px 0; font-weight: 600; color: var(--primary-color, #3b82f6); font-size: 14px;';
-            categoryHeader.textContent = category;
-            commandsList.appendChild(categoryHeader);
-            
-            commands.forEach(command => {
-                const commandItem = document.createElement('div');
-                commandItem.style.cssText = 'margin: 3px 0; padding: 5px; border-radius: 4px; cursor: pointer; font-size: 13px; transition: background-color 0.2s;';
-                commandItem.textContent = command;
-                commandItem.onmouseenter = function() { this.style.backgroundColor = 'var(--background-color, #f5f5f5);'; };
-                commandItem.onmouseleave = function() { this.style.backgroundColor = ''; };
-                commandItem.onclick = function() {
-                    const chatInput = document.getElementById('chatInput');
-                    if (chatInput) {
-                        chatInput.value = command;
-                    }
-                    popup.style.display = 'none';
-                };
-                commandsList.appendChild(commandItem);
-            });
-        });
-        
-        // 显示弹窗
-        popup.style.display = 'block';
-    }
-    
-    // 点击其他地方关闭弹窗
-    document.addEventListener('click', function(e) {
-        const popup = document.getElementById('compassCommandsPopup');
-        const compassCenter = document.querySelector('.compass-center');
-        if (popup && !popup.contains(e.target) && !compassCenter.contains(e.target)) {
-            popup.style.display = 'none';
-        }
-    });
     
     // 页面加载时创建并显示提示词悬浮精灵按钮
     createCommandLibrary();
@@ -16710,6 +16765,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
 console.log('✅ AI 聊天窗口已加载');
 console.log('✅ 提示词悬浮精灵按钮已加载');
+
 
 
 </script>

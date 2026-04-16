@@ -16729,6 +16729,11 @@ function createCommandLibrary() {
         menuExpanded = !menuExpanded;
         
         if (menuExpanded) {
+            // 跳转到AI智能助手页面
+            if (typeof switchView === 'function') {
+                switchView('ai');
+            }
+            
             // 展开菜单
             centerBtn.style.transform = 'rotate(180deg)';
             centerBtn.style.boxShadow = '0 6px 16px rgba(0,0,0,0.4)';

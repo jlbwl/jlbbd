@@ -16613,22 +16613,10 @@ function createCommandLibrary() {
         footprint.style.transition = 'opacity 5s ease, transform 5s ease';
         footprint.style.transform = 'scale(0.5)';
         
-        // 只使用蝴蝶图标作为轨迹装饰
-        footprint.textContent = '🦋';
+        // 只使用星星图标作为轨迹装饰
+        footprint.textContent = '✨';
         
-        // 添加翅膀煽动动画
-        let angle = 0;
-        const flapInterval = setInterval(() => {
-            angle = angle === 0 ? 15 : 0;
-            footprint.style.transform = `scale(0.8) rotate(${angle}deg)`;
-        }, 300);
-        
-        // 清除动画
-        setTimeout(() => {
-            clearInterval(flapInterval);
-        }, 5000);
-        
-        // 添加点击事件，点击轨迹蝴蝶打开罗盘菜单
+        // 添加点击事件，点击轨迹星星打开罗盘菜单
         footprint.addEventListener('click', function() {
             toggleCompassMenu();
         });

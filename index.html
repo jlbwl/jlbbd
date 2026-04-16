@@ -16609,28 +16609,29 @@ function createCommandLibrary() {
         footprint.style.fontSize = '16px';
         footprint.style.color = 'rgba(255, 105, 180, 0.8)';
         footprint.style.zIndex = '1';
-        footprint.style.pointerEvents = 'none';
+        footprint.style.cursor = 'pointer';
         footprint.style.transition = 'opacity 3s ease, transform 3s ease';
         footprint.style.transform = 'scale(0.5)';
         
-        // 使用蝴蝶或花瓣图标作为轨迹装饰
-        const decorations = ['🦋', '🌸', '✨', '🌟', '💫'];
-        const randomDecoration = decorations[Math.floor(Math.random() * decorations.length)];
-        footprint.textContent = randomDecoration;
+        // 只使用蝴蝶图标作为轨迹装饰
+        footprint.textContent = '🦋';
         
-        // 如果是蝴蝶图标，添加翅膀煽动动画
-        if (randomDecoration === '🦋') {
-            let angle = 0;
-            const flapInterval = setInterval(() => {
-                angle = angle === 0 ? 15 : 0;
-                footprint.style.transform = `scale(0.8) rotate(${angle}deg)`;
-            }, 300);
-            
-            // 清除动画
-            setTimeout(() => {
-                clearInterval(flapInterval);
-            }, 3000);
-        }
+        // 添加翅膀煽动动画
+        let angle = 0;
+        const flapInterval = setInterval(() => {
+            angle = angle === 0 ? 15 : 0;
+            footprint.style.transform = `scale(0.8) rotate(${angle}deg)`;
+        }, 300);
+        
+        // 清除动画
+        setTimeout(() => {
+            clearInterval(flapInterval);
+        }, 3000);
+        
+        // 添加点击事件，点击轨迹蝴蝶打开罗盘菜单
+        footprint.addEventListener('click', function() {
+            toggleCompassMenu();
+        });
         
         document.body.appendChild(footprint);
         

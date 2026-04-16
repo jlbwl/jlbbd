@@ -15905,7 +15905,10 @@ class AIChatWindow {
         let timeRange = 'all';
         let timeRangeText = '所有时间';
         
-        if (message.includes('本周')) {
+        if (message.includes('今天')) {
+            timeRange = 'today';
+            timeRangeText = '今天';
+        } else if (message.includes('本周')) {
             timeRange = 'week';
             timeRangeText = '本周';
         } else if (message.includes('本月')) {
@@ -15931,6 +15934,17 @@ class AIChatWindow {
             let startDate;
             
             switch (timeRange) {
+                case 'today':
+                    // 今天
+                    startDate = new Date(now);
+                    startDate.setHours(0, 0, 0, 0);
+                    const todayEnd = new Date(now);
+                    todayEnd.setHours(23, 59, 59, 999);
+                    orders = orders.filter(o => {
+                        const orderDate = new Date(o.time || o.createdAt || o.settleTime);
+                        return orderDate >= startDate && orderDate <= todayEnd;
+                    });
+                    break;
                 case 'week':
                     // 本周（从周一开始）
                     startDate = new Date(now);
@@ -15975,7 +15989,7 @@ class AIChatWindow {
                     break;
             }
             
-            // 过滤数据（除了上周和上月，它们有特殊处理）
+            // 过滤数据（除了上周、上月和今天，它们有特殊处理）
             if (['week', 'month', '7days', '30days'].includes(timeRange)) {
                 orders = orders.filter(o => {
                     const orderDate = new Date(o.time || o.createdAt || o.settleTime);

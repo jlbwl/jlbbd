@@ -15119,6 +15119,46 @@ class AIChatWindow {
         this.init();
     }
     
+    // 提示词指令库（按类别分组）
+    static commandsByCategory = {
+        '客户管理': [
+            '添加新客户，姓名张三，公司ABC',
+            '查找所有高意向客户',
+            '将张三的状态改为已成交',
+            '删除客户李四'
+        ],
+        '报告生成': [
+            '生成盈利分析报告',
+            '生成盈利分析报告 今天',
+            '生成盈利分析报告 本周',
+            '生成盈利分析报告 本月',
+            '生成今日经营日报',
+            '查询历史经营日报 2024-01-01 到 2024-01-31'
+        ],
+        '图表生成': [
+            '生成近7日收单趋势图表',
+            '生成渠道利润TOP5图表',
+            '生成团队交单排行榜图表',
+            '生成审核状态分布图表',
+            '生成结算状态分布图表',
+            '生成项目状态分布图表'
+        ],
+        '导航': [
+            '打开今日待办',
+            '打开收单列表',
+            '打开表单管理',
+            '打开工作流管理',
+            '打开客户管理',
+            '打开智能获客',
+            '打开回收站',
+            '打开审计日志',
+            '打开设置'
+        ],
+        '其他': [
+            '帮助'
+        ]
+    };
+    
     init() {
         this.createChatWindow();
         this.bindEvents();
@@ -15259,52 +15299,44 @@ class AIChatWindow {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         `;
         
-        commandLibrary.innerHTML = `
+        // 生成命令库内容
+        let commandLibraryContent = `
             <div style="padding: 20px; border-bottom: 1px solid var(--border-color, #e0e0e0);">
                 <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: var(--text-main, #333);">📚 提示词指令库</h3>
                 <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-sub, #666);">点击指令直接使用</p>
             </div>
             <div style="flex: 1; padding: 15px; overflow-y: auto;">
                 <div style="font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; font-size: 13px; line-height: 1.6;">
-                    <h4 style="margin: 0 0 10px 0; color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">📥 客户管理</h4>
-                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='添加新客户，姓名张三，公司ABC';">添加新客户，姓名张三，公司ABC</p>
-                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='查找所有高意向客户';">查找所有高意向客户</p>
-                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='将张三的状态改为已成交';">将张三的状态改为已成交</p>
-                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='删除客户李四';">删除客户李四</p>
-                    
-                    <h4 style="margin: 15px 0 10px 0; color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">📊 数据分析</h4>
-                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='生成盈利分析报告';">生成盈利分析报告</p>
-                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='生成盈利分析报告 本周';">生成盈利分析报告 本周</p>
-                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='生成盈利分析报告 本月';">生成盈利分析报告 本月</p>
-                    
-                    <h4 style="margin: 15px 0 10px 0; color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">📈 图表生成</h4>
-                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='生成近7日收单趋势图表';">生成近7日收单趋势图表</p>
-                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='生成渠道利润TOP5图表';">生成渠道利润TOP5图表</p>
-                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='生成团队交单排行榜图表';">生成团队交单排行榜图表</p>
-                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='生成审核状态分布图表';">生成审核状态分布图表</p>
-                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='生成结算状态分布图表';">生成结算状态分布图表</p>
-                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='生成项目状态分布图表';">生成项目状态分布图表</p>
-                    
-                    <h4 style="margin: 15px 0 10px 0; color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">📋 经营日报</h4>
-                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='生成今日经营日报';">生成今日经营日报</p>
-                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='查询历史经营日报 2024-01-01 到 2024-01-31';">查询历史经营日报 2024-01-01 到 2024-01-31</p>
-                    
-                    <h4 style="margin: 15px 0 10px 0; color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">❓ 帮助</h4>
-                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='帮助';">帮助</p>
-                    
-                    <h4 style="margin: 15px 0 10px 0; color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">🧭 菜单导航</h4>
-                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='打开今日待办';">打开今日待办</p>
-                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='打开收单列表';">打开收单列表</p>
-                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='打开表单管理';">打开表单管理</p>
-                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='打开工作流管理';">打开工作流管理</p>
-                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='打开客户管理';">打开客户管理</p>
-                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='打开智能获客';">打开智能获客</p>
-                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='打开回收站';">打开回收站</p>
-                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='打开审计日志';">打开审计日志</p>
-                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='打开设置';">打开设置</p>
+        `;
+        
+        // 按类别生成命令
+        const categoryIcons = {
+            '客户管理': '📥',
+            '报告生成': '📊',
+            '图表生成': '📈',
+            '导航': '🧭',
+            '其他': '❓'
+        };
+        
+        Object.entries(AIChatWindow.commandsByCategory).forEach(([category, commands]) => {
+            const icon = categoryIcons[category] || '📄';
+            commandLibraryContent += `
+                <h4 style="margin: ${commandLibraryContent.includes('h4') ? '15px' : '0'} 0 10px 0; color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">${icon} ${category}</h4>
+            `;
+            
+            commands.forEach(command => {
+                commandLibraryContent += `
+                    <p style="margin: 5px 0; cursor: pointer; padding: 5px; border-radius: 4px; hover: background: var(--bg-color);" onclick="document.getElementById('chatInput').value='${command.replace(/'/g, "\\'")}';">${command}</p>
+                `;
+            });
+        });
+        
+        commandLibraryContent += `
                 </div>
             </div>
         `;
+        
+        commandLibrary.innerHTML = commandLibraryContent;
         
         // 将 AI 智能助手和指令库添加到主容器
         mainContainer.appendChild(chatWindow);
@@ -15350,66 +15382,62 @@ class AIChatWindow {
             return;
         }
         
-        // 提示词指令库
-        const commands = [
-            '添加新客户，姓名张三，公司ABC',
-            '查找所有高意向客户',
-            '将张三的状态改为已成交',
-            '删除客户李四',
-            '生成盈利分析报告',
-            '生成盈利分析报告 今天',
-            '生成盈利分析报告 本周',
-            '生成盈利分析报告 本月',
-            '生成近7日收单趋势图表',
-            '生成渠道利润TOP5图表',
-            '生成团队交单排行榜图表',
-            '生成审核状态分布图表',
-            '生成结算状态分布图表',
-            '生成项目状态分布图表',
-            '生成今日经营日报',
-            '查询历史经营日报 2024-01-01 到 2024-01-31',
-            '帮助',
-            '打开今日待办',
-            '打开收单列表',
-            '打开表单管理',
-            '打开工作流管理',
-            '打开客户管理',
-            '打开智能获客',
-            '打开回收站',
-            '打开审计日志',
-            '打开设置'
-        ];
+        // 匹配提示词（按类别）
+        const matchedCommandsByCategory = {};
         
-        // 匹配提示词
-        const matchedCommands = commands.filter(command => 
-            command.toLowerCase().includes(inputValue)
-        );
+        Object.entries(AIChatWindow.commandsByCategory).forEach(([category, categoryCommands]) => {
+            const matchedCategoryCommands = categoryCommands.filter(command => 
+                command.toLowerCase().includes(inputValue)
+            );
+            
+            if (matchedCategoryCommands.length > 0) {
+                matchedCommandsByCategory[category] = matchedCategoryCommands;
+            }
+        });
         
-        if (matchedCommands.length > 0) {
-            // 显示建议
+        if (Object.keys(matchedCommandsByCategory).length > 0) {
+            // 显示建议（按类别）
             suggestions.innerHTML = '';
-            matchedCommands.forEach(command => {
-                const suggestionItem = document.createElement('div');
-                suggestionItem.style.cssText = `
-                    padding: 10px 15px;
-                    cursor: pointer;
-                    font-size: 14px;
-                    color: var(--text-main, #333);
+            
+            Object.entries(matchedCommandsByCategory).forEach(([category, categoryCommands]) => {
+                // 添加类别标题
+                const categoryHeader = document.createElement('div');
+                categoryHeader.style.cssText = `
+                    padding: 8px 15px;
+                    font-size: 12px;
+                    font-weight: 600;
+                    color: var(--text-sub, #666);
+                    background-color: var(--background-color, #f5f5f5);
                     border-bottom: 1px solid var(--border-color, #e0e0e0);
                 `;
-                suggestionItem.addEventListener('mouseenter', () => {
-                    suggestionItem.style.backgroundColor = 'var(--background-color, #f5f5f5)';
+                categoryHeader.textContent = category;
+                suggestions.appendChild(categoryHeader);
+                
+                // 添加类别下的命令
+                categoryCommands.forEach(command => {
+                    const suggestionItem = document.createElement('div');
+                    suggestionItem.style.cssText = `
+                        padding: 10px 15px;
+                        cursor: pointer;
+                        font-size: 14px;
+                        color: var(--text-main, #333);
+                        border-bottom: 1px solid var(--border-color, #e0e0e0);
+                    `;
+                    suggestionItem.addEventListener('mouseenter', () => {
+                        suggestionItem.style.backgroundColor = 'var(--background-color, #f5f5f5)';
+                    });
+                    suggestionItem.addEventListener('mouseleave', () => {
+                        suggestionItem.style.backgroundColor = '';
+                    });
+                    suggestionItem.textContent = command;
+                    suggestionItem.addEventListener('click', () => {
+                        input.value = command;
+                        suggestions.style.display = 'none';
+                    });
+                    suggestions.appendChild(suggestionItem);
                 });
-                suggestionItem.addEventListener('mouseleave', () => {
-                    suggestionItem.style.backgroundColor = '';
-                });
-                suggestionItem.textContent = command;
-                suggestionItem.addEventListener('click', () => {
-                    input.value = command;
-                    suggestions.style.display = 'none';
-                });
-                suggestions.appendChild(suggestionItem);
             });
+            
             suggestions.style.display = 'block';
         } else {
             suggestions.style.display = 'none';

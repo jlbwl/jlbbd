@@ -15258,101 +15258,53 @@ class AIChatWindow {
             </div>
         `;
         
-        // 创建提示词罗盘
+        // 创建提示词悬浮精灵按钮
         const commandLibrary = document.createElement('div');
         commandLibrary.id = 'aiCommandLibrary';
         commandLibrary.style.cssText = `
-            width: 400px;
-            height: 400px;
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             display: flex;
             align-items: center;
             justify-content: center;
-            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 99999;
         `;
         
-        // 生成提示词罗盘内容
-        const categories = Object.entries(AIChatWindow.commandsByCategory);
-        const categoryCount = categories.length;
-        const anglePerCategory = 360 / categoryCount;
-        
+        // 生成提示词悬浮精灵按钮内容
         let commandLibraryContent = `
-            <div style="width: 400px; height: 400px; border-radius: 50%; position: relative; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
-        `;
-        
-        // 生成扇形区域
-        categories.forEach(([category, commands], index) => {
-            const startAngle = index * anglePerCategory;
-            const endAngle = (index + 1) * anglePerCategory;
-            const midAngle = startAngle + anglePerCategory / 2;
-            
-            // 计算扇形的颜色（使用不同的颜色区分不同的类别）
-            const hue = (index * 360 / categoryCount) % 360;
-            const color = `hsl(${hue}, 70%, 60%)`;
-            const hoverColor = `hsl(${hue}, 80%, 70%)`;
-            
-            // 生成扇形区域
-            commandLibraryContent += `
-                <div class="compass-sector" style="
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    clip-path: polygon(50% 50%, ${50 + 50 * Math.cos(startAngle * Math.PI / 180)}% ${50 + 50 * Math.sin(startAngle * Math.PI / 180)}%, ${50 + 50 * Math.cos(endAngle * Math.PI / 180)}% ${50 + 50 * Math.sin(endAngle * Math.PI / 180)}%);
-                    background-color: ${color};
-                    transition: all 0.3s ease;
-                    cursor: pointer;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 14px;
-                    font-weight: 600;
-                    color: white;
-                    text-align: center;
-                    padding: 50px;
-                " onmouseenter="this.style.transform = 'scale(1.05)'; this.style.backgroundColor = '${hoverColor}';" onmouseleave="this.style.transform = 'scale(1)'; this.style.backgroundColor = '${color}';">
-                    ${category}
-                </div>
-            `;
-        });
-        
-        // 生成中心按钮
-        commandLibraryContent += `
-                <div class="compass-center" style="
-                    position: absolute;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    width: 120px;
-                    height: 120px;
-                    border-radius: 50%;
-                    background: white;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 16px;
-                    font-weight: 600;
-                    color: var(--primary-color, #3b82f6);
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                " onmouseenter="this.style.transform = 'scale(1.1)';" onmouseleave="this.style.transform = 'scale(1)';" onclick="showCompassCommands();">
-                    提示词
-                </div>
+            <div class="compass-center" style="
+                width: 100%;
+                height: 100%;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 24px;
+                color: white;
+                transition: all 0.3s ease;
+            " onmouseenter="this.style.transform = 'scale(1.1)';" onmouseleave="this.style.transform = 'scale(1)';" onclick="showCompassCommands();">
+                📚
             </div>
             
             <!-- 命令弹窗 -->
             <div id="compassCommandsPopup" style="
                 position: absolute;
-                top: 100%;
-                left: 50%;
-                transform: translateX(-50%);
+                bottom: 100%;
+                right: 0;
                 width: 300px;
                 background: white;
                 border-radius: 8px;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.2);
                 padding: 15px;
-                margin-top: 20px;
+                margin-bottom: 20px;
                 display: none;
                 z-index: 100000;
             ">

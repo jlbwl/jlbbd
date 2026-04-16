@@ -16595,30 +16595,42 @@ function createCommandLibrary() {
         }, 400);
     }
     
-    // 创建脚印
+    // 创建蝴蝶轨迹装饰
     function createFootprint(x, y) {
         const footprint = document.createElement('div');
         footprint.style.position = 'fixed';
         footprint.style.left = x + '%';
         footprint.style.top = y + '%';
-        footprint.style.fontSize = '12px';
-        footprint.style.color = 'rgba(102, 126, 234, 0.6)';
+        footprint.style.fontSize = '16px';
+        footprint.style.color = 'rgba(255, 105, 180, 0.8)';
         footprint.style.zIndex = '1';
         footprint.style.pointerEvents = 'none';
-        footprint.style.transition = 'opacity 2s ease';
-        footprint.textContent = '👣';
+        footprint.style.transition = 'opacity 3s ease, transform 3s ease';
+        footprint.style.transform = 'scale(0.5)';
+        
+        // 使用蝴蝶或花瓣图标作为轨迹装饰
+        const decorations = ['🦋', '🌸', '✨', '🌟', '💫'];
+        const randomDecoration = decorations[Math.floor(Math.random() * decorations.length)];
+        footprint.textContent = randomDecoration;
         
         document.body.appendChild(footprint);
+        
+        // 动画效果
+        setTimeout(() => {
+            footprint.style.opacity = '0.8';
+            footprint.style.transform = 'scale(1)';
+        }, 100);
         
         // 淡出效果
         setTimeout(() => {
             footprint.style.opacity = '0';
+            footprint.style.transform = 'scale(0.5)';
             setTimeout(() => {
                 if (footprint.parentNode) {
                     footprint.parentNode.removeChild(footprint);
                 }
-            }, 2000);
-        }, 1000);
+            }, 3000);
+        }, 2000);
     }
     
     // 随机移动

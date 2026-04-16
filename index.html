@@ -15370,12 +15370,14 @@ class AIChatWindow {
         
         commandLibrary.innerHTML = commandLibraryContent;
         
-        // 将 AI 智能助手窗口和命令库添加到主容器
+        // 将 AI 智能助手窗口添加到主容器
         mainContainer.appendChild(chatWindow);
-        mainContainer.appendChild(commandLibrary);
         
         // 先添加到 body，后续在 showChatWindow 中移动位置
         document.body.appendChild(mainContainer);
+        
+        // 将提示词悬浮精灵按钮直接添加到 body 中
+        document.body.appendChild(commandLibrary);
     }
     
     bindEvents() {
@@ -15485,9 +15487,8 @@ class AIChatWindow {
         
         const mainContainer = document.getElementById('aiChatMainContainer');
         const chatWindow = document.getElementById('aiChatWindow');
-        const commandLibrary = document.getElementById('aiCommandLibrary');
         
-        if (mainContainer && chatWindow && commandLibrary) {
+        if (mainContainer && chatWindow) {
             // 将主容器添加到 body
             if (mainContainer.parentElement !== document.body) {
                 mainContainer.parentElement.removeChild(mainContainer);
@@ -15497,7 +15498,6 @@ class AIChatWindow {
             // 显示所有元素
             mainContainer.style.display = 'flex';
             chatWindow.style.display = 'flex';
-            commandLibrary.style.display = 'flex';
             
             this.hideAllMenus();
         }
@@ -15506,13 +15506,11 @@ class AIChatWindow {
     hideChatWindow() {
         const mainContainer = document.getElementById('aiChatMainContainer');
         const chatWindow = document.getElementById('aiChatWindow');
-        const commandLibrary = document.getElementById('aiCommandLibrary');
         
-        if (mainContainer && chatWindow && commandLibrary) {
+        if (mainContainer && chatWindow) {
             // 隐藏所有元素
             mainContainer.style.display = 'none';
             chatWindow.style.display = 'none';
-            commandLibrary.style.display = 'none';
             
             // 将主容器移回 body，以便下次显示
             if (mainContainer.parentElement !== document.body) {

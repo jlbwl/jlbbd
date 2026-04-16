@@ -16539,169 +16539,147 @@ function createCommandLibrary() {
         return;
     }
     
-    // 创建主容器
-    const commandLibrary = document.createElement('div');
-    commandLibrary.id = 'aiCommandLibrary';
-    commandLibrary.style.position = 'fixed';
-    commandLibrary.style.top = '30px';
-    commandLibrary.style.right = '30px';
-    commandLibrary.style.width = '60px';
-    commandLibrary.style.height = '60px';
-    commandLibrary.style.borderRadius = '50%';
-    commandLibrary.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-    commandLibrary.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
-    commandLibrary.style.display = 'flex';
-    commandLibrary.style.alignItems = 'center';
-    commandLibrary.style.justifyContent = 'center';
-    commandLibrary.style.cursor = 'pointer';
-    commandLibrary.style.transition = 'all 0.3s ease';
-    commandLibrary.style.zIndex = '999999';
-    commandLibrary.style.visibility = 'visible';
-    commandLibrary.style.opacity = '1';
-    commandLibrary.style.pointerEvents = 'auto';
-    commandLibrary.style.userSelect = 'none';
+    // 创建扇形菜单容器
+    const compassMenu = document.createElement('div');
+    compassMenu.id = 'aiCommandLibrary';
+    compassMenu.style.position = 'fixed';
+    compassMenu.style.bottom = '30px';
+    compassMenu.style.right = '30px';
+    compassMenu.style.zIndex = '999999';
+    compassMenu.style.transition = 'all 0.3s ease';
     
-    // 创建按钮（使用div替代button，避免onclick属性问题）
-    const compassButton = document.createElement('div');
-    compassButton.className = 'compass-center';
-    compassButton.style.width = '100%';
-    compassButton.style.height = '100%';
-    compassButton.style.borderRadius = '50%';
-    compassButton.style.display = 'flex';
-    compassButton.style.alignItems = 'center';
-    compassButton.style.justifyContent = 'center';
-    compassButton.style.fontSize = '24px';
-    compassButton.style.color = 'white';
-    compassButton.style.transition = 'all 0.3s ease';
-    compassButton.style.cursor = 'pointer';
-    compassButton.textContent = '📚';
+    // 存储菜单项和状态
+    let menuExpanded = false;
+    const menuItems = [];
+    const categories = Object.keys(AIChatWindow.commandsByCategory);
     
-    // 创建弹窗
-    const popup = document.createElement('div');
-    popup.id = 'compassCommandsPopup';
-    popup.style.position = 'fixed';
-    popup.style.top = '50%';
-    popup.style.left = '50%';
-    popup.style.transform = 'translate(-50%, -50%)';
-    popup.style.width = '80%';
-    popup.style.maxWidth = '500px';
-    popup.style.maxHeight = '80vh';
-    popup.style.background = 'white';
-    popup.style.borderRadius = '12px';
-    popup.style.boxShadow = '0 8px 32px rgba(0,0,0,0.3)';
-    popup.style.padding = '20px';
-    popup.style.display = 'none';
-    popup.style.zIndex = '100000';
-    popup.style.overflow = 'auto';
-    
-    // 弹窗头部
-    const popupHeader = document.createElement('div');
-    popupHeader.style.display = 'flex';
-    popupHeader.style.justifyContent = 'space-between';
-    popupHeader.style.alignItems = 'center';
-    popupHeader.style.marginBottom = '10px';
-    
-    const popupTitle = document.createElement('h4');
-    popupTitle.style.margin = '0';
-    popupTitle.style.fontSize = '16px';
-    popupTitle.style.fontWeight = '600';
-    popupTitle.style.color = 'var(--text-main, #333)';
-    popupTitle.textContent = '提示词指令';
-    
-    // 使用div替代button作为关闭按钮
-    const closeButton = document.createElement('div');
-    closeButton.style.fontSize = '18px';
-    closeButton.style.cursor = 'pointer';
-    closeButton.style.color = 'var(--text-sub, #666)';
-    closeButton.textContent = '×';
-    
-    popupHeader.appendChild(popupTitle);
-    popupHeader.appendChild(closeButton);
-    
-    // 命令列表
-    const commandsList = document.createElement('div');
-    commandsList.id = 'compassCommandsList';
-    commandsList.style.maxHeight = '200px';
-    commandsList.style.overflowY = 'auto';
-    
-    popup.appendChild(popupHeader);
-    popup.appendChild(commandsList);
-    
-    // 组装
-    commandLibrary.appendChild(compassButton);
-    commandLibrary.appendChild(popup);
-    
-    // 绑定事件
-    compassButton.addEventListener('mouseenter', function() {
-        this.style.transform = 'scale(1.1)';
+    // 获取所有命令并按类别组织
+    const allCommands = [];
+    Object.entries(AIChatWindow.commandsByCategory).forEach(([category, commands]) => {
+        commands.forEach(cmd => {
+            allCommands.push({ category, command: cmd });
+        });
     });
     
-    compassButton.addEventListener('mouseleave', function() {
-        this.style.transform = 'scale(1)';
-    });
+    // 计算扇形参数
+    const radius = 120;
+    const startAngle = -180;
+    const endAngle = -90;
+    const angleRange = endAngle - startAngle;
+    const angleStep = allCommands.length > 1 ? angleRange / (allCommands.length - 1) : 0;
     
-    compassButton.addEventListener('click', function() {
-        // 清空现有内容
-        commandsList.innerHTML = '';
+    // 创建中心按钮
+    const centerBtn = document.createElement('div');
+    centerBtn.style.width = '60px';
+    centerBtn.style.height = '60px';
+    centerBtn.style.borderRadius = '50%';
+    centerBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+    centerBtn.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+    centerBtn.style.display = 'flex';
+    centerBtn.style.alignItems = 'center';
+    centerBtn.style.justifyContent = 'center';
+    centerBtn.style.cursor = 'pointer';
+    centerBtn.style.position = 'relative';
+    centerBtn.style.zIndex = '2';
+    centerBtn.style.transition = 'transform 0.3s ease';
+    centerBtn.innerHTML = '<span style="font-size:24px;">📚</span>';
+    compassMenu.appendChild(centerBtn);
+    
+    // 创建菜单项
+    allCommands.forEach((item, index) => {
+        const angle = startAngle + (angleStep * index);
+        const radian = angle * Math.PI / 180;
+        const x = Math.cos(radian) * radius;
+        const y = Math.sin(radian) * radius;
         
-        // 添加所有命令
-        const commandsByCategory = AIChatWindow.commandsByCategory;
-        Object.entries(commandsByCategory).forEach(([category, commands]) => {
-            const categoryHeader = document.createElement('div');
-            categoryHeader.style.margin = '10px 0 5px 0';
-            categoryHeader.style.fontWeight = '600';
-            categoryHeader.style.color = 'var(--primary-color, #3b82f6)';
-            categoryHeader.style.fontSize = '14px';
-            categoryHeader.textContent = category;
-            commandsList.appendChild(categoryHeader);
-            
-            commands.forEach(command => {
-                const commandItem = document.createElement('div');
-                commandItem.style.margin = '3px 0';
-                commandItem.style.padding = '5px';
-                commandItem.style.borderRadius = '4px';
-                commandItem.style.cursor = 'pointer';
-                commandItem.style.fontSize = '13px';
-                commandItem.style.transition = 'background-color 0.2s';
-                commandItem.textContent = command;
-                
-                commandItem.addEventListener('mouseenter', function() {
-                    this.style.backgroundColor = 'var(--background-color, #f5f5f5)';
-                });
-                
-                commandItem.addEventListener('mouseleave', function() {
-                    this.style.backgroundColor = '';
-                });
-                
-                commandItem.addEventListener('click', function() {
-                    const chatInput = document.getElementById('chatInput');
-                    if (chatInput) {
-                        chatInput.value = command;
-                    }
-                    popup.style.display = 'none';
-                });
-                
-                commandsList.appendChild(commandItem);
-            });
+        const menuItem = document.createElement('div');
+        menuItem.style.position = 'absolute';
+        menuItem.style.width = '50px';
+        menuItem.style.height = '50px';
+        menuItem.style.borderRadius = '50%';
+        menuItem.style.background = 'white';
+        menuItem.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+        menuItem.style.display = 'flex';
+        menuItem.style.alignItems = 'center';
+        menuItem.style.justifyContent = 'center';
+        menuItem.style.cursor = 'pointer';
+        menuItem.style.transition = 'all 0.3s ease';
+        menuItem.style.transform = 'translate(-50%, -50%)';
+        menuItem.style.left = '30px';
+        menuItem.style.top = '30px';
+        menuItem.style.opacity = '0';
+        menuItem.style.pointerEvents = 'none';
+        menuItem.style.fontSize = '12px';
+        menuItem.style.color = '#333';
+        menuItem.style.textAlign = 'center';
+        menuItem.style.padding = '5px';
+        menuItem.style.wordBreak = 'break-word';
+        menuItem.style.overflow = 'hidden';
+        menuItem.style.zIndex = '1';
+        
+        // 显示缩写
+        const shortLabel = item.command.length > 6 ? item.command.substring(0, 6) + '...' : item.command;
+        menuItem.innerHTML = `<span title="${item.command}">${shortLabel}</span>`;
+        menuItem.dataset.command = item.command;
+        menuItem.dataset.category = item.category;
+        
+        menuItem.addEventListener('click', function() {
+            const chatInput = document.getElementById('chatInput');
+            if (chatInput) {
+                chatInput.value = this.dataset.command;
+            }
+            toggleMenu();
         });
         
-        // 显示弹窗
-        popup.style.display = 'block';
+        menuItems.push({
+            element: menuItem,
+            x: x,
+            y: y
+        });
+        
+        compassMenu.appendChild(menuItem);
     });
     
-    closeButton.addEventListener('click', function() {
-        popup.style.display = 'none';
+    // 切换菜单展开/收起
+    function toggleMenu() {
+        menuExpanded = !menuExpanded;
+        
+        if (menuExpanded) {
+            centerBtn.style.transform = 'rotate(180deg)';
+            menuItems.forEach((item, index) => {
+                setTimeout(() => {
+                    item.element.style.left = (30 + item.x) + 'px';
+                    item.element.style.top = (30 + item.y) + 'px';
+                    item.element.style.opacity = '1';
+                    item.element.style.pointerEvents = 'auto';
+                    item.element.style.zIndex = '3';
+                }, index * 30);
+            });
+        } else {
+            centerBtn.style.transform = 'rotate(0deg)';
+            menuItems.forEach(item => {
+                item.element.style.left = '30px';
+                item.element.style.top = '30px';
+                item.element.style.opacity = '0';
+                item.element.style.pointerEvents = 'none';
+                item.element.style.zIndex = '1';
+            });
+        }
+    }
+    
+    centerBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        toggleMenu();
     });
     
-    // 点击背景或其他地方关闭弹窗
+    // 点击其他地方关闭菜单
     document.addEventListener('click', function(e) {
-        if (popup && popup.style.display === 'block' && !popup.contains(e.target) && !commandLibrary.contains(e.target)) {
-            popup.style.display = 'none';
+        if (menuExpanded && !compassMenu.contains(e.target)) {
+            toggleMenu();
         }
     });
     
-    // 添加到body
-    document.body.appendChild(commandLibrary);
+    document.body.appendChild(compassMenu);
 }
 
 

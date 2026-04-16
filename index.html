@@ -16692,6 +16692,9 @@ function createCommandLibrary() {
             label.style.fontWeight = 'bold';
             label.style.color = '#667eea';
             label.style.transform = 'scale(1.05)';
+            // 文字前置，解决遮挡问题
+            label.style.zIndex = '10';
+            label.style.position = 'relative';
         });
         
         menuItem.addEventListener('mouseleave', function() {
@@ -16701,6 +16704,8 @@ function createCommandLibrary() {
             label.style.fontWeight = 'normal';
             label.style.color = '#333';
             label.style.transform = 'scale(1)';
+            // 恢复默认z-index
+            label.style.zIndex = '1';
         });
         
         menuItems.push({

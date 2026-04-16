@@ -16566,8 +16566,10 @@ function createCommandLibrary() {
     centerBtn.style.width = '60px';
     centerBtn.style.height = '60px';
     centerBtn.style.borderRadius = '50%';
-    centerBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-    centerBtn.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+    centerBtn.style.background = 'rgba(102, 126, 234, 0.2)'; // 提高透明度
+    centerBtn.style.backdropFilter = 'blur(10px)'; // 添加模糊效果
+    centerBtn.style.border = '2px solid rgba(102, 126, 234, 0.4)'; // 半透明边框
+    centerBtn.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.3)';
     centerBtn.style.display = 'flex';
     centerBtn.style.alignItems = 'center';
     centerBtn.style.justifyContent = 'center';
@@ -16575,7 +16577,7 @@ function createCommandLibrary() {
     centerBtn.style.position = 'relative';
     centerBtn.style.zIndex = '2';
     centerBtn.style.transition = 'transform 0.3s ease, box-shadow 0.3s ease';
-    centerBtn.innerHTML = '<span style="font-size:24px; color:white;">🦋</span>';
+    centerBtn.innerHTML = '<span style="font-size:24px; color:#667eea;">🦋</span>';
     compassMenu.appendChild(centerBtn);
     
     // 蝴蝶动画和移动
@@ -16591,6 +16593,32 @@ function createCommandLibrary() {
         setTimeout(() => {
             centerBtn.style.transform = 'rotate(0deg) scale(1)';
         }, 400);
+    }
+    
+    // 创建脚印
+    function createFootprint(x, y) {
+        const footprint = document.createElement('div');
+        footprint.style.position = 'fixed';
+        footprint.style.left = x + '%';
+        footprint.style.top = y + '%';
+        footprint.style.fontSize = '12px';
+        footprint.style.color = 'rgba(102, 126, 234, 0.6)';
+        footprint.style.zIndex = '1';
+        footprint.style.pointerEvents = 'none';
+        footprint.style.transition = 'opacity 2s ease';
+        footprint.textContent = '👣';
+        
+        document.body.appendChild(footprint);
+        
+        // 淡出效果
+        setTimeout(() => {
+            footprint.style.opacity = '0';
+            setTimeout(() => {
+                if (footprint.parentNode) {
+                    footprint.parentNode.removeChild(footprint);
+                }
+            }, 2000);
+        }, 1000);
     }
     
     // 随机移动
@@ -16615,6 +16643,9 @@ function createCommandLibrary() {
             // 边界检查
             newLeft = Math.max(10, Math.min(90, newLeft));
             newTop = Math.max(10, Math.min(90, newTop));
+            
+            // 创建脚印
+            createFootprint(newLeft, newTop);
             
             // 更新位置
             compassMenu.style.left = newLeft + '%';

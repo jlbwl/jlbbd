@@ -16666,12 +16666,24 @@ function createCommandLibrary() {
             newLeft = Math.max(10, Math.min(90, newLeft));
             newTop = Math.max(10, Math.min(90, newTop));
             
+            // 计算飞行方向角度并旋转蝴蝶
+            const angle = Math.atan2(directionY, directionX) * (180 / Math.PI) + 90; // +90 to make it face the right way
+            centerBtn.style.transform = `rotate(${angle}deg)`;
+            
+            // 煽动翅膀（在旋转状态下）
+            setTimeout(() => {
+                centerBtn.style.transform = `rotate(${angle}deg) rotateY(-15deg)`;
+            }, 150);
+            setTimeout(() => {
+                centerBtn.style.transform = `rotate(${angle}deg) rotateY(15deg)`;
+            }, 300);
+            setTimeout(() => {
+                centerBtn.style.transform = `rotate(${angle}deg)`;
+            }, 450);
+            
             // 更新位置
             compassMenu.style.left = newLeft + '%';
             compassMenu.style.top = newTop + '%';
-            
-            // 煽动翅膀
-            flapWings();
         }, 500); // 每0.5秒移动一次
         
         // 持续产生轨迹装饰
@@ -16681,12 +16693,16 @@ function createCommandLibrary() {
             const currentLeft = parseFloat(compassMenu.style.left) || 50;
             const currentTop = parseFloat(compassMenu.style.top) || 50;
             
+            // 计算尾部位置（与飞行方向相反）
+            const tailX = currentLeft - directionX * 2;
+            const tailY = currentTop - directionY * 2;
+            
             // 创建多个轨迹装饰
             for (let i = 0; i < 2; i++) {
                 // 稍微偏移位置，产生多个装饰
                 const offsetX = (Math.random() - 0.5) * 2;
                 const offsetY = (Math.random() - 0.5) * 2;
-                createFootprint(currentLeft + offsetX, currentTop + offsetY);
+                createFootprint(tailX + offsetX, tailY + offsetY);
             }
         }, 300); // 每0.3秒产生一次轨迹
     }

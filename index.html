@@ -16717,15 +16717,54 @@ function createCommandLibrary() {
         }
     }
     
-    // 鼠标悬停事件
-    centerBtn.addEventListener('mouseenter', function() {
+    // 鼠标悬停和拖拽事件
+    let isDragging = false;
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
+    
+    centerBtn.addEventListener('mousedown', function(e) {
+        isDragging = true;
         isHovered = true;
         stopRandomMove();
+        compassMenu.style.cursor = 'grabbing';
+        
+        // 计算鼠标相对于飞机按钮中心的偏移
+        const rect = compassMenu.getBoundingClientRect();
+        dragOffsetX = e.clientX - rect.left - rect.width / 2;
+        dragOffsetY = e.clientY - rect.top - rect.height / 2;
+    });
+    
+    document.addEventListener('mousemove', function(e) {
+        if (!isDragging) return;
+        
+        // 计算新位置（百分比）
+        const newLeft = (e.clientX - dragOffsetX) / window.innerWidth * 100;
+        const newTop = (e.clientY - dragOffsetY) / window.innerHeight * 100;
+        
+        // 更新位置
+        compassMenu.style.left = newLeft + '%';
+        compassMenu.style.top = newTop + '%';
+    });
+    
+    document.addEventListener('mouseup', function() {
+        if (isDragging) {
+            isDragging = false;
+            compassMenu.style.cursor = 'pointer';
+        }
+    });
+    
+    centerBtn.addEventListener('mouseenter', function() {
+        if (!isDragging) {
+            isHovered = true;
+            stopRandomMove();
+        }
     });
     
     centerBtn.addEventListener('mouseleave', function() {
-        isHovered = false;
-        startRandomMove();
+        if (!isDragging) {
+            isHovered = false;
+            startRandomMove();
+        }
     });
     
     // 开始随机移动

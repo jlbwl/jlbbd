@@ -16838,6 +16838,10 @@ function createCommandLibrary() {
         
         // 悬停效果
         menuItem.addEventListener('mouseenter', function() {
+            // 停止飞机飞行
+            isHovered = true;
+            stopRandomMove();
+            
             circleBg.style.transform = 'scale(1.1)';
             circleBg.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
             // 文字标签选中效果
@@ -16850,6 +16854,10 @@ function createCommandLibrary() {
         });
         
         menuItem.addEventListener('mouseleave', function() {
+            // 恢复飞机飞行
+            isHovered = false;
+            startRandomMove();
+            
             circleBg.style.transform = 'scale(1)';
             circleBg.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
             // 文字标签恢复默认效果

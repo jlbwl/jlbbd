@@ -16688,11 +16688,19 @@ function createCommandLibrary() {
         menuItem.addEventListener('mouseenter', function() {
             circleBg.style.transform = 'scale(1.1)';
             circleBg.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+            // 文字标签选中效果
+            label.style.fontWeight = 'bold';
+            label.style.color = '#667eea';
+            label.style.transform = 'scale(1.05)';
         });
         
         menuItem.addEventListener('mouseleave', function() {
             circleBg.style.transform = 'scale(1)';
             circleBg.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+            // 文字标签恢复默认效果
+            label.style.fontWeight = 'normal';
+            label.style.color = '#333';
+            label.style.transform = 'scale(1)';
         });
         
         menuItems.push({

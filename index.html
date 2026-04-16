@@ -8958,7 +8958,7 @@ switchView = function(viewId, event) {
     // 特殊处理 AI 视图
     if (viewId === 'ai') {
         // 确保 AI 智能助手的事件绑定和初始化
-        if (window.aiChatWindow) {
+        if (window.aiChatWindow && typeof window.aiChatWindow.init === 'function') {
             window.aiChatWindow.init();
         }
     }
@@ -15380,7 +15380,7 @@ class AIChatWindow {
                     commandsList.innerHTML = '';
                     
                     // 添加所有命令
-                    const commandsByCategory = ${JSON.stringify(AIChatWindow.commandsByCategory)};
+                    const commandsByCategory = AIChatWindow.commandsByCategory;
                     Object.entries(commandsByCategory).forEach(([category, commands]) => {
                         const categoryHeader = document.createElement('div');
                         categoryHeader.style.cssText = `

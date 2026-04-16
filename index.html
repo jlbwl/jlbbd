@@ -16586,13 +16586,16 @@ function createCommandLibrary() {
     
     // 翅膀煽动动画
     function flapWings() {
-        centerBtn.style.transform = 'rotate(0deg) scale(1)';
+        // 先向左倾斜
+        centerBtn.style.transform = 'rotate(-15deg) scale(1)';
         setTimeout(() => {
-            centerBtn.style.transform = 'rotate(0deg) scale(1.1)';
-        }, 200);
+            // 向右倾斜
+            centerBtn.style.transform = 'rotate(15deg) scale(1)';
+        }, 150);
         setTimeout(() => {
+            // 恢复原位
             centerBtn.style.transform = 'rotate(0deg) scale(1)';
-        }, 400);
+        }, 300);
     }
     
     // 创建蝴蝶轨迹装饰

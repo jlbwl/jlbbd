@@ -16697,12 +16697,22 @@ function createCommandLibrary() {
             const centerX = currentLeft;
             const centerY = currentTop;
             
+            // 计算飞行反方向的单位向量
+            const length = Math.sqrt(directionX * directionX + directionY * directionY);
+            const reverseDirX = length > 0 ? -directionX / length : 0;
+            const reverseDirY = length > 0 ? -directionY / length : 0;
+            
             // 创建多个轨迹装饰
             for (let i = 0; i < 2; i++) {
-                // 稍微偏移位置，产生多个装饰
-                const offsetX = (Math.random() - 0.5) * 2;
-                const offsetY = (Math.random() - 0.5) * 2;
-                createFootprint(centerX + offsetX, centerY + offsetY);
+                // 沿着飞行反方向偏移
+                const distance = Math.random() * 3;
+                const trailX = centerX + reverseDirX * distance;
+                const trailY = centerY + reverseDirY * distance;
+                
+                // 稍微随机偏移，产生多个装饰
+                const offsetX = (Math.random() - 0.5) * 1;
+                const offsetY = (Math.random() - 0.5) * 1;
+                createFootprint(trailX + offsetX, trailY + offsetY);
             }
         }, 300); // 每0.3秒产生一次轨迹
     }

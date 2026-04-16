@@ -16693,16 +16693,16 @@ function createCommandLibrary() {
             const currentLeft = parseFloat(compassMenu.style.left) || 50;
             const currentTop = parseFloat(compassMenu.style.top) || 50;
             
-            // 计算尾部位置（与飞行方向相反）
-            const tailX = currentLeft - directionX * 2;
-            const tailY = currentTop - directionY * 2;
+            // 计算中心位置（蝴蝶身体中心）
+            const centerX = currentLeft;
+            const centerY = currentTop;
             
             // 创建多个轨迹装饰
             for (let i = 0; i < 2; i++) {
                 // 稍微偏移位置，产生多个装饰
                 const offsetX = (Math.random() - 0.5) * 2;
                 const offsetY = (Math.random() - 0.5) * 2;
-                createFootprint(tailX + offsetX, tailY + offsetY);
+                createFootprint(centerX + offsetX, centerY + offsetY);
             }
         }, 300); // 每0.3秒产生一次轨迹
     }

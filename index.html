@@ -16543,8 +16543,9 @@ function createCommandLibrary() {
     const compassMenu = document.createElement('div');
     compassMenu.id = 'aiCommandLibrary';
     compassMenu.style.position = 'fixed';
-    compassMenu.style.bottom = '30px';
-    compassMenu.style.right = '30px';
+    compassMenu.style.top = '50%';
+    compassMenu.style.left = '50%';
+    compassMenu.style.transform = 'translate(-50%, -50%)';
     compassMenu.style.zIndex = '999999';
     compassMenu.style.transition = 'all 0.3s ease';
     
@@ -16557,7 +16558,7 @@ function createCommandLibrary() {
     
     // 计算圆形参数
     const radius = 140; // 增大半径以容纳更多菜单项
-    const centerX = 30; // 中心按钮中心坐标
+    const centerX = 30; // 中心按钮中心坐标（相对于容器）
     const centerY = 30;
     
     // 创建中心按钮

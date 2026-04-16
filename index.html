@@ -16637,12 +16637,13 @@ function createCommandLibrary() {
     function startRandomMove() {
         if (isHovered) return;
         
+        // 持续移动，每0.5秒移动一次
         moveInterval = setInterval(() => {
             if (isHovered) return;
             
-            // 随机移动距离和方向
-            const moveX = (Math.random() - 0.5) * 20;
-            const moveY = (Math.random() - 0.5) * 20;
+            // 较小的移动距离，使移动更平滑
+            const moveX = (Math.random() - 0.5) * 5;
+            const moveY = (Math.random() - 0.5) * 5;
             
             // 获取当前位置
             const currentLeft = parseFloat(compassMenu.style.left) || 50;
@@ -16662,7 +16663,7 @@ function createCommandLibrary() {
             
             // 煽动翅膀
             flapWings();
-        }, 3000); // 每3秒移动一次
+        }, 500); // 每0.5秒移动一次
         
         // 持续产生轨迹装饰
         setInterval(() => {
@@ -16672,13 +16673,13 @@ function createCommandLibrary() {
             const currentTop = parseFloat(compassMenu.style.top) || 50;
             
             // 创建多个轨迹装饰
-            for (let i = 0; i < 3; i++) {
+            for (let i = 0; i < 2; i++) {
                 // 稍微偏移位置，产生多个装饰
                 const offsetX = (Math.random() - 0.5) * 2;
                 const offsetY = (Math.random() - 0.5) * 2;
                 createFootprint(currentLeft + offsetX, currentTop + offsetY);
             }
-        }, 500); // 每0.5秒产生一次轨迹
+        }, 300); // 每0.3秒产生一次轨迹
     }
     
     // 停止移动

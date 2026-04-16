@@ -16556,10 +16556,12 @@ function createCommandLibrary() {
     // 获取所有命令并按类别组织
     const commandsByCategory = AIChatWindow.commandsByCategory;
     
-    // 计算圆形参数
-    const radius = 140; // 增大半径以容纳更多菜单项
-    const centerX = 30; // 中心按钮中心坐标（相对于容器）
+    // 中心按钮参数
+    const centerX = 30;
     const centerY = 30;
+    const innerRadius = 70;  // 内圈半径
+    const outerRadiusStep = 70;  // 每圈半径增量
+    const itemsPerCircle = 6;  // 每圈最多显示6个
     
     // 创建中心按钮
     const centerBtn = document.createElement('div');
@@ -16578,117 +16580,120 @@ function createCommandLibrary() {
     centerBtn.innerHTML = '<span style="font-size:24px; color:white;">📚</span>';
     compassMenu.appendChild(centerBtn);
     
-    // 为每个类别创建菜单项
-    let totalItems = 0;
+    // 收集所有命令
+    const allCommands = [];
     Object.entries(commandsByCategory).forEach(([category, commands]) => {
         commands.forEach(command => {
-            totalItems++;
+            allCommands.push({ category, command });
         });
     });
     
-    // 计算每个菜单项的角度
-    let currentAngle = 0;
-    const angleStep = 360 / totalItems;
+    // 计算需要多少圈
+    const totalItems = allCommands.length;
     
-    // 为每个命令创建菜单项
-    let itemIndex = 0;
-    Object.entries(commandsByCategory).forEach(([category, commands]) => {
-        commands.forEach(command => {
-            const angle = currentAngle * Math.PI / 180;
-            const x = Math.cos(angle) * radius;
-            const y = Math.sin(angle) * radius;
-            
-            // 创建菜单项容器
-            const menuItem = document.createElement('div');
-            menuItem.style.position = 'absolute';
-            menuItem.style.width = '70px';
-            menuItem.style.height = '80px';
-            menuItem.style.display = 'flex';
-            menuItem.style.flexDirection = 'column';
-            menuItem.style.alignItems = 'center';
-            menuItem.style.justifyContent = 'center';
-            menuItem.style.transform = 'translate(-50%, -50%)';
-            menuItem.style.left = centerX + 'px';
-            menuItem.style.top = centerY + 'px';
-            menuItem.style.opacity = '0';
-            menuItem.style.pointerEvents = 'none';
-            menuItem.style.transition = 'all 0.4s ease';
-            menuItem.style.zIndex = '1';
-            
-            // 创建圆形背景
-            const circleBg = document.createElement('div');
-            circleBg.style.width = '50px';
-            circleBg.style.height = '50px';
-            circleBg.style.borderRadius = '50%';
-            circleBg.style.background = 'white';
-            circleBg.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
-            circleBg.style.display = 'flex';
-            circleBg.style.alignItems = 'center';
-            circleBg.style.justifyContent = 'center';
-            circleBg.style.marginBottom = '5px';
-            
-            // 为不同类别设置不同图标
-            let icon = '💬';
-            switch(category) {
-                case '通用指令': icon = '🌐'; break;
-                case '分析报告': icon = '📊'; break;
-                case '系统操作': icon = '⚙️'; break;
-                case '数据处理': icon = '📈'; break;
-                default: icon = '💡';
+    // 为每个命令创建菜单项（按圈分布）
+    allCommands.forEach((item, index) => {
+        // 确定该命令在第几圈
+        const circleIndex = Math.floor(index / itemsPerCircle);
+        const positionInCircle = index % itemsPerCircle;
+        
+        // 计算该圈的半径和角度
+        const radius = innerRadius + (circleIndex * outerRadiusStep);
+        const itemsInThisCircle = Math.min(itemsPerCircle, totalItems - (circleIndex * itemsPerCircle));
+        const angleStep = 360 / itemsInThisCircle;
+        const angle = (positionInCircle * angleStep) * Math.PI / 180;
+        
+        const x = Math.cos(angle) * radius;
+        const y = Math.sin(angle) * radius;
+        
+        // 创建菜单项容器
+        const menuItem = document.createElement('div');
+        menuItem.style.position = 'absolute';
+        menuItem.style.width = '70px';
+        menuItem.style.height = '80px';
+        menuItem.style.display = 'flex';
+        menuItem.style.flexDirection = 'column';
+        menuItem.style.alignItems = 'center';
+        menuItem.style.justifyContent = 'center';
+        menuItem.style.transform = 'translate(-50%, -50%)';
+        menuItem.style.left = centerX + 'px';
+        menuItem.style.top = centerY + 'px';
+        menuItem.style.opacity = '0';
+        menuItem.style.pointerEvents = 'none';
+        menuItem.style.transition = 'all 0.4s ease';
+        menuItem.style.zIndex = '1';
+        
+        // 创建圆形背景
+        const circleBg = document.createElement('div');
+        circleBg.style.width = '50px';
+        circleBg.style.height = '50px';
+        circleBg.style.borderRadius = '50%';
+        circleBg.style.background = 'white';
+        circleBg.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+        circleBg.style.display = 'flex';
+        circleBg.style.alignItems = 'center';
+        circleBg.style.justifyContent = 'center';
+        circleBg.style.marginBottom = '5px';
+        
+        // 为不同类别设置不同图标
+        let icon = '💬';
+        switch(item.category) {
+            case '通用指令': icon = '🌐'; break;
+            case '分析报告': icon = '📊'; break;
+            case '系统操作': icon = '⚙️'; break;
+            case '数据处理': icon = '📈'; break;
+            default: icon = '💡';
+        }
+        
+        circleBg.innerHTML = '<span style="font-size:20px;">' + icon + '</span>';
+        
+        // 创建文字标签
+        const label = document.createElement('div');
+        label.style.fontSize = '10px';
+        label.style.color = '#333';
+        label.style.textAlign = 'center';
+        label.style.wordBreak = 'break-word';
+        label.style.maxWidth = '60px';
+        label.style.lineHeight = '1.2';
+        
+        // 显示命令缩写
+        const shortLabel = item.command.length > 8 ? item.command.substring(0, 8) + '...' : item.command;
+        label.textContent = shortLabel;
+        
+        // 组装菜单项
+        menuItem.appendChild(circleBg);
+        menuItem.appendChild(label);
+        menuItem.dataset.command = item.command;
+        menuItem.dataset.category = item.category;
+        
+        // 点击事件
+        menuItem.addEventListener('click', function() {
+            const chatInput = document.getElementById('chatInput');
+            if (chatInput) {
+                chatInput.value = this.dataset.command;
             }
-            
-            circleBg.innerHTML = `<span style="font-size:20px;">${icon}</span>`;
-            
-            // 创建文字标签
-            const label = document.createElement('div');
-            label.style.fontSize = '10px';
-            label.style.color = '#333';
-            label.style.textAlign = 'center';
-            label.style.wordBreak = 'break-word';
-            label.style.maxWidth = '60px';
-            label.style.lineHeight = '1.2';
-            
-            // 显示命令缩写
-            const shortLabel = command.length > 8 ? command.substring(0, 8) + '...' : command;
-            label.textContent = shortLabel;
-            
-            // 组装菜单项
-            menuItem.appendChild(circleBg);
-            menuItem.appendChild(label);
-            menuItem.dataset.command = command;
-            menuItem.dataset.category = category;
-            
-            // 点击事件
-            menuItem.addEventListener('click', function() {
-                const chatInput = document.getElementById('chatInput');
-                if (chatInput) {
-                    chatInput.value = this.dataset.command;
-                }
-                toggleMenu();
-            });
-            
-            // 悬停效果
-            menuItem.addEventListener('mouseenter', function() {
-                circleBg.style.transform = 'scale(1.1)';
-                circleBg.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
-            });
-            
-            menuItem.addEventListener('mouseleave', function() {
-                circleBg.style.transform = 'scale(1)';
-                circleBg.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
-            });
-            
-            menuItems.push({
-                element: menuItem,
-                x: x,
-                y: y
-            });
-            
-            compassMenu.appendChild(menuItem);
-            
-            currentAngle += angleStep;
-            itemIndex++;
+            toggleMenu();
         });
+        
+        // 悬停效果
+        menuItem.addEventListener('mouseenter', function() {
+            circleBg.style.transform = 'scale(1.1)';
+            circleBg.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+        });
+        
+        menuItem.addEventListener('mouseleave', function() {
+            circleBg.style.transform = 'scale(1)';
+            circleBg.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+        });
+        
+        menuItems.push({
+            element: menuItem,
+            x: x,
+            y: y,
+            delay: index * 30  // 动画延迟
+        });
+        
+        compassMenu.appendChild(menuItem);
     });
     
     // 切换菜单展开/收起
@@ -16707,7 +16712,7 @@ function createCommandLibrary() {
                     item.element.style.opacity = '1';
                     item.element.style.pointerEvents = 'auto';
                     item.element.style.zIndex = '3';
-                }, index * 50);
+                }, item.delay);
             });
         } else {
             // 收起菜单

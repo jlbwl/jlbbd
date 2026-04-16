@@ -16583,6 +16583,8 @@ function createCommandLibrary() {
     // 蝴蝶动画和移动
     let isHovered = false;
     let moveInterval;
+    let directionX = (Math.random() - 0.5) * 2; // 初始飞行方向
+    let directionY = (Math.random() - 0.5) * 2;
     
     // 翅膀煽动动画
     function flapWings() {
@@ -16644,19 +16646,23 @@ function createCommandLibrary() {
         moveInterval = setInterval(() => {
             if (isHovered) return;
             
-            // 较小的移动距离，使移动更平滑
-            const moveX = (Math.random() - 0.5) * 5;
-            const moveY = (Math.random() - 0.5) * 5;
-            
             // 获取当前位置
             const currentLeft = parseFloat(compassMenu.style.left) || 50;
             const currentTop = parseFloat(compassMenu.style.top) || 50;
             
-            // 计算新位置，确保在屏幕内
-            let newLeft = currentLeft + moveX;
-            let newTop = currentTop + moveY;
+            // 计算新位置
+            let newLeft = currentLeft + directionX;
+            let newTop = currentTop + directionY;
             
-            // 边界检查
+            // 边界检查，触碰到边界时反弹
+            if (newLeft <= 10 || newLeft >= 90) {
+                directionX = -directionX + (Math.random() - 0.5) * 1; // 反弹并添加一些随机性
+            }
+            if (newTop <= 10 || newTop >= 90) {
+                directionY = -directionY + (Math.random() - 0.5) * 1; // 反弹并添加一些随机性
+            }
+            
+            // 确保在屏幕内
             newLeft = Math.max(10, Math.min(90, newLeft));
             newTop = Math.max(10, Math.min(90, newTop));
             

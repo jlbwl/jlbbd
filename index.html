@@ -16559,9 +16559,8 @@ function createCommandLibrary() {
     // 中心按钮参数
     const centerX = 30;
     const centerY = 30;
-    const innerRadius = 80;  // 内圈半径
-    const outerRadiusStep = 100;  // 每圈半径增量
-    const itemsPerCircle = 6;  // 每圈最多显示6个
+    const innerRadius = 100;  // 内圈半径
+    const outerRadiusStep = 80;  // 每圈半径增量
     
     // 创建中心按钮
     const centerBtn = document.createElement('div');
@@ -16591,19 +16590,30 @@ function createCommandLibrary() {
     // 计算需要多少圈
     const totalItems = allCommands.length;
     
+    // 每圈的最大数量（按要求）
+    const circleConfigs = [
+        { maxItems: 10, radius: innerRadius },
+        { maxItems: 17, radius: innerRadius + outerRadiusStep },
+        { maxItems: 24, radius: innerRadius + (2 * outerRadiusStep) },
+        { maxItems: 31, radius: innerRadius + (3 * outerRadiusStep) }
+        // 可以根据需要继续添加更多圈
+    ];
+    
     // 为每个命令创建菜单项（按圈分布）
+    let currentCircle = 0;
+    let positionInCircle = 0;
+    let itemsInCurrentCircle = 0;
+    
     allCommands.forEach((item, index) => {
-        // 确定该命令在第几圈
-        const circleIndex = Math.floor(index / itemsPerCircle);
-        const positionInCircle = index % itemsPerCircle;
+        // 确定当前圈的配置
+        const config = circleConfigs[currentCircle];
         
-        // 计算该圈的半径和角度
-        const radius = innerRadius + (circleIndex * outerRadiusStep);
-        const angleStep = 360 / itemsPerCircle; // 每圈固定6个
+        // 计算该圈的角度
+        const angleStep = 360 / config.maxItems;
         const angle = (positionInCircle * angleStep) * Math.PI / 180;
         
-        const x = Math.cos(angle) * radius;
-        const y = Math.sin(angle) * radius;
+        const x = Math.cos(angle) * config.radius;
+        const y = Math.sin(angle) * config.radius;
         
         // 创建菜单项容器
         const menuItem = document.createElement('div');
@@ -16693,6 +16703,17 @@ function createCommandLibrary() {
         });
         
         compassMenu.appendChild(menuItem);
+        
+        // 更新计数器
+        positionInCircle++;
+        itemsInCurrentCircle++;
+        
+        // 检查是否需要进入下一圈
+        if (itemsInCurrentCircle >= circleConfigs[currentCircle].maxItems) {
+            currentCircle++;
+            positionInCircle = 0;
+            itemsInCurrentCircle = 0;
+        }
     });
     
     // 切换菜单展开/收起

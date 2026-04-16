@@ -16718,7 +16718,7 @@ function createCommandLibrary() {
             const reverseDirY = length > 0 ? -directionY / length : 0;
             
             // 创建多个轨迹装饰
-            for (let i = 0; i < 2; i++) {
+            for (let i = 0; i < 1; i++) {
                 // 沿着飞行反方向偏移
                 const distance = Math.random() * 3;
                 const trailX = centerX + reverseDirX * distance;
@@ -16729,7 +16729,7 @@ function createCommandLibrary() {
                 const offsetY = (Math.random() - 0.5) * 1;
                 createFootprint(trailX + offsetX, trailY + offsetY);
             }
-        }, 300); // 每0.3秒产生一次轨迹
+        }, 800); // 每0.8秒产生一次轨迹
     }
     
     // 停止移动

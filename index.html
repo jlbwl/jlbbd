@@ -16583,8 +16583,8 @@ function createCommandLibrary() {
     // 蝴蝶动画和移动
     let isHovered = false;
     let moveInterval;
-    let directionX = (Math.random() - 0.5) * 2; // 初始飞行方向
-    let directionY = (Math.random() - 0.5) * 2;
+    let directionX = (Math.random() - 0.5) * 1; // 初始飞行方向
+    let directionY = (Math.random() - 0.5) * 1;
     
     // 翅膀煽动动画
     function flapWings() {
@@ -16654,8 +16654,8 @@ function createCommandLibrary() {
             const currentTop = parseFloat(compassMenu.style.top) || 50;
             
             // 计算新位置
-            let newLeft = currentLeft + directionX;
-            let newTop = currentTop + directionY;
+            let newLeft = currentLeft + directionX * 0.5;
+            let newTop = currentTop + directionY * 0.5;
             
             // 边界检查，触碰到边界时反弹
             if (newLeft <= 10 || newLeft >= 90) {

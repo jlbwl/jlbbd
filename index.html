@@ -16579,17 +16579,20 @@ function createCommandLibrary() {
     // 创建弹窗
     const popup = document.createElement('div');
     popup.id = 'compassCommandsPopup';
-    popup.style.position = 'absolute';
-    popup.style.bottom = '100%';
-    popup.style.right = '0';
-    popup.style.width = '300px';
+    popup.style.position = 'fixed';
+    popup.style.top = '50%';
+    popup.style.left = '50%';
+    popup.style.transform = 'translate(-50%, -50%)';
+    popup.style.width = '80%';
+    popup.style.maxWidth = '500px';
+    popup.style.maxHeight = '80vh';
     popup.style.background = 'white';
-    popup.style.borderRadius = '8px';
-    popup.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
-    popup.style.padding = '15px';
-    popup.style.marginBottom = '20px';
+    popup.style.borderRadius = '12px';
+    popup.style.boxShadow = '0 8px 32px rgba(0,0,0,0.3)';
+    popup.style.padding = '20px';
     popup.style.display = 'none';
     popup.style.zIndex = '100000';
+    popup.style.overflow = 'auto';
     
     // 弹窗头部
     const popupHeader = document.createElement('div');
@@ -16690,9 +16693,9 @@ function createCommandLibrary() {
         popup.style.display = 'none';
     });
     
-    // 点击其他地方关闭弹窗
+    // 点击背景或其他地方关闭弹窗
     document.addEventListener('click', function(e) {
-        if (popup && popup.style.display === 'block' && !commandLibrary.contains(e.target)) {
+        if (popup && popup.style.display === 'block' && !popup.contains(e.target) && !commandLibrary.contains(e.target)) {
             popup.style.display = 'none';
         }
     });

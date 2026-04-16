@@ -150,7 +150,7 @@ function renderCustomerCard(customer) {
     const card = document.createElement('div');
     card.className = 'customer-card';
     card.style.cssText = 'background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 10px; cursor: pointer; transition: all 0.3s ease; box-sizing: border-box;';
-    card.onclick = () => showCustomerDetail(customer.id);
+    card.onclick = async () => await showCustomerDetail(customer.id);
     
     // 脱敏处理敏感数据
     const maskedWechat = EncryptionManager.maskSensitiveData(customer.wechat, 'wechat');
@@ -13172,7 +13172,7 @@ async function filterCustomersByTag(tag) {
                 listElement.innerHTML = '<div style="text-align: center; color: var(--text-sub); padding: 20px;">暂无客户</div>';
             } else {
                 listElement.innerHTML = byStatus[status].map(customer => `
-                    <div class="customer-card" style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 10px; cursor: pointer; transition: all 0.3s ease;" onclick="showCustomerDetail('${customer.id}')">
+                    <div class="customer-card" style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 10px; cursor: pointer; transition: all 0.3s ease;" onclick="(async () => await showCustomerDetail('${customer.id}'))()">
                         <div style="font-weight: 600; margin-bottom: 8px;">${customer.name}</div>
                         <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px;">公司：${customer.company || '-'}</div>
                         <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px;">规模：${customer.companySize || '-'}</div>
@@ -13804,20 +13804,20 @@ function closeCustomerDetailModal() {
 }
 
 // 添加跟进记录
-function addFollowUpRecord(customerId) {
+async function addFollowUpRecord(customerId) {
     const note = document.getElementById('followUpNote').value.trim();
     if (note) {
-        LeadgenManager.addActivity(customerId, 'follow_up', note);
+        await LeadgenManager.addActivity(customerId, 'follow_up', note);
         // 重新显示详情页以更新时间线
         closeCustomerDetailModal();
-        showCustomerDetail(customerId);
+        await showCustomerDetail(customerId);
         showToast('跟进记录添加成功！', 'success');
     }
 }
 
 // 编辑客户
-function editCustomer(customerId) {
-    const customer = LeadgenManager.getCustomers().find(c => c.id === customerId);
+async function editCustomer(customerId) {
+    const customer = (await LeadgenManager.getCustomers()).find(c => c.id === customerId);
     if (customer) {
         // 创建编辑模态框
         const modal = document.createElement('div');
@@ -14106,8 +14106,9 @@ async function initWorkflow() {
 }
 
 // 显示任务管理面板
-function showTaskManager() {
+async function showTaskManager() {
     const tasks = CustomerWorkflowManager.getTasks();
+    const customers = await LeadgenManager.getCustomers();
     
     // 创建任务管理模态框
     const modal = document.createElement('div');
@@ -14139,7 +14140,7 @@ function showTaskManager() {
                         </thead>
                         <tbody>
                             ${tasks.map(task => {
-                                const customer = LeadgenManager.getCustomers().find(c => c.id === task.customerId);
+                                const customer = customers.find(c => c.id === task.customerId);
                                 return `
                                 <tr style="border-bottom: 1px solid var(--border-color);">
                                     <td style="padding: 12px;">${customer ? customer.name : '未知客户'}</td>
@@ -14374,8 +14375,8 @@ const RecommendationEngine = {
     },
     
     // 获取推荐操作
-    getRecommendedActions: function(customerId) {
-        const customer = LeadgenManager.getCustomers().find(c => c.id === customerId);
+    getRecommendedActions: async function(customerId) {
+        const customer = (await LeadgenManager.getCustomers()).find(c => c.id === customerId);
         if (!customer) return [];
         
         const actions = [];
@@ -14424,8 +14425,8 @@ const RecommendationEngine = {
     },
     
     // 预测客户成交概率
-    predictConversionProbability: function(customerId) {
-        const customer = LeadgenManager.getCustomers().find(c => c.id === customerId);
+    predictConversionProbability: async function(customerId) {
+        const customer = (await LeadgenManager.getCustomers()).find(c => c.id === customerId);
         if (!customer) return 0;
         
         let probability = 50; // 基础概率
@@ -14476,7 +14477,7 @@ async function showRecommendations() {
                 <h3 style="color: var(--text-main); font-size: 16px; font-weight: 600; margin-bottom: 16px;">🔥 高价值客户推荐</h3>
                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px;">
                     ${highValueCustomers.length > 0 ? highValueCustomers.map(customer => `
-                        <div class="customer-card" style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; cursor: pointer; transition: all 0.3s ease;" onclick="showCustomerDetail('${customer.id}')">
+                        <div class="customer-card" style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; cursor: pointer; transition: all 0.3s ease;" onclick="(async () => await showCustomerDetail('${customer.id}'))()">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                                 <div style="font-weight: 600; font-size: 16px;">${customer.name}</div>
                                 <span style="background: #10b981; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 600;">${customer.score}分</span>
@@ -14537,13 +14538,13 @@ function closeRecommendationsModal() {
 }
 
 // 在客户详情页添加推荐信息
-function addRecommendationsToCustomerDetail(customerId) {
-    const customer = LeadgenManager.getCustomers().find(c => c.id === customerId);
+async function addRecommendationsToCustomerDetail(customerId) {
+    const customer = (await LeadgenManager.getCustomers()).find(c => c.id === customerId);
     if (!customer) return;
     
-    const similarCustomers = RecommendationEngine.getSimilarCustomers(customerId);
-    const recommendedActions = RecommendationEngine.getRecommendedActions(customerId);
-    const conversionProbability = RecommendationEngine.predictConversionProbability(customerId);
+    const similarCustomers = await RecommendationEngine.getSimilarCustomers(customerId);
+    const recommendedActions = await RecommendationEngine.getRecommendedActions(customerId);
+    const conversionProbability = await RecommendationEngine.predictConversionProbability(customerId);
     
     // 找到客户详情模态框
     const modal = document.querySelector('.modal-overlay .modal');
@@ -14579,7 +14580,7 @@ function addRecommendationsToCustomerDetail(customerId) {
                         <div style="font-weight: 600; margin-bottom: 12px; font-size: 14px;">相似客户</div>
                         <div style="display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px;">
                             ${similarCustomers.map(similar => `
-                                <div class="customer-card" style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; min-width: 200px; cursor: pointer; transition: all 0.3s ease;" onclick="event.stopPropagation(); showCustomerDetail('${similar.id}')">
+                                <div class="customer-card" style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; min-width: 200px; cursor: pointer; transition: all 0.3s ease;" onclick="event.stopPropagation(); (async () => await showCustomerDetail('${similar.id}'))()">
                                     <div style="font-weight: 600; margin-bottom: 4px;">${similar.name}</div>
                                     <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 2px;">公司：${similar.company || '-'}</div>
                                     <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 2px;">相似度：${Math.round(similar.similarityScore)}%</div>
@@ -14896,8 +14897,8 @@ function initReportButton() {
 }
 
 // 修改showCustomerDetail函数，添加推荐信息
-function showCustomerDetail(customerId) {
-    const customer = LeadgenManager.getCustomers().find(c => c.id === customerId);
+async function showCustomerDetail(customerId) {
+    const customer = (await LeadgenManager.getCustomers()).find(c => c.id === customerId);
     if (!customer) return;
     
     const modal = document.createElement('div');
@@ -14990,7 +14991,7 @@ function showCustomerDetail(customerId) {
     document.body.appendChild(modal);
     
     // 添加智能推荐信息
-    addRecommendationsToCustomerDetail(customerId);
+    await addRecommendationsToCustomerDetail(customerId);
 }
 
 // 获取状态文本
@@ -15037,7 +15038,7 @@ async function searchCustomers() {
                 listElement.innerHTML = '<div style="text-align: center; color: var(--text-sub); padding: 20px;">暂无客户</div>';
             } else {
                 listElement.innerHTML = byStatus[status].map(customer => `
-                    <div class="customer-card" style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 10px; cursor: pointer; transition: all 0.3s ease;" onclick="showCustomerDetail('${customer.id}')">
+                    <div class="customer-card" style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 10px; cursor: pointer; transition: all 0.3s ease;" onclick="(async () => await showCustomerDetail('${customer.id}'))()">
                         <div style="font-weight: 600; margin-bottom: 8px;">${customer.name}</div>
                         <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px;">公司：${customer.company || '-'}</div>
                         <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px;">规模：${customer.companySize || '-'}</div>
@@ -15073,9 +15074,9 @@ function clearSearch() {
 }
 
 // 初始化智能获客功能
-function initLeadgen() {
+async function initLeadgen() {
     // 检查是否有初始数据，如果没有则添加一些示例数据
-    const customers = LeadgenManager.getCustomers();
+    const customers = await LeadgenManager.getCustomers();
     if (customers.length === 0) {
         const sampleCustomers = [
             {

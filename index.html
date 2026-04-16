@@ -16610,7 +16610,7 @@ function createCommandLibrary() {
         footprint.style.color = 'rgba(255, 105, 180, 0.8)';
         footprint.style.zIndex = '1';
         footprint.style.cursor = 'pointer';
-        footprint.style.transition = 'opacity 10s ease, transform 10s ease';
+        footprint.style.transition = 'opacity 5s ease, transform 5s ease';
         footprint.style.transform = 'scale(0.5)';
         
         // 只使用蝴蝶图标作为轨迹装饰
@@ -16626,7 +16626,7 @@ function createCommandLibrary() {
         // 清除动画
         setTimeout(() => {
             clearInterval(flapInterval);
-        }, 10000);
+        }, 5000);
         
         // 添加点击事件，点击轨迹蝴蝶打开罗盘菜单
         footprint.addEventListener('click', function() {
@@ -16649,8 +16649,8 @@ function createCommandLibrary() {
                 if (footprint.parentNode) {
                     footprint.parentNode.removeChild(footprint);
                 }
-            }, 10000);
-        }, 7000);
+            }, 5000);
+        }, 3000);
     }
     
     // 随机移动

@@ -16599,8 +16599,7 @@ function createCommandLibrary() {
         
         // 计算该圈的半径和角度
         const radius = innerRadius + (circleIndex * outerRadiusStep);
-        const itemsInThisCircle = Math.min(itemsPerCircle, totalItems - (circleIndex * itemsPerCircle));
-        const angleStep = 360 / itemsInThisCircle;
+        const angleStep = 360 / itemsPerCircle; // 每圈固定6个
         const angle = (positionInCircle * angleStep) * Math.PI / 180;
         
         const x = Math.cos(angle) * radius;

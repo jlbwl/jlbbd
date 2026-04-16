@@ -16656,9 +16656,6 @@ function createCommandLibrary() {
             newLeft = Math.max(10, Math.min(90, newLeft));
             newTop = Math.max(10, Math.min(90, newTop));
             
-            // 创建脚印
-            createFootprint(newLeft, newTop);
-            
             // 更新位置
             compassMenu.style.left = newLeft + '%';
             compassMenu.style.top = newTop + '%';
@@ -16666,6 +16663,22 @@ function createCommandLibrary() {
             // 煽动翅膀
             flapWings();
         }, 3000); // 每3秒移动一次
+        
+        // 持续产生轨迹装饰
+        setInterval(() => {
+            if (isHovered) return;
+            
+            const currentLeft = parseFloat(compassMenu.style.left) || 50;
+            const currentTop = parseFloat(compassMenu.style.top) || 50;
+            
+            // 创建多个轨迹装饰
+            for (let i = 0; i < 3; i++) {
+                // 稍微偏移位置，产生多个装饰
+                const offsetX = (Math.random() - 0.5) * 2;
+                const offsetY = (Math.random() - 0.5) * 2;
+                createFootprint(currentLeft + offsetX, currentTop + offsetY);
+            }
+        }, 500); // 每0.5秒产生一次轨迹
     }
     
     // 停止移动

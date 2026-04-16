@@ -16618,6 +16618,20 @@ function createCommandLibrary() {
         const randomDecoration = decorations[Math.floor(Math.random() * decorations.length)];
         footprint.textContent = randomDecoration;
         
+        // 如果是蝴蝶图标，添加翅膀煽动动画
+        if (randomDecoration === '🦋') {
+            let angle = 0;
+            const flapInterval = setInterval(() => {
+                angle = angle === 0 ? 15 : 0;
+                footprint.style.transform = `scale(0.8) rotate(${angle}deg)`;
+            }, 300);
+            
+            // 清除动画
+            setTimeout(() => {
+                clearInterval(flapInterval);
+            }, 3000);
+        }
+        
         document.body.appendChild(footprint);
         
         // 动画效果

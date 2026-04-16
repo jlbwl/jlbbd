@@ -15383,25 +15383,13 @@ class AIChatWindow {
                     const commandsByCategory = AIChatWindow.commandsByCategory;
                     Object.entries(commandsByCategory).forEach(([category, commands]) => {
                         const categoryHeader = document.createElement('div');
-                        categoryHeader.style.cssText = `
-                            margin: 10px 0 5px 0;
-                            font-weight: 600;
-                            color: var(--primary-color, #3b82f6);
-                            font-size: 14px;
-                        `;
+                        categoryHeader.style.cssText = 'margin: 10px 0 5px 0; font-weight: 600; color: var(--primary-color, #3b82f6); font-size: 14px;';
                         categoryHeader.textContent = category;
                         commandsList.appendChild(categoryHeader);
                         
                         commands.forEach(command => {
                             const commandItem = document.createElement('div');
-                            commandItem.style.cssText = `
-                                margin: 3px 0;
-                                padding: 5px;
-                                border-radius: 4px;
-                                cursor: pointer;
-                                font-size: 13px;
-                                transition: background-color 0.2s;
-                            `;
+                            commandItem.style.cssText = 'margin: 3px 0; padding: 5px; border-radius: 4px; cursor: pointer; font-size: 13px; transition: background-color 0.2s;';
                             commandItem.textContent = command;
                             commandItem.onmouseenter = function() { this.style.backgroundColor = 'var(--background-color, #f5f5f5)'; };
                             commandItem.onmouseleave = function() { this.style.backgroundColor = ''; };

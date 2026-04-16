@@ -16728,6 +16728,10 @@ function createCommandLibrary() {
         stopRandomMove();
         compassMenu.style.cursor = 'grabbing';
         
+        // 防止文本选择和复制
+        e.preventDefault();
+        e.stopPropagation();
+        
         // 计算鼠标相对于飞机按钮中心的偏移
         const rect = compassMenu.getBoundingClientRect();
         dragOffsetX = e.clientX - rect.left - rect.width / 2;
@@ -16736,6 +16740,9 @@ function createCommandLibrary() {
     
     document.addEventListener('mousemove', function(e) {
         if (!isDragging) return;
+        
+        // 防止文本选择
+        e.preventDefault();
         
         // 计算新位置（百分比）
         const newLeft = (e.clientX - dragOffsetX) / window.innerWidth * 100;
@@ -16746,10 +16753,13 @@ function createCommandLibrary() {
         compassMenu.style.top = newTop + '%';
     });
     
-    document.addEventListener('mouseup', function() {
+    document.addEventListener('mouseup', function(e) {
         if (isDragging) {
             isDragging = false;
             compassMenu.style.cursor = 'pointer';
+            // 防止点击事件触发
+            e.preventDefault();
+            e.stopPropagation();
         }
     });
     

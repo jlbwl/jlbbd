@@ -16539,7 +16539,7 @@ function createCommandLibrary() {
         return;
     }
     
-    // 创建扇形菜单容器
+    // 创建圆盘菜单容器
     const compassMenu = document.createElement('div');
     compassMenu.id = 'aiCommandLibrary';
     compassMenu.style.position = 'fixed';
@@ -16551,22 +16551,14 @@ function createCommandLibrary() {
     // 存储菜单项和状态
     let menuExpanded = false;
     const menuItems = [];
-    const categories = Object.keys(AIChatWindow.commandsByCategory);
     
     // 获取所有命令并按类别组织
-    const allCommands = [];
-    Object.entries(AIChatWindow.commandsByCategory).forEach(([category, commands]) => {
-        commands.forEach(cmd => {
-            allCommands.push({ category, command: cmd });
-        });
-    });
+    const commandsByCategory = AIChatWindow.commandsByCategory;
     
-    // 计算扇形参数
-    const radius = 120;
-    const startAngle = -180;
-    const endAngle = -90;
-    const angleRange = endAngle - startAngle;
-    const angleStep = allCommands.length > 1 ? angleRange / (allCommands.length - 1) : 0;
+    // 计算圆形参数
+    const radius = 140; // 增大半径以容纳更多菜单项
+    const centerX = 30; // 中心按钮中心坐标
+    const centerY = 30;
     
     // 创建中心按钮
     const centerBtn = document.createElement('div');
@@ -16581,63 +16573,121 @@ function createCommandLibrary() {
     centerBtn.style.cursor = 'pointer';
     centerBtn.style.position = 'relative';
     centerBtn.style.zIndex = '2';
-    centerBtn.style.transition = 'transform 0.3s ease';
-    centerBtn.innerHTML = '<span style="font-size:24px;">📚</span>';
+    centerBtn.style.transition = 'transform 0.3s ease, box-shadow 0.3s ease';
+    centerBtn.innerHTML = '<span style="font-size:24px; color:white;">📚</span>';
     compassMenu.appendChild(centerBtn);
     
-    // 创建菜单项
-    allCommands.forEach((item, index) => {
-        const angle = startAngle + (angleStep * index);
-        const radian = angle * Math.PI / 180;
-        const x = Math.cos(radian) * radius;
-        const y = Math.sin(radian) * radius;
-        
-        const menuItem = document.createElement('div');
-        menuItem.style.position = 'absolute';
-        menuItem.style.width = '50px';
-        menuItem.style.height = '50px';
-        menuItem.style.borderRadius = '50%';
-        menuItem.style.background = 'white';
-        menuItem.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
-        menuItem.style.display = 'flex';
-        menuItem.style.alignItems = 'center';
-        menuItem.style.justifyContent = 'center';
-        menuItem.style.cursor = 'pointer';
-        menuItem.style.transition = 'all 0.3s ease';
-        menuItem.style.transform = 'translate(-50%, -50%)';
-        menuItem.style.left = '30px';
-        menuItem.style.top = '30px';
-        menuItem.style.opacity = '0';
-        menuItem.style.pointerEvents = 'none';
-        menuItem.style.fontSize = '12px';
-        menuItem.style.color = '#333';
-        menuItem.style.textAlign = 'center';
-        menuItem.style.padding = '5px';
-        menuItem.style.wordBreak = 'break-word';
-        menuItem.style.overflow = 'hidden';
-        menuItem.style.zIndex = '1';
-        
-        // 显示缩写
-        const shortLabel = item.command.length > 6 ? item.command.substring(0, 6) + '...' : item.command;
-        menuItem.innerHTML = `<span title="${item.command}">${shortLabel}</span>`;
-        menuItem.dataset.command = item.command;
-        menuItem.dataset.category = item.category;
-        
-        menuItem.addEventListener('click', function() {
-            const chatInput = document.getElementById('chatInput');
-            if (chatInput) {
-                chatInput.value = this.dataset.command;
+    // 为每个类别创建菜单项
+    let totalItems = 0;
+    Object.entries(commandsByCategory).forEach(([category, commands]) => {
+        commands.forEach(command => {
+            totalItems++;
+        });
+    });
+    
+    // 计算每个菜单项的角度
+    let currentAngle = 0;
+    const angleStep = 360 / totalItems;
+    
+    // 为每个命令创建菜单项
+    let itemIndex = 0;
+    Object.entries(commandsByCategory).forEach(([category, commands]) => {
+        commands.forEach(command => {
+            const angle = currentAngle * Math.PI / 180;
+            const x = Math.cos(angle) * radius;
+            const y = Math.sin(angle) * radius;
+            
+            // 创建菜单项容器
+            const menuItem = document.createElement('div');
+            menuItem.style.position = 'absolute';
+            menuItem.style.width = '70px';
+            menuItem.style.height = '80px';
+            menuItem.style.display = 'flex';
+            menuItem.style.flexDirection = 'column';
+            menuItem.style.alignItems = 'center';
+            menuItem.style.justifyContent = 'center';
+            menuItem.style.transform = 'translate(-50%, -50%)';
+            menuItem.style.left = centerX + 'px';
+            menuItem.style.top = centerY + 'px';
+            menuItem.style.opacity = '0';
+            menuItem.style.pointerEvents = 'none';
+            menuItem.style.transition = 'all 0.4s ease';
+            menuItem.style.zIndex = '1';
+            
+            // 创建圆形背景
+            const circleBg = document.createElement('div');
+            circleBg.style.width = '50px';
+            circleBg.style.height = '50px';
+            circleBg.style.borderRadius = '50%';
+            circleBg.style.background = 'white';
+            circleBg.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+            circleBg.style.display = 'flex';
+            circleBg.style.alignItems = 'center';
+            circleBg.style.justifyContent = 'center';
+            circleBg.style.marginBottom = '5px';
+            
+            // 为不同类别设置不同图标
+            let icon = '💬';
+            switch(category) {
+                case '通用指令': icon = '🌐'; break;
+                case '分析报告': icon = '📊'; break;
+                case '系统操作': icon = '⚙️'; break;
+                case '数据处理': icon = '📈'; break;
+                default: icon = '💡';
             }
-            toggleMenu();
+            
+            circleBg.innerHTML = `<span style="font-size:20px;">${icon}</span>`;
+            
+            // 创建文字标签
+            const label = document.createElement('div');
+            label.style.fontSize = '10px';
+            label.style.color = '#333';
+            label.style.textAlign = 'center';
+            label.style.wordBreak = 'break-word';
+            label.style.maxWidth = '60px';
+            label.style.lineHeight = '1.2';
+            
+            // 显示命令缩写
+            const shortLabel = command.length > 8 ? command.substring(0, 8) + '...' : command;
+            label.textContent = shortLabel;
+            
+            // 组装菜单项
+            menuItem.appendChild(circleBg);
+            menuItem.appendChild(label);
+            menuItem.dataset.command = command;
+            menuItem.dataset.category = category;
+            
+            // 点击事件
+            menuItem.addEventListener('click', function() {
+                const chatInput = document.getElementById('chatInput');
+                if (chatInput) {
+                    chatInput.value = this.dataset.command;
+                }
+                toggleMenu();
+            });
+            
+            // 悬停效果
+            menuItem.addEventListener('mouseenter', function() {
+                circleBg.style.transform = 'scale(1.1)';
+                circleBg.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+            });
+            
+            menuItem.addEventListener('mouseleave', function() {
+                circleBg.style.transform = 'scale(1)';
+                circleBg.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+            });
+            
+            menuItems.push({
+                element: menuItem,
+                x: x,
+                y: y
+            });
+            
+            compassMenu.appendChild(menuItem);
+            
+            currentAngle += angleStep;
+            itemIndex++;
         });
-        
-        menuItems.push({
-            element: menuItem,
-            x: x,
-            y: y
-        });
-        
-        compassMenu.appendChild(menuItem);
     });
     
     // 切换菜单展开/收起
@@ -16645,21 +16695,27 @@ function createCommandLibrary() {
         menuExpanded = !menuExpanded;
         
         if (menuExpanded) {
+            // 展开菜单
             centerBtn.style.transform = 'rotate(180deg)';
+            centerBtn.style.boxShadow = '0 6px 16px rgba(0,0,0,0.4)';
+            
             menuItems.forEach((item, index) => {
                 setTimeout(() => {
-                    item.element.style.left = (30 + item.x) + 'px';
-                    item.element.style.top = (30 + item.y) + 'px';
+                    item.element.style.left = (centerX + item.x) + 'px';
+                    item.element.style.top = (centerY + item.y) + 'px';
                     item.element.style.opacity = '1';
                     item.element.style.pointerEvents = 'auto';
                     item.element.style.zIndex = '3';
-                }, index * 30);
+                }, index * 50);
             });
         } else {
+            // 收起菜单
             centerBtn.style.transform = 'rotate(0deg)';
+            centerBtn.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+            
             menuItems.forEach(item => {
-                item.element.style.left = '30px';
-                item.element.style.top = '30px';
+                item.element.style.left = centerX + 'px';
+                item.element.style.top = centerY + 'px';
                 item.element.style.opacity = '0';
                 item.element.style.pointerEvents = 'none';
                 item.element.style.zIndex = '1';
@@ -16667,9 +16723,21 @@ function createCommandLibrary() {
         }
     }
     
+    // 中心按钮点击事件
     centerBtn.addEventListener('click', function(e) {
         e.stopPropagation();
         toggleMenu();
+    });
+    
+    // 悬停效果
+    centerBtn.addEventListener('mouseenter', function() {
+        this.style.transform = 'scale(1.05)';
+    });
+    
+    centerBtn.addEventListener('mouseleave', function() {
+        if (!menuExpanded) {
+            this.style.transform = 'scale(1)';
+        }
     });
     
     // 点击其他地方关闭菜单

@@ -149,6 +149,15 @@ class VirtualScroll {
 // 虚拟滚动实例存储
 const virtualScrollInstances = {};
 
+// 删除客户
+async function deleteCustomer(customerId) {
+    if (confirm('确定要删除这个客户吗？')) {
+        await LeadgenManager.deleteCustomer(customerId);
+        await renderCustomerLists();
+        alert('客户删除成功！');
+    }
+}
+
 // 渲染单个客户卡片
 function renderCustomerCard(customer) {
     // 记录访问日志
@@ -13666,15 +13675,6 @@ async function updateCustomerStatus(customerId, status) {
     });
     
     await renderCustomerLists();
-}
-
-// 删除客户
-async function deleteCustomer(customerId) {
-    if (confirm('确定要删除这个客户吗？')) {
-        await LeadgenManager.deleteCustomer(customerId);
-        await renderCustomerLists();
-        alert('客户删除成功！');
-    }
 }
 
 // 显示客户详情

@@ -12642,21 +12642,36 @@ const StorageManager = {
                 const transaction = db.transaction(storeName, 'readwrite');
                 const store = transaction.objectStore(storeName);
                 
-                let completed = 0;
-                const total = dataArray.length;
+                // 先清空存储
+                const clearRequest = store.clear();
                 
-                dataArray.forEach(data => {
-                    const request = store.put(data);
-                    request.onsuccess = () => {
-                        completed++;
-                        if (completed === total) {
-                            resolve(dataArray);
-                        }
-                    };
-                    request.onerror = () => {
-                        reject('Failed to save data');
-                    };
-                });
+                clearRequest.onsuccess = () => {
+                    let completed = 0;
+                    const total = dataArray.length;
+                    
+                    if (total === 0) {
+                        // 没有数据要保存，直接resolve
+                        resolve(dataArray);
+                        return;
+                    }
+                    
+                    dataArray.forEach(data => {
+                        const request = store.put(data);
+                        request.onsuccess = () => {
+                            completed++;
+                            if (completed === total) {
+                                resolve(dataArray);
+                            }
+                        };
+                        request.onerror = () => {
+                            reject('Failed to save data');
+                        };
+                    });
+                };
+                
+                clearRequest.onerror = () => {
+                    reject('Failed to clear data');
+                };
             }).catch(() => {
                 // 回退到localStorage
                 this.saveAllToLocalStorage(storeName, dataArray);

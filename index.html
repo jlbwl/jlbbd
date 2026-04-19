@@ -150,13 +150,29 @@ class VirtualScroll {
 const virtualScrollInstances = {};
 
 // 删除客户
-async function deleteCustomer(customerId) {
-    if (confirm('确定要删除这个客户吗？')) {
-        await LeadgenManager.deleteCustomer(customerId);
-        await renderCustomerLists();
-        alert('客户删除成功！');
+window.handleDeleteCustomer = function(customerId, event) {
+    if (event) {
+        event.stopPropagation();
+        event.preventDefault();
     }
-}
+    console.log('删除客户:', customerId);
+    if (confirm('确定要删除这个客户吗？')) {
+        console.log('确认删除,开始执行...');
+        LeadgenManager.deleteCustomer(customerId).then(function() {
+            console.log('删除成功,开始渲染列表...');
+            renderCustomerLists().then(function() {
+                console.log('渲染完成');
+                alert('客户删除成功！');
+            }).catch(function(err) {
+                console.error('渲染失败:', err);
+                alert('客户删除成功！(列表刷新失败)');
+            });
+        }).catch(function(err) {
+            console.error('删除失败:', err);
+            alert('删除失败: ' + err.message);
+        });
+    }
+};
 
 // 渲染单个客户卡片
 function renderCustomerCard(customer) {
@@ -192,7 +208,7 @@ function renderCustomerCard(customer) {
             <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'closed')">已成交</button>
             <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'lost')">已流失</button>
         </div>
-        <button class="btn btn-sm btn-danger" style="font-size: 10px; padding: 2px 6px; margin-top: 8px;" onclick="event.stopPropagation(); deleteCustomer('${customer.id}')">删除</button>
+        <button class="btn btn-sm btn-danger" style="font-size: 10px; padding: 2px 6px; margin-top: 8px;" onclick="handleDeleteCustomer('${customer.id}', event)">删除</button>
     `;
     
     return card;
@@ -13184,7 +13200,7 @@ async function filterCustomersByTag(tag) {
                             <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'closed')">已成交</button>
                             <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'lost')">已流失</button>
                         </div>
-                        <button class="btn btn-sm btn-danger" style="font-size: 10px; padding: 2px 6px; margin-top: 8px;" onclick="event.stopPropagation(); deleteCustomer('${customer.id}')">删除</button>
+                        <button class="btn btn-sm btn-danger" style="font-size: 10px; padding: 2px 6px; margin-top: 8px;" onclick="handleDeleteCustomer('${customer.id}', event)">删除</button>
                     </div>
                 `).join('');
             }
@@ -15041,7 +15057,7 @@ async function searchCustomers() {
                             <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'closed')">已成交</button>
                             <button class="btn btn-sm btn-outline" style="font-size: 10px; padding: 2px 6px;" onclick="event.stopPropagation(); updateCustomerStatus('${customer.id}', 'lost')">已流失</button>
                         </div>
-                        <button class="btn btn-sm btn-danger" style="font-size: 10px; padding: 2px 6px; margin-top: 8px;" onclick="event.stopPropagation(); deleteCustomer('${customer.id}')">删除</button>
+                        <button class="btn btn-sm btn-danger" style="font-size: 10px; padding: 2px 6px; margin-top: 8px;" onclick="handleDeleteCustomer('${customer.id}', event)">删除</button>
                     </div>
                 `).join('');
             }

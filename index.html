@@ -13693,106 +13693,6 @@ async function updateCustomerStatus(customerId, status) {
     await renderCustomerLists();
 }
 
-// 显示客户详情
-async function showCustomerDetail(customerId) {
-    const customers = await LeadgenManager.getCustomers();
-    const customer = customers.find(c => c.id === customerId);
-    
-    if (customer) {
-        // 获取客户行为记录
-        const activities = await LeadgenManager.getActivities(customerId);
-        
-        // 创建详情模态框
-        const modal = document.createElement('div');
-        modal.id = 'customerDetailModal';
-        modal.className = 'modal-overlay';
-        modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 10000;';
-        
-        modal.innerHTML = `
-            <div class="modal" style="background: var(--card-bg); border-radius: 12px; padding: 24px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
-                <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                    <h2 style="margin: 0; color: var(--primary-color); font-size: 20px;">👤 客户详情 - ${customer.name}</h2>
-                    <button class="close-btn" onclick="closeCustomerDetailModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-sub);">&times;</button>
-                </div>
-                
-                <div style="margin-bottom: 24px;">
-                    <h3 style="color: var(--text-main); font-size: 16px; font-weight: 600; margin-bottom: 16px;">360度客户画像</h3>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
-                        <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;">
-                            <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px;">基本信息</div>
-                            <div style="font-weight: 600;">${customer.name}</div>
-                            <div style="font-size: 14px; color: var(--text-sub);">${customer.company || '-'}</div>
-                            <div style="font-size: 14px; color: var(--text-sub);">${customer.wechat || '-'}</div>
-                        </div>
-                        <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;">
-                            <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px;">业务信息</div>
-                            <div style="font-weight: 600;">评分：${customer.score || 0}</div>
-                            <div style="font-size: 14px; color: var(--text-sub);">状态：${getStatusText(customer.status)}</div>
-                            <div style="font-size: 14px; color: var(--text-sub);">来源：${customer.source || '-'}</div>
-                        </div>
-                        <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;">
-                            <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px;">企业信息</div>
-                            <div style="font-weight: 600;">规模：${customer.companySize || '-'}</div>
-                            <div style="font-size: 14px; color: var(--text-sub);">交互深度：${customer.interactionLevel || '-'}</div>
-                            <div style="font-size: 14px; color: var(--text-sub);">创建时间：${new Date(customer.createdAt).toLocaleDateString()}</div>
-                        </div>
-                    </div>
-                </div>
-                
-                ${customer.tags && customer.tags.length > 0 ? `
-                <div style="margin-bottom: 24px;">
-                    <h3 style="color: var(--text-main); font-size: 16px; font-weight: 600; margin-bottom: 12px;">客户标签</h3>
-                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                        ${customer.tags.map(tag => `
-                            <span style="background: rgba(37, 99, 235, 0.1); color: var(--primary-color); padding: 6px 12px; border-radius: 16px; font-size: 12px; font-weight: 600;">${tag}</span>
-                        `).join('')}
-                    </div>
-                </div>
-                ` : ''}
-                
-                <div style="margin-bottom: 24px;">
-                    <h3 style="color: var(--text-main); font-size: 16px; font-weight: 600; margin-bottom: 12px;">行为时间线</h3>
-                    ${activities.length > 0 ? `
-                    <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;">
-                        ${activities.map(activity => `
-                            <div style="display: flex; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color);">
-                                <div style="flex-shrink: 0; width: 80px; font-size: 12px; color: var(--text-sub);">${new Date(activity.timestamp).toLocaleString()}</div>
-                                <div style="flex: 1;">
-                                    <div style="font-weight: 600; margin-bottom: 4px;">${getActivityTypeText(activity.type)}</div>
-                                    <div style="font-size: 14px; color: var(--text-sub);">${activity.description}</div>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                    ` : `
-                    <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 32px; text-align: center;">
-                        <div style="font-size: 24px; margin-bottom: 8px;">📋</div>
-                        <div style="color: var(--text-sub);">暂无行为记录</div>
-                    </div>
-                    `}
-                </div>
-                
-                <div style="margin-bottom: 24px;">
-                    <h3 style="color: var(--text-main); font-size: 16px; font-weight: 600; margin-bottom: 12px;">添加跟进记录</h3>
-                    <div style="background: white; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;">
-                        <textarea id="followUpNote" placeholder="请输入跟进记录..." style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; resize: vertical; min-height: 100px; box-sizing: border-box;"></textarea>
-                        <div style="margin-top: 12px; display: flex; justify-content: flex-end;">
-                            <button class="btn btn-primary" onclick="addFollowUpRecord('${customerId}')" style="padding: 8px 16px;">保存记录</button>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="modal-footer" style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
-                    <button class="btn btn-outline" onclick="closeCustomerDetailModal()" style="padding: 10px 20px;">关闭</button>
-                    <button class="btn btn-primary" onclick="editCustomer('${customerId}')" style="padding: 10px 20px;">编辑客户</button>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(modal);
-    }
-}
-
 // 关闭客户详情模态框
 function closeCustomerDetailModal() {
     const modal = document.getElementById('customerDetailModal');
@@ -13936,6 +13836,19 @@ function saveEditCustomer(customerId) {
     
     // 显示成功提示
     showToast('客户信息更新成功！', 'success');
+}
+
+// 获取行为类型图标
+function getActivityIcon(type) {
+    const iconMap = {
+        'status_change': '🔄',
+        'follow_up': '📝',
+        'add': '➕',
+        'edit': '✏️',
+        'auto_status_change': '⚡',
+        'reminder': '⏰'
+    };
+    return iconMap[type] || '📋';
 }
 
 // 获取行为类型文本

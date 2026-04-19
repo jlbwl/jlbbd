@@ -15002,30 +15002,36 @@ function clearSearch() {
 // 初始化智能获客功能
 async function initLeadgen() {
     // 检查是否有初始数据，如果没有则添加一些示例数据
-    const customers = await LeadgenManager.getCustomers();
-    if (customers.length === 0) {
-        const sampleCustomers = [
-            {
-                name: '张三',
-                company: 'ABC公司',
-                wechat: 'zhangsan123',
-                source: '官网',
-                score: 75,
-                status: 'lead'
-            },
-            {
-                name: '李四',
-                company: 'XYZ公司',
-                wechat: 'lisi456',
-                source: '展会',
-                score: 85,
-                status: 'following'
+    // 注意：这里只在首次加载时添加示例数据，避免删除后刷新页面重新添加
+    const hasLoadedBefore = localStorage.getItem('leadgen_initialized');
+    if (!hasLoadedBefore) {
+        const customers = await LeadgenManager.getCustomers();
+        if (customers.length === 0) {
+            const sampleCustomers = [
+                {
+                    name: '张三',
+                    company: 'ABC公司',
+                    wechat: 'zhangsan123',
+                    source: '官网',
+                    score: 75,
+                    status: 'lead'
+                },
+                {
+                    name: '李四',
+                    company: 'XYZ公司',
+                    wechat: 'lisi456',
+                    source: '展会',
+                    score: 85,
+                    status: 'following'
+                }
+            ];
+            
+            for (const customer of sampleCustomers) {
+                await LeadgenManager.addCustomer(customer);
             }
-        ];
-        
-        sampleCustomers.forEach(customer => {
-            LeadgenManager.addCustomer(customer);
-        });
+        }
+        // 标记已初始化，避免重复添加示例数据
+        localStorage.setItem('leadgen_initialized', 'true');
     }
 }
 

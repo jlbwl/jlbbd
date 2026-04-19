@@ -27,24 +27,37 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/plugins/rangePlugin.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" crossorigin="anonymous"></script>
 <script>
-// 动态加载版本号
-async function loadVersion() {
-    try {
-        const response = await fetch('version.json');
-        if (response.ok) {
-            const versionData = await response.json();
-            const appVersionElement = document.getElementById('appVersion');
-            if (appVersionElement) {
-                appVersionElement.textContent = `v${versionData.version}`;
-            }
+// 版本号管理系统
+class VersionManager {
+    static getVersion() {
+        // 生成基于日期和时间的版本号
+        // 格式：YYYY.MMDD.BUILD
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hour = String(now.getHours()).padStart(2, '0');
+        const minute = String(now.getMinutes()).padStart(2, '0');
+        const build = `${hour}${minute}`;
+        
+        return `${year}.${month}${day}.${build}`;
+    }
+    
+    static updateVersionDisplay() {
+        const version = this.getVersion();
+        const appVersionElement = document.getElementById('appVersion');
+        if (appVersionElement) {
+            appVersionElement.textContent = `v${version}`;
         }
-    } catch (error) {
-        console.log('加载版本信息失败:', error);
+        return version;
     }
 }
 
-// 页面加载完成后加载版本号
-window.addEventListener('DOMContentLoaded', loadVersion);
+// 页面加载完成后更新版本号
+window.addEventListener('DOMContentLoaded', () => {
+    const version = VersionManager.updateVersionDisplay();
+    console.log('应用版本号:', version);
+});
 
 // 防抖函数
 function debounce(func, wait) {
@@ -3298,10 +3311,7 @@ const App = {
         document.getElementById('mainApp').style.display = 'flex';
         document.getElementById('userRoleBadge').innerText = this.currentUser.role.toUpperCase();
         // 更新版本号显示
-        const appVersionElement = document.getElementById('appVersion');
-        if (appVersionElement) {
-            appVersionElement.innerText = `v${this.version}`;
-        }
+        VersionManager.updateVersionDisplay();
         const navCustomer = document.getElementById('navCustomer');
         const navLeadgen = document.getElementById('navLeadgen');
         if(this.checkPerm('manage_presets')) { 

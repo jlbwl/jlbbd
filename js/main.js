@@ -196,6 +196,16 @@ function initApp() {
                 App.init();
             }
         }
+    } else {
+        // 如果没有登录覆盖层，直接初始化应用
+        const mainApp = document.getElementById('mainApp');
+        if (mainApp) {
+            mainApp.style.display = 'block';
+        }
+        // 使用app.js中的App对象
+        if (typeof App !== 'undefined') {
+            App.init();
+        }
     }
 }
 

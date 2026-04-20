@@ -541,15 +541,18 @@ function onSearchInputOriginal() {
 // 防抖版本的搜索函数
 const onSearchInput = debounce(onSearchInputOriginal, 300);
 
-document.getElementById('searchInput').addEventListener('keydown', function(e) {
-    const dropdown = document.getElementById('searchDropdown');
-    if (!searchDropdownActive || dropdown.style.display === 'none') return;
-    const items = dropdown.querySelectorAll('.search-dropdown-item');
-    if (items.length === 0) return;
-    if (e.key === 'ArrowDown') { e.preventDefault(); searchSelectedIndex = (searchSelectedIndex + 1) % items.length; updateSearchSelection(items); } 
-    else if (e.key === 'ArrowUp') { e.preventDefault(); searchSelectedIndex = (searchSelectedIndex - 1 + items.length) % items.length; updateSearchSelection(items); } 
-    else if (e.key === 'Enter') { e.preventDefault(); if (searchSelectedIndex >= 0 && items[searchSelectedIndex]) { items[searchSelectedIndex].click(); } }
-});
+const searchInput = document.getElementById('searchInput');
+if (searchInput) {
+    searchInput.addEventListener('keydown', function(e) {
+        const dropdown = document.getElementById('searchDropdown');
+        if (!searchDropdownActive || dropdown.style.display === 'none') return;
+        const items = dropdown.querySelectorAll('.search-dropdown-item');
+        if (items.length === 0) return;
+        if (e.key === 'ArrowDown') { e.preventDefault(); searchSelectedIndex = (searchSelectedIndex + 1) % items.length; updateSearchSelection(items); } 
+        else if (e.key === 'ArrowUp') { e.preventDefault(); searchSelectedIndex = (searchSelectedIndex - 1 + items.length) % items.length; updateSearchSelection(items); } 
+        else if (e.key === 'Enter') { e.preventDefault(); if (searchSelectedIndex >= 0 && items[searchSelectedIndex]) { items[searchSelectedIndex].click(); } }
+    });
+}
 
 function updateSearchSelection(items) {
     items.forEach((item, idx) => { if (idx === searchSelectedIndex) item.classList.add('active'); else item.classList.remove('active'); });
@@ -608,15 +611,18 @@ function onPresetSearchInputOriginal() {
 // 防抖版本的预设搜索函数
 const onPresetSearchInput = debounce(onPresetSearchInputOriginal, 300);
 
-document.getElementById('presetSearchInput').addEventListener('keydown', function(e) {
-    const dropdown = document.getElementById('presetSearchDropdown');
-    if (!presetSearchDropdownActive || dropdown.style.display === 'none') return;
-    const items = dropdown.querySelectorAll('.search-dropdown-item');
-    if (items.length === 0) return;
-    if (e.key === 'ArrowDown') { e.preventDefault(); presetSearchSelectedIndex = (presetSearchSelectedIndex + 1) % items.length; updatePresetSearchSelection(items); } 
-    else if (e.key === 'ArrowUp') { e.preventDefault(); presetSearchSelectedIndex = (presetSearchSelectedIndex - 1 + items.length) % items.length; updatePresetSearchSelection(items); } 
-    else if (e.key === 'Enter') { e.preventDefault(); if (presetSearchSelectedIndex >= 0 && items[presetSearchSelectedIndex]) { items[presetSearchSelectedIndex].click(); } }
-});
+const presetSearchInput = document.getElementById('presetSearchInput');
+if (presetSearchInput) {
+    presetSearchInput.addEventListener('keydown', function(e) {
+        const dropdown = document.getElementById('presetSearchDropdown');
+        if (!presetSearchDropdownActive || dropdown.style.display === 'none') return;
+        const items = dropdown.querySelectorAll('.search-dropdown-item');
+        if (items.length === 0) return;
+        if (e.key === 'ArrowDown') { e.preventDefault(); presetSearchSelectedIndex = (presetSearchSelectedIndex + 1) % items.length; updatePresetSearchSelection(items); } 
+        else if (e.key === 'ArrowUp') { e.preventDefault(); presetSearchSelectedIndex = (presetSearchSelectedIndex - 1 + items.length) % items.length; updatePresetSearchSelection(items); } 
+        else if (e.key === 'Enter') { e.preventDefault(); if (presetSearchSelectedIndex >= 0 && items[presetSearchSelectedIndex]) { items[presetSearchSelectedIndex].click(); } }
+    });
+}
 
 function updatePresetSearchSelection(items) {
     items.forEach((item, idx) => { if (idx === presetSearchSelectedIndex) item.classList.add('active'); else item.classList.remove('active'); });

@@ -702,6 +702,93 @@ function switchView(viewId, event) {
     }, 0);
 }
 
+function renderCharts() {
+    // 图表渲染逻辑
+    console.log('渲染图表');
+}
+
+function renderRecycle() {
+    const recycleContainer = document.getElementById('recycleContainer');
+    if (!recycleContainer) return;
+    
+    recycleContainer.innerHTML = '<p>回收站功能开发中...</p>';
+}
+
+function renderLogs() {
+    const logsContainer = document.getElementById('logsContainer');
+    if (!logsContainer) return;
+    
+    logsContainer.innerHTML = '<p>日志功能开发中...</p>';
+}
+
+function editOrder(orderId) {
+    console.log('编辑订单:', orderId);
+    // 编辑订单逻辑
+}
+
+function deleteOrder(orderId) {
+    if (confirm('确定要删除这个订单吗？')) {
+        console.log('删除订单:', orderId);
+        // 删除订单逻辑
+    }
+}
+
+function renderTable() {
+    const tableBody = document.getElementById('orderTableBody');
+    if (!tableBody) return;
+    
+    tableBody.innerHTML = '';
+    
+    // 应用排序
+    const sortedData = [...App.data].sort((a, b) => {
+        const key = App.sortConfig.key;
+        if (!key) return 0;
+        
+        let aVal = a[key] || '';
+        let bVal = b[key] || '';
+        
+        if (App.sortConfig.key === 'amount' || App.sortConfig.key === 'channelPrice') {
+            aVal = parseFloat(aVal) || 0;
+            bVal = parseFloat(bVal) || 0;
+        }
+        
+        if (aVal < bVal) return App.sortConfig.ascending ? -1 : 1;
+        if (aVal > bVal) return App.sortConfig.ascending ? 1 : -1;
+        return 0;
+    });
+    
+    // 应用分页
+    const start = (App.pagination.currentPage - 1) * App.pagination.pageSize;
+    const end = start + App.pagination.pageSize;
+    const paginatedData = sortedData.slice(start, end);
+    
+    // 渲染表格行
+    paginatedData.forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${item.id || ''}</td>
+            <td>${item.name || ''}</td>
+            <td>${item.channel || ''}</td>
+            <td>${item.project || ''}</td>
+            <td>¥${parseFloat(item.amount) || 0}</td>
+            <td>¥${parseFloat(item.channelPrice) || 0}</td>
+            <td>${item.status || ''}</td>
+            <td>${item.qualified || ''}</td>
+            <td>${item.createdAt ? new Date(item.createdAt).toLocaleDateString() : ''}</td>
+            <td>
+                <button class="btn btn-sm" onclick="editOrder('${item.id}')">编辑</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteOrder('${item.id}')">删除</button>
+            </td>
+        `;
+        tableBody.appendChild(row);
+    });
+    
+    // 更新分页信息
+    App.pagination.totalItems = App.data.length;
+    App.pagination.filteredItems = App.data.length;
+    updatePaginationControls();
+}
+
 function sortTable(key, isNumber = false) {
     if (App.sortConfig.key === key) App.sortConfig.ascending = !App.sortConfig.ascending;
     else { App.sortConfig.key = key; App.sortConfig.ascending = true; }

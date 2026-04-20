@@ -2,6 +2,100 @@
  * 金卢比智能表单应用主对象
  * @namespace App
  */
+
+// 辅助函数
+function renderCharts() {
+    // 图表渲染逻辑
+    console.log('渲染图表');
+}
+
+function renderRecycle() {
+    const recycleContainer = document.getElementById('recycleContainer');
+    if (!recycleContainer) return;
+    
+    recycleContainer.innerHTML = '<p>回收站功能开发中...</p>';
+}
+
+function renderLogs() {
+    const logsContainer = document.getElementById('logsContainer');
+    if (!logsContainer) return;
+    
+    logsContainer.innerHTML = '<p>日志功能开发中...</p>';
+}
+
+function editOrder(orderId) {
+    console.log('编辑订单:', orderId);
+    // 编辑订单逻辑
+}
+
+function deleteOrder(orderId) {
+    if (confirm('确定要删除这个订单吗？')) {
+        console.log('删除订单:', orderId);
+        // 删除订单逻辑
+    }
+}
+
+function updateBatchPanel() {
+    console.log('更新批量操作面板');
+    // 批量操作面板更新逻辑
+}
+
+function renderTable() {
+    const tableBody = document.getElementById('orderTableBody');
+    if (!tableBody) return;
+    
+    tableBody.innerHTML = '';
+    
+    // 应用排序
+    const sortedData = [...App.data].sort((a, b) => {
+        const key = App.sortConfig.key;
+        if (!key) return 0;
+        
+        let aVal = a[key] || '';
+        let bVal = b[key] || '';
+        
+        if (App.sortConfig.key === 'amount' || App.sortConfig.key === 'channelPrice') {
+            aVal = parseFloat(aVal) || 0;
+            bVal = parseFloat(bVal) || 0;
+        }
+        
+        if (aVal < bVal) return App.sortConfig.ascending ? -1 : 1;
+        if (aVal > bVal) return App.sortConfig.ascending ? 1 : -1;
+        return 0;
+    });
+    
+    // 应用分页
+    const start = (App.pagination.currentPage - 1) * App.pagination.pageSize;
+    const end = start + App.pagination.pageSize;
+    const paginatedData = sortedData.slice(start, end);
+    
+    // 渲染表格行
+    paginatedData.forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${item.id || ''}</td>
+            <td>${item.name || ''}</td>
+            <td>${item.channel || ''}</td>
+            <td>${item.project || ''}</td>
+            <td>¥${parseFloat(item.amount) || 0}</td>
+            <td>¥${parseFloat(item.channelPrice) || 0}</td>
+            <td>${item.status || ''}</td>
+            <td>${item.qualified || ''}</td>
+            <td>${item.createdAt ? new Date(item.createdAt).toLocaleDateString() : ''}</td>
+            <td>
+                <button class="btn btn-sm" onclick="editOrder('${item.id}')">编辑</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteOrder('${item.id}')">删除</button>
+            </td>
+        `;
+        tableBody.appendChild(row);
+    });
+    
+    // 更新分页信息
+    App.pagination.totalItems = App.data.length;
+    App.pagination.filteredItems = App.data.length;
+    updatePaginationControls();
+}
+
 const App = {
     /**
      * 应用版本号
@@ -666,6 +760,42 @@ function startAutoLogout() { let timer; const reset = () => { clearTimeout(timer
 
 function toggleTheme() { const isDark = document.body.getAttribute('data-theme') === 'dark'; document.body.setAttribute('data-theme', isDark ? 'light' : 'dark'); App.config.theme = isDark ? 'light' : 'dark'; App.saveData(); }
 
+function renderPresetTable() {
+    const presetTableBody = document.getElementById('presetTableBody');
+    if (!presetTableBody) return;
+    
+    presetTableBody.innerHTML = '';
+    
+    // 渲染客户预设表格
+    App.presets.forEach(preset => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${preset.name || ''}</td>
+            <td>${preset.channel || ''}</td>
+            <td>${preset.project || ''}</td>
+            <td>¥${parseFloat(preset.price) || 0}</td>
+            <td>${preset.createdAt ? new Date(preset.createdAt).toLocaleDateString() : ''}</td>
+            <td>
+                <button class="btn btn-sm" onclick="editPreset('${preset.id}')">编辑</button>
+                <button class="btn btn-sm btn-danger" onclick="deletePreset('${preset.id}')">删除</button>
+            </td>
+        `;
+        presetTableBody.appendChild(row);
+    });
+}
+
+function editPreset(presetId) {
+    console.log('编辑预设:', presetId);
+    // 编辑预设逻辑
+}
+
+function deletePreset(presetId) {
+    if (confirm('确定要删除这个预设吗？')) {
+        console.log('删除预设:', presetId);
+        // 删除预设逻辑
+    }
+}
+
 function switchView(viewId, event) {
     if(!App.checkPerm('view')) return;
     if(viewId === 'customer' && !App.checkPerm('manage_presets')) { alert('您没有权限访问客户管理页面'); return; }
@@ -700,93 +830,6 @@ function switchView(viewId, event) {
         if(viewId === 'formManager' && typeof renderFormManager === 'function') { renderFormManager(); }
         if(viewId === 'workflow' && typeof WorkflowManager !== 'undefined' && typeof WorkflowManager.renderWorkflowList === 'function') { WorkflowManager.renderWorkflowList(); }
     }, 0);
-}
-
-function renderCharts() {
-    // 图表渲染逻辑
-    console.log('渲染图表');
-}
-
-function renderRecycle() {
-    const recycleContainer = document.getElementById('recycleContainer');
-    if (!recycleContainer) return;
-    
-    recycleContainer.innerHTML = '<p>回收站功能开发中...</p>';
-}
-
-function renderLogs() {
-    const logsContainer = document.getElementById('logsContainer');
-    if (!logsContainer) return;
-    
-    logsContainer.innerHTML = '<p>日志功能开发中...</p>';
-}
-
-function editOrder(orderId) {
-    console.log('编辑订单:', orderId);
-    // 编辑订单逻辑
-}
-
-function deleteOrder(orderId) {
-    if (confirm('确定要删除这个订单吗？')) {
-        console.log('删除订单:', orderId);
-        // 删除订单逻辑
-    }
-}
-
-function renderTable() {
-    const tableBody = document.getElementById('orderTableBody');
-    if (!tableBody) return;
-    
-    tableBody.innerHTML = '';
-    
-    // 应用排序
-    const sortedData = [...App.data].sort((a, b) => {
-        const key = App.sortConfig.key;
-        if (!key) return 0;
-        
-        let aVal = a[key] || '';
-        let bVal = b[key] || '';
-        
-        if (App.sortConfig.key === 'amount' || App.sortConfig.key === 'channelPrice') {
-            aVal = parseFloat(aVal) || 0;
-            bVal = parseFloat(bVal) || 0;
-        }
-        
-        if (aVal < bVal) return App.sortConfig.ascending ? -1 : 1;
-        if (aVal > bVal) return App.sortConfig.ascending ? 1 : -1;
-        return 0;
-    });
-    
-    // 应用分页
-    const start = (App.pagination.currentPage - 1) * App.pagination.pageSize;
-    const end = start + App.pagination.pageSize;
-    const paginatedData = sortedData.slice(start, end);
-    
-    // 渲染表格行
-    paginatedData.forEach(item => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${item.id || ''}</td>
-            <td>${item.name || ''}</td>
-            <td>${item.channel || ''}</td>
-            <td>${item.project || ''}</td>
-            <td>¥${parseFloat(item.amount) || 0}</td>
-            <td>¥${parseFloat(item.channelPrice) || 0}</td>
-            <td>${item.status || ''}</td>
-            <td>${item.qualified || ''}</td>
-            <td>${item.createdAt ? new Date(item.createdAt).toLocaleDateString() : ''}</td>
-            <td>
-                <button class="btn btn-sm" onclick="editOrder('${item.id}')">编辑</button>
-                <button class="btn btn-sm btn-danger" onclick="deleteOrder('${item.id}')">删除</button>
-            </td>
-        `;
-        tableBody.appendChild(row);
-    });
-    
-    // 更新分页信息
-    App.pagination.totalItems = App.data.length;
-    App.pagination.filteredItems = App.data.length;
-    updatePaginationControls();
 }
 
 function sortTable(key, isNumber = false) {

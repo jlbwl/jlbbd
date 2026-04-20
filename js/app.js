@@ -834,6 +834,26 @@ function switchView(viewId, event) {
         if(viewId === 'list') { document.querySelectorAll('.row-cb').forEach(cb => cb.checked = false); updateBatchPanel(); }
         if(viewId === 'formManager' && typeof renderFormManager === 'function') { renderFormManager(); }
         if(viewId === 'workflow' && typeof WorkflowManager !== 'undefined' && typeof WorkflowManager.renderWorkflowList === 'function') { WorkflowManager.renderWorkflowList(); }
+        if(viewId === 'todo') {
+            // 待办事项视图
+            console.log('加载待办事项');
+        }
+        if(viewId === 'recycle') {
+            // 回收站视图
+            renderRecycle();
+        }
+        if(viewId === 'logs') {
+            // 审计日志视图
+            renderLogs();
+        }
+        if(viewId === 'ai') {
+            // AI 智能助手视图
+            console.log('初始化 AI 智能助手');
+        }
+        if(viewId === 'settings') {
+            // 设置视图
+            console.log('加载设置');
+        }
     }, 0);
 }
 

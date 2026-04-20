@@ -101,54 +101,6 @@ function initTheme() {
     }
 }
 
-// 切换视图
-function switchView(viewName) {
-    // 隐藏所有视图
-    document.querySelectorAll('.view-section').forEach(section => {
-        section.classList.remove('active');
-    });
-    
-    // 显示选中的视图
-    const view = document.getElementById(`view-${viewName}`);
-    if (view) {
-        view.classList.add('active');
-    }
-    
-    // 更新侧边栏按钮状态
-    document.querySelectorAll('.sidebar-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    
-    // 高亮当前视图对应的按钮
-    const navBtn = document.querySelector(`.sidebar-btn[onclick="switchView('${viewName}')"]`);
-    if (navBtn) {
-        navBtn.classList.add('active');
-    }
-    
-    // 特殊处理
-    if (viewName === 'todo') {
-        loadTodoList();
-    } else if (viewName === 'list') {
-        loadBillList();
-    } else if (viewName === 'formManager') {
-        loadFormTemplates();
-    } else if (viewName === 'workflow') {
-        loadWorkflows();
-    } else if (viewName === 'customer') {
-        loadCustomers();
-    } else if (viewName === 'leadgen') {
-        renderCustomerLists();
-    } else if (viewName === 'recycle') {
-        loadRecycledBills();
-    } else if (viewName === 'logs') {
-        loadAuditLogs();
-    } else if (viewName === 'ai') {
-        initAIChat();
-    } else if (viewName === 'settings') {
-        loadSettings();
-    }
-}
-
 // 登录函数
 function login() {
     const role = document.getElementById('roleSelect').value;

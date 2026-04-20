@@ -491,9 +491,14 @@ const BackupManager = {
                 App.smartMemory = restoredData.smartMemory || {}; App.forms = restoredData.forms || [];
                 App.config = restoredData.config || App.config;
                 App.saveData(); alert('✅ 数据恢复成功！页面将刷新。'); location.reload();
-            } catch(err) { alert('❌ 恢复失败：' + err.message + '\n请确认文件是否正确且密码无误。'); input.value = ''; }
+            } catch(err) { 
+                console.error('恢复失败详细信息:', err);
+                alert('❌ 恢复失败：' + err.message + '\n请确认文件是否正确且密码无误。'); 
+                input.value = ''; 
+            }
         };
-        reader.readAsText(file); input.value = '';
+        reader.readAsText(file); 
+        input.value = '';
     }
 };
 

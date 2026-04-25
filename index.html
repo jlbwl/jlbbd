@@ -24,6 +24,11 @@
             if (typeof App !== 'undefined') {
                 App.version = data.version;
             }
+            // 更新页面上的版本号显示
+            const appVersionElement = document.getElementById('appVersion');
+            if (appVersionElement) {
+                appVersionElement.textContent = `v${data.version}`;
+            }
         });
 </script>
 

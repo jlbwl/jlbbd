@@ -5297,8 +5297,36 @@ let currentPresetQr = null;
 function renderPresetTable() {
     const container = document.getElementById('customerGridContainer'); container.innerHTML = '';
     const searchVal = document.getElementById('presetSearchInput').value.toLowerCase(), methodFilter = document.getElementById('presetMethodFilter').value;
-    let filtered = App.presets.filter(p => { const matchSearch = !searchVal || p.group.toLowerCase().includes(searchVal) || p.contact.toLowerCase().includes(searchVal) || (p.card && p.card.toLowerCase().includes(searchVal)); const matchMethod = !methodFilter || p.method === methodFilter; return matchSearch && matchMethod; });
+    
+    // 过滤预设并增加搜索计数
+    let filtered = App.presets.filter(p => {
+        // 确保每个预设都有 searchCount 字段
+        if (!p.searchCount) p.searchCount = 0;
+        
+        const matchSearch = !searchVal || p.group.toLowerCase().includes(searchVal) || p.contact.toLowerCase().includes(searchVal) || (p.card && p.card.toLowerCase().includes(searchVal));
+        const matchMethod = !methodFilter || p.method === methodFilter;
+        
+        // 如果匹配，增加搜索计数
+        if (matchSearch && matchMethod) {
+            p.searchCount++;
+        }
+        
+        return matchSearch && matchMethod;
+    });
+    
+    // 按搜索计数降序排序
+    filtered.sort((a, b) => {
+        // 确保两个预设都有 searchCount 字段
+        if (!a.searchCount) a.searchCount = 0;
+        if (!b.searchCount) b.searchCount = 0;
+        return b.searchCount - a.searchCount;
+    });
+    
     if(filtered.length === 0) { container.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--text-sub);">暂无预设数据，请点击“新增客户预设”添加</div>'; return; }
+    
+    // 保存更新后的预设数据
+    App.saveData();
+    
     filtered.forEach((p, idx) => {
         const originalIdx = App.presets.indexOf(p); const card = document.createElement('div'); card.className = 'customer-card';
         const qrHtml = p.qrCode ? `<div class="qr-img-wrapper" onclick="viewQrCode('${p.qrCode}')"><img src="${p.qrCode}" alt="收款码"></div><div class="qr-hint">点击查看大图扫码</div>` : `<div class="qr-img-wrapper" style="background:#f1f5f9;"><div class="qr-placeholder"><span style="font-size:24px;">🚫</span><span>暂无收款码</span></div></div><div class="qr-hint" style="color:var(--text-sub)">无法扫码</div>`;
@@ -5378,11 +5406,11 @@ function savePreset() {
             if(idx === -1) {
                 // 新增预设
                 App.presets = App.presets.filter(p => p.group !== group);
-                App.presets.push({ group, contact, method, card, qrCode: currentPresetQr });
+                App.presets.push({ group, contact, method, card, qrCode: currentPresetQr, searchCount: 0 });
             } else {
                 // 编辑预设
                 const old = App.presets[idx];
-                App.presets[idx] = { group, contact, method, card, qrCode: currentPresetQr };
+                App.presets[idx] = { group, contact, method, card, qrCode: currentPresetQr, searchCount: old.searchCount || 0 };
                 
                 // 同步更新收单记录
                 const updatedCount = syncPresetToRecords(old.group, group, contact, method, card);
@@ -5432,7 +5460,8 @@ function importPresetsFromExcel(input) {
                     contact: row["对接人"]||'',
                     method: row["收款方式"]||'支付宝',
                     card: row["卡号/备注"]||'',
-                    qrCode: null
+                    qrCode: null,
+                    searchCount: 0
                 };
                 
                 if(newItem.group && newItem.contact) {

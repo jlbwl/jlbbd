@@ -18,17 +18,27 @@
     
     // 加载版本号
     fetch('version.json')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('版本号文件加载失败');
+            }
+            return response.json();
+        })
         .then(data => {
-            document.querySelector('meta[name="version"]').content = data.version;
-            if (typeof App !== 'undefined') {
-                App.version = data.version;
+            if (data && data.version) {
+                document.querySelector('meta[name="version"]').content = data.version;
+                if (typeof App !== 'undefined') {
+                    App.version = data.version;
+                }
+                // 更新页面上的版本号显示
+                const appVersionElement = document.getElementById('appVersion');
+                if (appVersionElement) {
+                    appVersionElement.textContent = `v${data.version}`;
+                }
             }
-            // 更新页面上的版本号显示
-            const appVersionElement = document.getElementById('appVersion');
-            if (appVersionElement) {
-                appVersionElement.textContent = `v${data.version}`;
-            }
+        })
+        .catch(error => {
+            console.warn('版本号加载失败，使用默认值:', error.message);
         });
 </script>
 

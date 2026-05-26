@@ -5305,7 +5305,7 @@ function applyListBatchChange(type) {
     }
     else if(type === 'qualified') { val = document.getElementById('listBatchQual').value; if(!val) return alert('请选择状态'); fieldLabel='审核状态'; checked.forEach(cb => App.data[parseInt(cb.value)].qualified = val); }
     else if(type === 'status') { val = document.getElementById('listBatchStatus').value; if(!val) return alert('请选择状态'); fieldLabel='结算状态'; checked.forEach(cb => App.data[parseInt(cb.value)].status = val); }
-    else if(type === 'settleTime') { val = document.getElementById('listBatchSettle').value; if(!val) return alert('请选择时间'); fieldLabel='结算时间'; checked.forEach(cb => App.data[parseInt(cb.value)].settleTime = val); }
+    else if(type === 'settleTime') { val = document.getElementById('listBatchSettle').value; fieldLabel='结算时间'; checked.forEach(cb => App.data[parseInt(cb.value)].settleTime = val); }
     App.log('批量修改', `修改了 ${checked.length} 条数据的 ${fieldLabel}`); App.saveData();
     alert(`✅ 成功修改 ${checked.length} 条数据`); document.querySelectorAll('.row-cb').forEach(cb => cb.checked = false); updateBatchPanel();
 }

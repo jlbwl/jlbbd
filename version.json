@@ -1,7 +1,8 @@
 {
-  "version": "1.5.7",
+  "version": "1.5.8",
   "releaseDate": "2026-06-10",
   "changes": [
+    "fix: null check for deleted elements",
     "fix: add complete workflow with environment and permissions",
     "fix: add .nojekyll to force static deployment",
     "revert: remove workflow files, use traditional gh-pages deployment",

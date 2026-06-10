@@ -1861,10 +1861,9 @@ th {
 
             <button class="sidebar-btn" onclick="switchView('todo')"><span>📋</span> 今日待办</button>
             <button class="sidebar-btn" onclick="switchView('list')"><span>📝</span> 收单列表</button>
-            <button class="sidebar-btn" onclick="switchView('formManager')"><span>📄</span> 表单管理</button>
-            <button class="sidebar-btn" onclick="switchView('workflow')"><span>🔄</span> 工作流管理</button>
-            <button class="sidebar-btn" id="navCustomer" onclick="switchView('customer')" style="display:none;"><span>👥</span> 客户管理</button>
-            <button class="sidebar-btn" id="navLeadgen" onclick="switchView('leadgen')" style="display:none;"><span>🎯</span> 智能获客</button>
+            
+            <button class="sidebar-btn" id="navCustomer" onclick="switchView('customer')"><span>👥</span> 客户管理</button>
+            <button class="sidebar-btn" id="navLeadgen" onclick="switchView('leadgen')"><span>🎯</span> 智能获客</button>
             <button class="sidebar-btn" onclick="switchView('recycle')"><span>♻️</span> 回收站</button>
             <button class="sidebar-btn" onclick="switchView('logs')"><span>🛡️</span> 审计日志</button>
             <button class="sidebar-btn" onclick="switchView('ai')"><span>🤖</span> AI 智能助手</button>
@@ -2094,52 +2093,7 @@ th {
                 </div>
             </div>
         </div>
-        <!-- 表单管理页面 -->
-        <div id="view-formManager" class="view-section">
-            <div style="background: var(--card-bg); border-radius: 16px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border: 1px solid var(--border-color);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                    <div style="display: flex; align-items: center; gap: 15px;">
-                        <h2 style="color: var(--primary-color); font-size: 20px; font-weight: 800; margin: 0;">表单管理</h2>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <input type="checkbox" id="selectAllForms" style="width: 18px; height: 18px; cursor: pointer;" onchange="toggleSelectAllForms()">
-                            <label for="selectAllForms" style="font-size: 14px; color: var(--text-main); cursor: pointer; margin: 0;">全选</label>
-                        </div>
-                    </div>
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <div class="search-input-wrapper" style="min-width: 250px;">
-                            <input type="text" id="formSearchInput" placeholder="搜索表单名称、描述、类别... (Ctrl+F)" oninput="onFormSearchInput()" autocomplete="off">
-                            <div class="search-dropdown-list" id="formSearchDropdown"></div>
-                        </div>
-                        <div>
-                            <label style="font-size: 14px; margin-right: 8px;">表单类别：</label>
-                            <select id="formCategoryFilter" style="padding: 6px 12px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-main);" onchange="filterFormsByCategory()">
-                                <option value="all">全部</option>
-                                <!-- 类别选项将通过JavaScript动态生成 -->
-                            </select>
-                        </div>
-                        <button class="btn btn-primary" onclick="openCreateFormModal()">➕ 创建表单</button>
-                        <button class="btn btn-primary" onclick="publishAllForms()">🚀 一键发布</button>
-                        <button class="btn btn-danger" onclick="batchDeleteForms()">🗑️ 批量删除</button>
-                    </div>
-                </div>
-                
-                <div id="formList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
-                    <!-- 表单列表将在这里动态生成 -->
-                </div>
-            </div>
-        </div>
         
-        <div id="view-workflow" class="view-section">
-            <div style="background: var(--card-bg); border-radius: 16px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border: 1px solid var(--border-color);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                    <h2 style="color: var(--primary-color); font-size: 20px; font-weight: 800; margin: 0;">工作流管理</h2>
-                    <button class="btn btn-primary" onclick="WorkflowManager.openCreateWorkflowModal()">➕ 创建工作流</button>
-                </div>
-                <div id="workflowList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px;">
-                    <!-- 工作流卡片将通过JavaScript动态生成 -->
-                </div>
-            </div>
-        </div>
         <div id="view-leadgen" class="view-section">
             <div style="background: var(--card-bg); border-radius: 16px; padding: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border: 1px solid var(--border-color);">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 10px;">
@@ -9245,9 +9199,6 @@ function publishAllForms() {
 const originalSwitchView = switchView;
 switchView = function(viewId, event) {
     originalSwitchView(viewId, event);
-    if (viewId === 'formManager') {
-        renderFormManager();
-    }
     if (viewId === 'todo') {
         renderTodoList();
     }

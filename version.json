@@ -1,7 +1,8 @@
 {
-  "version": "1.4.0",
+  "version": "1.5.0",
   "releaseDate": "2026-06-10",
   "changes": [
+    "feat: 实现批量修改多列功能",
     "feat: 实现Excel列数据粘贴到批量表单功能",
     "修复批量修改结算时间的功能：支持空值设置",
     "chore: 设置 pre-commit 钩子为可执行",

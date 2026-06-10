@@ -1,7 +1,8 @@
 {
-  "version": "1.5.9",
+  "version": "1.5.10",
   "releaseDate": "2026-06-10",
   "changes": [
+    "trigger redeploy",
     "revert: remove workflow, use traditional deployment",
     "fix: null check for deleted elements",
     "fix: add complete workflow with environment and permissions",

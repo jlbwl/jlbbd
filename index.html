@@ -2011,10 +2011,14 @@ th {
             </div>
             <div id="listBatchPanel">
                 <span style="font-weight:700; color:var(--primary-color); font-size:13px;">🛠️ 已选中 <span id="selectedCount" style="color:var(--danger-color)">0</span> 条数据，执行批量修改：</span>
-                <div class="batch-control-group"><label>群号简称:</label><div class="search-dropdown-container" style="position:relative;"><input type="text" id="listBatchGroup" placeholder="输入群号简称" style="width:100px;" oninput="handleGroupSearch(this, 'listBatch')" autocomplete="off"><div class="search-dropdown-list" id="listBatchGroupDropdown"></div></div><button class="btn-batch-apply" onclick="applyListBatchChange('group')">应用</button></div>
-                <div class="batch-control-group"><label>审核状态:</label><select id="listBatchQual"><option value="">不修改</option><option value="pending">未审核</option><option value="qualified">合格</option><option value="disqualified">不合格</option><option value="unqualified">无数据</option></select><button class="btn-batch-apply" onclick="applyListBatchChange('qualified')">应用</button></div>
-                <div class="batch-control-group"><label>结算状态:</label><select id="listBatchStatus"><option value="">不修改</option><option value="unsettled">未结算</option><option value="reviewed">已审核待结算</option><option value="settled">已结算</option></select><button class="btn-batch-apply" onclick="applyListBatchChange('status')">应用</button></div>
-                <div class="batch-control-group"><label>结算时间:</label><input type="date" id="listBatchSettle"><button class="btn-batch-apply" onclick="applyListBatchChange('settleTime')">应用</button></div>
+                <div class="batch-control-group"><label>群号简称:</label><div class="search-dropdown-container" style="position:relative;"><input type="text" id="listBatchGroup" placeholder="输入群号简称" style="width:100px;" oninput="handleGroupSearch(this, 'listBatch')" autocomplete="off"><div class="search-dropdown-list" id="listBatchGroupDropdown"></div></div></div>
+                <div class="batch-control-group"><label>审核状态:</label><select id="listBatchQual"><option value="">不修改</option><option value="pending">未审核</option><option value="qualified">合格</option><option value="disqualified">不合格</option><option value="unqualified">无数据</option></select></div>
+                <div class="batch-control-group"><label>结算状态:</label><select id="listBatchStatus"><option value="">不修改</option><option value="unsettled">未结算</option><option value="reviewed">已审核待结算</option><option value="settled">已结算</option></select></div>
+                <div class="batch-control-group"><label>结算时间:</label><input type="date" id="listBatchSettle"></div>
+                <div style="margin-left: auto; display: flex; gap: 8px;">
+                    <button class="btn btn-outline" onclick="clearBatchInputs()">重置</button>
+                    <button class="btn btn-primary" onclick="applyListBatchChange()">🚀 应用全部修改</button>
+                </div>
             </div>
             <div class="customer-filter-bar">
                 <div class="search-input-wrapper">
@@ -5278,36 +5282,65 @@ function updateBatchPanel() {
     if(checked.length > 0) { panel.classList.add('active'); countSpan.innerText = checked.length; document.querySelectorAll('tbody tr').forEach(tr => tr.classList.remove('selected')); checked.forEach(cb => cb.closest('tr').classList.add('selected')); }
     else { panel.classList.remove('active'); document.querySelectorAll('tbody tr').forEach(tr => tr.classList.remove('selected')); }
 }
-function applyListBatchChange(type) {
+function applyListBatchChange() {
     if(!App.checkPerm('edit')) return alert('无权修改');
     const checked = document.querySelectorAll('.row-cb:checked');
-    if(checked.length === 0) return alert('请先勾选');
-    let val = '', fieldLabel = '';
-    if(type === 'group') { 
-        val = document.getElementById('listBatchGroup').value.trim(); 
-        if(!val) return alert('请输入群号简称'); 
-        fieldLabel='群号简称'; 
+    if(checked.length === 0) return alert('请先勾选数据');
+    
+    const groupVal = document.getElementById('listBatchGroup').value.trim();
+    const qualVal = document.getElementById('listBatchQual').value;
+    const statusVal = document.getElementById('listBatchStatus').value;
+    const settleTimeVal = document.getElementById('listBatchSettle').value;
+    
+    const changedFields = [];
+    
+    checked.forEach(cb => {
+        const idx = parseInt(cb.value);
         
-        // 查找匹配的客户预设
-        const matchedPreset = App.presets.find(p => p.group === val);
-        
-        checked.forEach(cb => {
-            const idx = parseInt(cb.value);
-            App.data[idx].group = val;
-            
-            // 如果匹配到客户预设，自动强制关联全部信息
+        if(groupVal) {
+            App.data[idx].group = groupVal;
+            const matchedPreset = App.presets.find(p => p.group === groupVal);
             if(matchedPreset) {
                 App.data[idx].method = matchedPreset.method;
                 App.data[idx].contact = matchedPreset.contact;
                 App.data[idx].card = matchedPreset.card || '';
             }
-        });
+            if(!changedFields.includes('群号简称')) changedFields.push('群号简称');
+        }
+        
+        if(qualVal) {
+            App.data[idx].qualified = qualVal;
+            if(!changedFields.includes('审核状态')) changedFields.push('审核状态');
+        }
+        
+        if(statusVal) {
+            App.data[idx].status = statusVal;
+            if(!changedFields.includes('结算状态')) changedFields.push('结算状态');
+        }
+        
+        if(settleTimeVal) {
+            App.data[idx].settleTime = settleTimeVal;
+            if(!changedFields.includes('结算时间')) changedFields.push('结算时间');
+        }
+    });
+    
+    if(changedFields.length === 0) {
+        return alert('请至少选择一个要修改的字段');
     }
-    else if(type === 'qualified') { val = document.getElementById('listBatchQual').value; if(!val) return alert('请选择状态'); fieldLabel='审核状态'; checked.forEach(cb => App.data[parseInt(cb.value)].qualified = val); }
-    else if(type === 'status') { val = document.getElementById('listBatchStatus').value; if(!val) return alert('请选择状态'); fieldLabel='结算状态'; checked.forEach(cb => App.data[parseInt(cb.value)].status = val); }
-    else if(type === 'settleTime') { val = document.getElementById('listBatchSettle').value; fieldLabel='结算时间'; checked.forEach(cb => App.data[parseInt(cb.value)].settleTime = val); }
-    App.log('批量修改', `修改了 ${checked.length} 条数据的 ${fieldLabel}`); App.saveData();
-    alert(`✅ 成功修改 ${checked.length} 条数据`); document.querySelectorAll('.row-cb').forEach(cb => cb.checked = false); updateBatchPanel();
+    
+    App.log('批量修改', `修改了 ${checked.length} 条数据的 ${changedFields.join('、')}`);
+    App.saveData();
+    alert(`✅ 成功修改 ${checked.length} 条数据的以下字段：\n${changedFields.join('\n')}`);
+    document.querySelectorAll('.row-cb').forEach(cb => cb.checked = false);
+    clearBatchInputs();
+    updateBatchPanel();
+}
+
+function clearBatchInputs() {
+    document.getElementById('listBatchGroup').value = '';
+    document.getElementById('listBatchQual').value = '';
+    document.getElementById('listBatchStatus').value = '';
+    document.getElementById('listBatchSettle').value = '';
 }
 function moveToRecycle(idx) { if(!App.checkPerm('delete')) return; if(!confirm('确定删除并移入回收站？')) return; const item = App.data[idx]; App.recycleBin.push({ item, deletedAt: new Date().toISOString() }); App.data.splice(idx, 1); App.log('删除记录', `${item.project} - ${item.amount}`); App.saveData(); }
 function deleteSelected() { if(!App.checkPerm('delete')) return; const cbs = document.querySelectorAll('.row-cb:checked'); if(!cbs.length) return alert('请先勾选'); if(!confirm(`确定删除 ${cbs.length} 条记录？`)) return; cbs.forEach(cb => { const idx = parseInt(cb.value); const item = App.data[idx]; App.recycleBin.push({ item, deletedAt: new Date().toISOString() }); App.log('批量删除', `${item.project}`); }); const indices = Array.from(cbs).map(cb => parseInt(cb.value)).sort((a,b)=>b-a); indices.forEach(i => App.data.splice(i, 1)); App.saveData(); }

@@ -1,7 +1,8 @@
 {
-  "version": "1.5.8",
+  "version": "1.5.9",
   "releaseDate": "2026-06-10",
   "changes": [
+    "revert: remove workflow, use traditional deployment",
     "fix: null check for deleted elements",
     "fix: add complete workflow with environment and permissions",
     "fix: add .nojekyll to force static deployment",

@@ -3369,13 +3369,10 @@ const App = {
         document.getElementById('mainApp').style.display = 'flex';
         document.getElementById('userRoleBadge').innerText = this.currentUser.role.toUpperCase();
         const navCustomer = document.getElementById('navCustomer');
-        const navLeadgen = document.getElementById('navLeadgen');
-        if(this.checkPerm('manage_presets')) { 
+        if(this.checkPerm('manage_presets') && navCustomer) { 
             navCustomer.style.display = 'flex'; 
-            navLeadgen.style.display = 'flex'; 
-        } else { 
+        } else if (navCustomer) { 
             navCustomer.style.display = 'none'; 
-            navLeadgen.style.display = 'none'; 
         }
         if(!this.checkPerm('create')) { document.querySelectorAll('.btn-primary').forEach(b => { if(b.innerText.includes('新增')) b.style.display = 'none'; }); }
         if(!this.checkPerm('delete')) document.getElementById('btnBatchDel').style.display = 'none';
@@ -9511,10 +9508,12 @@ function updateFormSearchSelection(items) {
 
 // 初始化表单搜索事件
 function initFormSearchEvents() {
-    // 键盘事件处理
-    document.getElementById('formSearchInput').addEventListener('keydown', function(e) {
+    const formSearchInput = document.getElementById('formSearchInput');
+    if (!formSearchInput) return;
+    
+    formSearchInput.addEventListener('keydown', function(e) {
         const dropdown = document.getElementById('formSearchDropdown');
-        if (!formSearchDropdownActive || dropdown.style.display === 'none') return;
+        if (!dropdown || !formSearchDropdownActive || dropdown.style.display === 'none') return;
         
         const items = dropdown.querySelectorAll('.search-dropdown-item');
         if (e.key === 'ArrowDown') {
@@ -9533,19 +9532,15 @@ function initFormSearchEvents() {
         }
     });
     
-    // 点击外部关闭下拉框
     document.addEventListener('click', function(e) {
         const formWrapper = document.querySelector('#view-formManager .search-input-wrapper');
         const formDropdown = document.getElementById('formSearchDropdown');
-        if (formWrapper && !formWrapper.contains(e.target)) {
+        if (formWrapper && formDropdown && !formWrapper.contains(e.target)) {
             formDropdown.style.display = 'none';
             formSearchDropdownActive = false;
         }
     });
 }
-
-// 初始化加载类别
-loadCategories();
 
 // 初始化表单搜索事件
 initFormSearchEvents();

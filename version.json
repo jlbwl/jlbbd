@@ -1,7 +1,8 @@
 {
-  "version": "1.5.10",
+  "version": "1.5.11",
   "releaseDate": "2026-06-10",
   "changes": [
+    "fix: update deploy workflow with explicit token",
     "trigger redeploy",
     "revert: remove workflow, use traditional deployment",
     "fix: null check for deleted elements",

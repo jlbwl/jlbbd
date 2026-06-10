@@ -1,7 +1,8 @@
 {
-  "version": "1.5.4",
+  "version": "1.5.5",
   "releaseDate": "2026-06-10",
   "changes": [
+    "revert: remove workflow files, use traditional gh-pages deployment",
     "fix: add explicit permissions for GitHub Pages deployment",
     "chore: trigger redeploy",
     "chore: 移除智能获客功能",

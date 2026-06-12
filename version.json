@@ -1,7 +1,8 @@
 {
-  "version": "1.5.13",
+  "version": "1.7.0",
   "releaseDate": "2026-06-12",
   "changes": [
+    "feat: 控制✈️图标仅在AI智能助手页面显示",
     "cleanup: remove unnecessary workflow for branch deployment",
     "fix: update deploy workflow with explicit token",
     "trigger redeploy",
@@ -20,8 +21,7 @@
     "chore: 设置 pre-commit 钩子为可执行",
     "test: 测试版本号更新",
     "perf: 优化版本号自动更新方案",
-    "实现客户预设按搜索频率排序功能",
-    "修复智能获客模块的删除功能"
+    "实现客户预设按搜索频率排序功能"
   ],
   "author": "jlbbd team",
   "description": "金卢比智能表单系统",

@@ -3702,6 +3702,14 @@ function switchView(viewId, event) {
         if(viewId === 'list') { document.querySelectorAll('.row-cb').forEach(cb => cb.checked = false); updateBatchPanel(); }
         if(viewId === 'formManager' && typeof renderFormManager === 'function') { renderFormManager(); }
         if(viewId === 'workflow' && typeof WorkflowManager !== 'undefined' && typeof WorkflowManager.renderWorkflowList === 'function') { WorkflowManager.renderWorkflowList(); }
+        
+        // 控制✈️图标显示：只在AI智能助手页面显示
+        const compassMenu = document.getElementById('aiCommandLibrary');
+        if (viewId === 'ai') {
+            createCommandLibrary();
+        } else if (compassMenu) {
+            compassMenu.style.display = 'none';
+        }
     }, 0);
 }
 function sortTable(key, isNumber = false) {
@@ -16624,8 +16632,10 @@ class AIChatWindow {
 
 // 创建并显示提示词罗盘按钮
 function createCommandLibrary() {
-    // 检查是否已经存在提示词罗盘按钮
-    if (document.getElementById('aiCommandLibrary')) {
+    // 检查是否已经存在提示词罗盘按钮，如果存在则显示它
+    const existingCompass = document.getElementById('aiCommandLibrary');
+    if (existingCompass) {
+        existingCompass.style.display = 'block';
         return;
     }
     
@@ -17150,9 +17160,6 @@ window.addEventListener('DOMContentLoaded', () => {
     
     // 初始化 AI 聊天窗口
     window.aiChatWindow = new AIChatWindow();
-    
-    // 页面加载时创建并显示提示词悬浮精灵按钮
-    createCommandLibrary();
 });
 
 console.log('✅ AI 聊天窗口已加载');

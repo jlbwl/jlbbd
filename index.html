@@ -15226,12 +15226,10 @@ class AIChatWindow {
         '导航': [
             '打开今日待办',
             '打开收单列表',
-            '打开表单管理',
-            '打开工作流管理',
             '打开客户管理',
-            '打开智能获客',
             '打开回收站',
             '打开审计日志',
+            '打开AI智能助手',
             '打开设置'
         ],
         '其他': [
@@ -15522,18 +15520,14 @@ class AIChatWindow {
             viewId = 'todo';
         } else if (message.includes('收单列表')) {
             viewId = 'list';
-        } else if (message.includes('表单管理')) {
-            viewId = 'formManager';
-        } else if (message.includes('工作流管理')) {
-            viewId = 'workflow';
         } else if (message.includes('客户管理')) {
             viewId = 'customer';
-        } else if (message.includes('智能获客')) {
-            viewId = 'leadgen';
         } else if (message.includes('回收站')) {
             viewId = 'recycle';
         } else if (message.includes('审计日志')) {
             viewId = 'logs';
+        } else if (message.includes('AI智能助手')) {
+            viewId = 'ai';
         } else if (message.includes('设置')) {
             viewId = 'settings';
         }
@@ -17134,18 +17128,14 @@ window.addEventListener('DOMContentLoaded', () => {
             viewId = 'todo';
         } else if (message.includes('收单列表')) {
             viewId = 'list';
-        } else if (message.includes('表单管理')) {
-            viewId = 'formManager';
-        } else if (message.includes('工作流管理')) {
-            viewId = 'workflow';
         } else if (message.includes('客户管理')) {
             viewId = 'customer';
-        } else if (message.includes('智能获客')) {
-            viewId = 'leadgen';
         } else if (message.includes('回收站')) {
             viewId = 'recycle';
         } else if (message.includes('审计日志')) {
             viewId = 'logs';
+        } else if (message.includes('AI智能助手')) {
+            viewId = 'ai';
         } else if (message.includes('设置')) {
             viewId = 'settings';
         }

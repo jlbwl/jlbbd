@@ -14385,16 +14385,15 @@ function addTaskManagerButton() {
     }
 }
 
-// 初始化工作流
-window.addEventListener('DOMContentLoaded', () => {
-    initWorkflow();
-    // 延迟添加按钮，确保DOM已完全加载
-    setTimeout(() => {
-        addTaskManagerButton();
-        addRecommendationButton();
-        addReportButton();
-    }, 1000);
-});
+// 初始化工作流 - 已禁用，智能获客功能已移除
+// window.addEventListener('DOMContentLoaded', () => {
+//     initWorkflow();
+//     setTimeout(() => {
+//         addTaskManagerButton();
+//         addRecommendationButton();
+//         addReportButton();
+//     }, 1000);
+// });
 
 // ==================== 智能推荐引擎 ====================
 

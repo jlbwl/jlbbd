@@ -5243,7 +5243,89 @@ function renderRecycle() { const tbody = document.getElementById('recycleBody');
 function restoreItem(idx) { App.data.unshift(App.recycleBin[idx].item); App.recycleBin.splice(idx, 1); App.log('还原记录', App.data[0].project); App.saveData(); }
 function restoreAll() { if(!App.recycleBin.length) return; App.data = [...App.recycleBin.map(r=>r.item), ...App.data]; App.recycleBin = []; App.log('还原所有', `${App.data.length}条`); App.saveData(); }
 function clearRecycle() { if(!confirm('彻底清空回收站？不可恢复！')) return; App.recycleBin = []; App.saveData(); }
-function renderLogs() { const div = document.getElementById('logContainer'); div.innerHTML = App.logs.map(l => `<div class="log-item"><span><strong>[${l.user}]</strong> ${l.action}: ${l.detail}</span><span class="log-time">${formatDate(l.time)}</span></div>`).join(''); }
+function renderLogs() { 
+    const div = document.getElementById('logContainer'); 
+    div.innerHTML = `
+        <style>
+            .logs-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+            .logs-table th, .logs-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border-color); }
+            .logs-table th { background: var(--card-bg); font-weight: 600; color: var(--text-sub); }
+            .logs-table tr:hover { background: var(--hover-bg); }
+            .log-type { padding: 3px 8px; border-radius: 8px; font-size: 11px; font-weight: 600; }
+            .log-type.create { background: #dcfce7; color: #166534; }
+            .log-type.update { background: #fef3c7; color: #92400e; }
+            .log-type.delete { background: #fee2e2; color: #991b1b; }
+            .log-type.audit { background: #e0e7ff; color: #4338ca; }
+            .log-type.batch { background: #d1fae5; color: #059669; }
+            .log-time-detailed { color: var(--text-sub); font-size: 12px; }
+            .log-user { font-weight: 600; color: var(--primary-color); }
+        </style>
+        <table class="logs-table">
+            <thead>
+                <tr>
+                    <th style="width: 100px;">操作时间</th>
+                    <th style="width: 80px;">操作人</th>
+                    <th style="width: 80px;">操作类型</th>
+                    <th style="width: 120px;">操作模块</th>
+                    <th>操作详情</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${App.logs.length === 0 ? '<tr><td colspan="5" style="text-align:center; color:var(--text-sub); padding:30px;">暂无操作日志</td></tr>' : App.logs.map(l => {
+                    const type = getLogType(l.action);
+                    const module = getLogModule(l.action);
+                    return `
+                        <tr>
+                            <td><div class="log-time-detailed">${formatDateTime(l.time)}</div></td>
+                            <td><span class="log-user">[${l.user}]</span></td>
+                            <td><span class="log-type ${type.class}">${type.label}</span></td>
+                            <td>${module}</td>
+                            <td><strong>${l.action}</strong>: ${l.detail}</td>
+                        </tr>
+                    `;
+                }).join('')}
+            </tbody>
+        </table>
+    `; 
+}
+
+function formatDateTime(isoString) {
+    const date = new Date(isoString);
+    const pad = n => n.toString().padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
+function getLogType(action) {
+    if (action.includes('新增') || action.includes('创建') || action.includes('添加')) {
+        return { class: 'create', label: '新增' };
+    } else if (action.includes('修改') || action.includes('更新') || action.includes('编辑')) {
+        return { class: 'update', label: '修改' };
+    } else if (action.includes('删除') || action.includes('删除记录') || action.includes('移入回收站')) {
+        return { class: 'delete', label: '删除' };
+    } else if (action.includes('审核') || action.includes('核实')) {
+        return { class: 'audit', label: '审核' };
+    } else if (action.includes('批量')) {
+        return { class: 'batch', label: '批量' };
+    } else {
+        return { class: 'update', label: '操作' };
+    }
+}
+
+function getLogModule(action) {
+    if (action.includes('审核') || action.includes('结算')) {
+        return '收单审核';
+    } else if (action.includes('批量新增') || action.includes('批量修改')) {
+        return '批量操作';
+    } else if (action.includes('删除') || action.includes('还原')) {
+        return '数据管理';
+    } else if (action.includes('同步')) {
+        return '数据同步';
+    } else if (action.includes('预设')) {
+        return '预设管理';
+    } else {
+        return '系统操作';
+    }
+}
 function clearLogs() { App.logs = []; App.saveData(); }
 function clearChannelHistory() { if(!confirm('确定清空所有渠道记忆历史？')) return; App.channelHistory = []; App.saveData(); alert('渠道历史已清空'); }
 let currentPresetQr = null;

@@ -1,7 +1,8 @@
 {
-  "version": "1.7.4",
+  "version": "1.7.6",
   "releaseDate": "2026-06-13",
   "changes": [
+    "fix: 禁用智能获客自动化工作流，移除客户跟进提醒",
     "fix: 更新AI智能助手提示词，移除已删除功能",
     "fix: ✈️图标仅在AI智能助手页面显示",
     "feat: 控制✈️图标仅在AI智能助手页面显示",
@@ -20,8 +21,7 @@
     "feat: 实现批量修改多列功能",
     "feat: 实现Excel列数据粘贴到批量表单功能",
     "修复批量修改结算时间的功能：支持空值设置",
-    "chore: 设置 pre-commit 钩子为可执行",
-    "test: 测试版本号更新"
+    "chore: 设置 pre-commit 钩子为可执行"
   ],
   "author": "jlbbd team",
   "description": "金卢比智能表单系统",

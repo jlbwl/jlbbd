@@ -1944,19 +1944,16 @@ th {
                     <div class="stat-label">全部待办</div>
                     <div class="stat-value" id="todoTotal" style="color:var(--primary-color)">0</div>
                 </div>
-                <div class="stat-card todo-filter-card" id="todoCardSettle" onclick="filterTodoList('settle')" style="cursor: pointer; border-left: 4px solid var(--success-color); transition: all 0.3s ease;">
+                <div class="stat-card todo-filter-card" id="todoCardSettle" onclick="showSettleModal()" style="cursor: pointer; border-left: 4px solid var(--success-color); transition: all 0.3s ease;">
                     <div class="stat-label">一键结算</div>
                     <div class="stat-value" id="todoSettle" style="color:var(--success-color)">0</div>
+                    <div class="stat-extra" id="todoSettleAmount" style="font-size: 12px; color: var(--success-color); margin-top: 4px;"></div>
                 </div>
                 <div class="stat-card todo-filter-card" id="todoCardHistory" onclick="filterTodoList('history')" style="cursor: pointer; border-left: 4px solid var(--text-sub); transition: all 0.3s ease;">
                     <div class="stat-label">历史结算</div>
                     <div class="stat-value" id="todoHistory" style="color:var(--text-sub)">0</div>
                 </div>
             </div>
-            <div style="margin: 15px 0; padding: 12px; background: rgba(37, 99, 235, 0.08); border-radius: 8px; display: flex; gap: 10px; align-items: center;">
-                <span style="font-size: 13px; color: var(--text-main); font-weight: 500;">收单列表已选 <span id="todoImportCount" style="color: var(--primary-color); font-weight: 700;">0</span> 条 →</span>
-                <button class="btn btn-primary btn-sm" onclick="importToTodo()" id="btnImportTodo" disabled>📥 导入到待办</button>
-                <button class="btn btn-success btn-sm" onclick="settleAllTodos()" id="btnSettleAll" disabled>✅ 一键结算</button>
                 <span style="margin-left: auto; font-size: 12px; color: var(--text-sub);">提示：在收单列表勾选数据后点击"导入到待办"</span>
             </div>
             <div id="todoList" style="max-height: calc(100vh - 320px); overflow-y: auto;">
@@ -4061,47 +4058,38 @@ function renderTodoList(filter = 'all') {
     const todoList = document.getElementById('todoList');
     if (!todoList) return;
     
-    // 初始化筛选选项
     initTodoFilter();
-    
-    // 更新统计卡片
     updateTodoStats();
-    
-    // 更新选中状态的UI
     updateTodoFilterCards(filter);
     
-    // 过滤待办订单
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
     let todos = [];
     
-    // 根据过滤条件获取对应的数据
     if (filter === 'all' || filter === 'settle') {
-        // 全部待办/一键结算：显示已导入的待办列表 (App.todoList)
         todos = App.todoList.map(t => ({
             ...t.data,
             dataIndex: t.dataIndex,
             addedAt: t.addedAt,
+            auditStatus: t.auditStatus || 'pending',
             isTodoItem: true
         }));
     } else if (filter === 'history') {
-        // 历史结算：显示已结算的历史记录 (App.settleHistory)
         todos = App.settleHistory.map(t => ({
             ...t.data,
             dataIndex: t.dataIndex,
             addedAt: t.addedAt,
+            auditStatus: t.auditStatus || 'pending',
             settledAt: t.settledAt,
             isHistoryItem: true
         }));
     } else {
-        // 兼容旧的其他过滤条件
         App.data.filter(item => {
             const amount = parseFloat(item.amount) || 0;
             const channelPrice = parseFloat(item.channelPrice) || 0;
             const profit = channelPrice - amount;
             
-            // 检查是否超时未结算
             const isOverdue = () => {
                 const settleDate = item.settleTime ? new Date(item.settleTime) : null;
                 if (!settleDate) return false;
@@ -4137,8 +4125,8 @@ function renderTodoList(filter = 'all') {
             emptyDesc = '完成结算的订单将显示在这里';
         } else if (filter === 'settle') {
             emptyIcon = '✅';
-            emptyTitle = '全部待办已结算';
-            emptyDesc = '所有待办事项均已完成结算';
+            emptyTitle = '暂无已审核订单';
+            emptyDesc = '完成审核的订单将显示在这里';
         }
         
         todoList.innerHTML = `
@@ -4151,73 +4139,65 @@ function renderTodoList(filter = 'all') {
         return;
     }
     
-    // 生成待办列表
     todoList.innerHTML = todos.map(item => {
         const amount = parseFloat(item.amount) || 0;
-        const channelPrice = parseFloat(item.channelPrice) || 0;
-        const profit = channelPrice - amount;
-        const isNegative = profit < 0;
-        const isExcess = amount > (App.config.riskLimit || 10000);
+        const prepaid = parseFloat(item.channelPrice) || 0;
         const isHistory = filter === 'history';
+        const auditStatus = item.auditStatus || 'pending';
         
-        // 检查是否超时未结算
-        const settleDate = item.settleTime ? new Date(item.settleTime) : null;
-        let isOverdue = false;
-        if (settleDate) {
-            settleDate.setHours(0, 0, 0, 0);
-            const isSettleDatePassed = settleDate <= today;
-            const isUnsettled = item.status === 'unsettled';
-            const isUnreviewed = item.qualified === 'pending';
-            isOverdue = isSettleDatePassed && (isUnsettled || isUnreviewed);
+        let settleAmount = 0;
+        if (auditStatus === 'qualified') {
+            settleAmount = amount - prepaid;
+        } else if (auditStatus === 'nodata') {
+            settleAmount = 0 - prepaid;
         }
         
-        // 确定异常类型和样式
-        let anomalyType = '';
-        let borderColor = '';
-        let tagStyle = '';
-        
-        if (isHistory) {
-            // 历史结算记录样式
-            anomalyType = '已结算';
-            borderColor = 'var(--success-color)';
-            tagStyle = 'background: rgba(34, 197, 94, 0.1); color: var(--success-color);';
-        } else if (isOverdue) {
-            anomalyType = '超时未结算';
-            borderColor = 'var(--danger-color)';
-            tagStyle = 'background: rgba(239, 68, 68, 0.1); color: var(--danger-color);';
-        } else if (isNegative) {
-            anomalyType = '负利润';
-            borderColor = 'var(--danger-color)';
-            tagStyle = 'background: rgba(239, 68, 68, 0.1); color: var(--danger-color);';
-        } else if (isExcess) {
-            anomalyType = '超额订单';
-            borderColor = 'var(--warning-color)';
-            tagStyle = 'background: rgba(245, 158, 11, 0.1); color: var(--warning-color);';
+        let auditTag = '';
+        let auditColor = '';
+        if (auditStatus === 'pending') {
+            auditTag = '未审核';
+            auditColor = 'var(--text-sub)';
+        } else if (auditStatus === 'qualified') {
+            auditTag = '合格';
+            auditColor = 'var(--success-color)';
+        } else if (auditStatus === 'nodata') {
+            auditTag = '无数据';
+            auditColor = 'var(--warning-color)';
         }
         
-        // 结算时间显示
         const settleTimeDisplay = isHistory && item.settledAt 
             ? new Date(item.settledAt).toLocaleString('zh-CN')
             : (item.settleTime || '未设置');
         
         return `
-            <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 10px; border-left: 4px solid ${borderColor};" data-group="${item.group || ''}" data-project="${item.project || ''}">
+            <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 10px;" data-group="${item.group || ''}" data-project="${item.project || ''}">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
                     <div style="display: flex; align-items: center; gap: 8px;">
-                        ${!isHistory ? `<input type="checkbox" class="todo-checkbox" value="${item.dataIndex}" style="width: 16px; height: 16px; cursor: pointer;" onchange="updateTodoBatchButton()">` : ''}
                         <h4 style="font-size: 14px; font-weight: 600; color: var(--text-main); margin: 0;">${item.project || '未命名项目'}</h4>
                     </div>
-                    <span style="font-size: 12px; padding: 2px 6px; border-radius: 10px; ${tagStyle}">
-                        ${anomalyType}
-                    </span>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        ${isHistory ? `<span style="font-size: 12px; padding: 2px 6px; border-radius: 10px; background: rgba(34, 197, 94, 0.1); color: var(--success-color);">已结算</span>` : ''}
+                        ${!isHistory ? `
+                            <div class="audit-dropdown" style="position: relative; display: inline-block;">
+                                <button style="font-size: 12px; padding: 3px 8px; border-radius: 4px; border: 1px solid ${auditColor}; color: ${auditColor}; background: transparent; cursor: pointer;" onclick="toggleAuditMenu(event, ${item.dataIndex})">
+                                    ${auditTag} ▼
+                                </button>
+                                <div class="audit-menu" style="display: none; position: absolute; right: 0; top: 100%; margin-top: 4px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); z-index: 100; min-width: 80px;">
+                                    <button style="display: block; width: 100%; padding: 6px 12px; text-align: left; border: none; background: transparent; color: var(--text-main); font-size: 12px; cursor: pointer;" onclick="auditTodo(${item.dataIndex}, 'qualified')">合格</button>
+                                    <button style="display: block; width: 100%; padding: 6px 12px; text-align: left; border: none; background: transparent; color: var(--text-main); font-size: 12px; cursor: pointer;" onclick="auditTodo(${item.dataIndex}, 'nodata')">无数据</button>
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
                 </div>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; font-size: 13px;">
                     <div><span style="color: var(--text-sub);">推广费：</span><strong>¥${amount.toFixed(2)}</strong></div>
-                    ${!isHistory && !isOverdue ? `<div><span style="color: var(--text-sub);">预估利润：</span><strong style="color: ${isNegative ? 'var(--danger-color)' : 'var(--success-color);'}">¥${profit.toFixed(2)}</strong></div>` : ''}
+                    <div><span style="color: var(--text-sub);">预付金额：</span><strong>¥${prepaid.toFixed(2)}</strong></div>
+                    ${auditStatus !== 'pending' ? `<div><span style="color: var(--text-sub);">待结算金额：</span><strong style="color: ${settleAmount >= 0 ? 'var(--success-color)' : 'var(--danger-color)'}">¥${settleAmount.toFixed(2)}</strong></div>` : ''}
                     <div><span style="color: var(--text-sub);">做单时间：</span>${item.time || '未设置'}</div>
                     <div><span style="color: var(--text-sub);">结算时间：</span>${settleTimeDisplay}</div>
                     <div><span style="color: var(--text-sub);">结算状态：</span>${item.status === 'unsettled' ? '未结算' : (item.status === 'reviewed' ? '已审核待结算' : '已结算')}</div>
-                    ${!isHistory ? `<div><span style="color: var(--text-sub);">审核状态：</span>${item.qualified === 'pending' ? '未审核' : item.qualified === 'qualified' ? '合格' : item.qualified === 'disqualified' ? '不合格' : '无数据'}</div>` : ''}
+                    <div><span style="color: var(--text-sub);">审核状态：</span><span style="color: ${auditColor};">${auditTag}</span></div>
                     <div><span style="color: var(--text-sub);">兼职姓名：</span>${item.customer || '未设置'}</div>
                     <div><span style="color: var(--text-sub);">群号简称：</span>${item.group || '未设置'}</div>
                 </div>
@@ -4226,48 +4206,7 @@ function renderTodoList(filter = 'all') {
     }).join('');
 }
 
-// 更新今日待办统计
-function updateTodoStats() {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    let total = 0, negative = 0, excess = 0, overdue = 0;
-    
-    App.data.forEach(item => {
-        const amount = parseFloat(item.amount) || 0;
-        const channelPrice = parseFloat(item.channelPrice) || 0;
-        const profit = channelPrice - amount;
-        
-        // 检查是否超时未结算
-        const settleDate = item.settleTime ? new Date(item.settleTime) : null;
-        let isOverdue = false;
-        if (settleDate) {
-            settleDate.setHours(0, 0, 0, 0);
-            const isSettleDatePassed = settleDate <= today;
-            const isUnsettled = item.status === 'unsettled';
-            const isUnreviewed = item.qualified === 'pending';
-            isOverdue = isSettleDatePassed && (isUnsettled || isUnreviewed);
-        }
-        
-        const isNegative = profit < 0 && !item.verified;
-        const isExcess = amount > (App.config.riskLimit || 10000);
-        
-        if (isNegative || isExcess || isOverdue) total++;
-        if (isNegative) negative++;
-        if (isExcess) excess++;
-        if (isOverdue) overdue++;
-    });
-    
-    const todoTotal = document.getElementById('todoTotal');
-    const todoNegative = document.getElementById('todoNegative');
-    const todoExcess = document.getElementById('todoExcess');
-    const todoOverdue = document.getElementById('todoOverdue');
-    
-    if (todoTotal) todoTotal.innerText = total;
-    if (todoNegative) todoNegative.innerText = negative;
-    if (todoExcess) todoExcess.innerText = excess;
-    if (todoOverdue) todoOverdue.innerText = overdue;
-}
+
 
 // 过滤今日待办列表
 function filterTodoList(filter) {
@@ -4338,7 +4277,8 @@ function importAllToTodo() {
             App.todoList.push({
                 dataIndex: idx,
                 data: JSON.parse(JSON.stringify(item)),
-                addedAt: new Date().toISOString()
+                addedAt: new Date().toISOString(),
+                auditStatus: 'pending'  // 添加审核状态：pending-未审核，qualified-合格，nodata-无数据
             });
             importedCount++;
         } else {
@@ -4376,7 +4316,8 @@ function importToTodo() {
             App.todoList.push({
                 dataIndex: idx,
                 data: JSON.parse(JSON.stringify(item)),
-                addedAt: new Date().toISOString()
+                addedAt: new Date().toISOString(),
+                auditStatus: 'pending'  // 添加审核状态
             });
             importedCount++;
         }
@@ -4389,173 +4330,245 @@ function importToTodo() {
     // 取消收单列表中的勾选
     checkboxes.forEach(cb => cb.checked = false);
     updateBatchPanel();
-    updateTodoImportCount();
     
     alert(`成功导入 ${importedCount} 条数据到待办列表`);
 }
 
-// 更新待办导入计数
-function updateTodoImportCount() {
-    const count = document.querySelectorAll('#dataTableBody .row-cb:checked').length;
-    const countEl = document.getElementById('todoImportCount');
-    if (countEl) countEl.textContent = count;
+// 更新待办统计
+function updateTodoStats() {
+    // 全部待办数
+    document.getElementById('todoTotal').textContent = App.todoList.length;
     
-    const importBtn = document.getElementById('btnImportTodo');
-    if (importBtn) importBtn.disabled = count === 0;
-}
-
-// 一键结算选中项
-function settleAllTodos() {
-    const checkboxes = document.querySelectorAll('.todo-checkbox:checked');
-    if (checkboxes.length === 0) {
-        alert('请先勾选要结算的待办项');
-        return;
-    }
+    // 已审核待结算数（合格或无数据）
+    const auditedCount = App.todoList.filter(t => t.auditStatus === 'qualified' || t.auditStatus === 'nodata').length;
+    document.getElementById('todoSettle').textContent = auditedCount;
     
-    if (!confirm(`确定要结算选中的 ${checkboxes.length} 条待办吗？结算后将移动到历史记录。`)) {
-        return;
-    }
-    
-    const settleTime = new Date().toISOString();
-    let settledCount = 0;
-    
-    // 从后往前遍历，避免索引问题
-    const checkedItems = Array.from(checkboxes).reverse();
-    checkedItems.forEach(cb => {
-        const idx = parseInt(cb.value);
-        
-        // 查找对应的待办项
-        const todoItem = App.todoList.find(t => t.dataIndex === idx);
-        if (todoItem) {
-            // 添加到历史记录
-            App.settleHistory.unshift({
-                ...todoItem,
-                settledAt: settleTime
-            });
-            
-            // 更新原始数据状态为已结算
-            const originalItem = App.data[idx];
-            if (originalItem) {
-                originalItem.status = 'settled';
-                originalItem.settleTime = settleTime;
-            }
-            
-            // 从待办列表移除
-            const todoIdx = App.todoList.findIndex(t => t.dataIndex === idx);
-            if (todoIdx !== -1) {
-                App.todoList.splice(todoIdx, 1);
-            }
-            settledCount++;
+    // 计算待结算金额合计
+    let totalSettleAmount = 0;
+    App.todoList.filter(t => t.auditStatus === 'qualified' || t.auditStatus === 'nodata').forEach(todo => {
+        const amount = parseFloat(todo.data.amount) || 0;
+        const prepaid = parseFloat(todo.data.channelPrice) || 0;
+        if (todo.auditStatus === 'qualified') {
+            totalSettleAmount += amount - prepaid;
+        } else {
+            totalSettleAmount += 0 - prepaid;
         }
     });
     
+    const settleAmountEl = document.getElementById('todoSettleAmount');
+    if (settleAmountEl) {
+        settleAmountEl.textContent = `待结算: ¥${totalSettleAmount.toFixed(2)}`;
+    }
+    
+    document.getElementById('todoHistory').textContent = App.settleHistory.length;
+}
+// 切换审核菜单显示/隐藏
+function toggleAuditMenu(event, dataIndex) {
+    event.stopPropagation();
+    
+    document.querySelectorAll('.audit-menu').forEach(menu => {
+        if (menu !== event.currentTarget.nextElementSibling) {
+            menu.style.display = 'none';
+        }
+    });
+    
+    const menu = event.currentTarget.nextElementSibling;
+    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+    
+    document.addEventListener('click', function closeMenu(e) {
+        if (!e.target.closest('.audit-dropdown')) {
+            menu.style.display = 'none';
+            document.removeEventListener('click', closeMenu);
+        }
+    });
+}
+
+// 执行审核操作
+function auditTodo(dataIndex, status) {
+    const todoItem = App.todoList.find(t => t.dataIndex === dataIndex);
+    if (todoItem) {
+        todoItem.auditStatus = status;
+        App.saveData();
+        updateTodoStats();
+        renderTodoList('all');
+    }
+    
+    document.querySelectorAll('.audit-menu').forEach(menu => {
+        menu.style.display = 'none';
+    });
+}
+
+// 显示一键结算弹窗
+function showSettleModal() {
+    const auditedTodos = App.todoList.filter(t => t.auditStatus === 'qualified' || t.auditStatus === 'nodata');
+    
+    if (auditedTodos.length === 0) {
+        alert('暂无已审核的订单，请先审核订单');
+        return;
+    }
+    
+    let totalSettleAmount = 0;
+    let modalContent = `
+        <div style="max-height: 400px; overflow-y: auto; margin-bottom: 15px;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="border-bottom: 1px solid #e5e7eb;">
+                        <th style="text-align: left; padding: 8px; font-weight: 600;">项目名称</th>
+                        <th style="text-align: right; padding: 8px; font-weight: 600;">推广费</th>
+                        <th style="text-align: right; padding: 8px; font-weight: 600;">预付金额</th>
+                        <th style="text-align: right; padding: 8px; font-weight: 600;">审核状态</th>
+                        <th style="text-align: right; padding: 8px; font-weight: 600;">待结算金额</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    auditedTodos.forEach(todo => {
+        const amount = parseFloat(todo.data.amount) || 0;
+        const prepaid = parseFloat(todo.data.channelPrice) || 0;
+        let settleAmount = 0;
+        if (todo.auditStatus === 'qualified') {
+            settleAmount = amount - prepaid;
+        } else {
+            settleAmount = 0 - prepaid;
+        }
+        totalSettleAmount += settleAmount;
+        
+        const statusText = todo.auditStatus === 'qualified' ? '合格' : '无数据';
+        const statusColor = todo.auditStatus === 'qualified' ? '#22c55e' : '#f59e0b';
+        
+        modalContent += `
+            <tr style="border-bottom: 1px solid #e5e7eb;">
+                <td style="padding: 8px;">${todo.data.project || '未命名'}</td>
+                <td style="text-align: right; padding: 8px;">¥${amount.toFixed(2)}</td>
+                <td style="text-align: right; padding: 8px;">¥${prepaid.toFixed(2)}</td>
+                <td style="text-align: right; padding: 8px; color: ${statusColor};">${statusText}</td>
+                <td style="text-align: right; padding: 8px; font-weight: 600; color: ${settleAmount >= 0 ? '#22c55e' : '#ef4444'};">¥${settleAmount.toFixed(2)}</td>
+            </tr>
+        `;
+    });
+    
+    modalContent += `
+                </tbody>
+            </table>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 15px; border-top: 1px solid #e5e7eb;">
+            <div>
+                <span style="color: #6b7280;">订单总数：</span><strong>${auditedTodos.length} 条</strong>
+            </div>
+            <div>
+                <span style="color: #6b7280;">待结算金额合计：</span><strong style="font-size: 18px; color: ${totalSettleAmount >= 0 ? '#22c55e' : '#ef4444'};">¥${totalSettleAmount.toFixed(2)}</strong>
+            </div>
+        </div>
+    `;
+    
+    const confirmResult = confirmWithContent(`
+        <div style="padding: 10px;">
+            <h3 style="margin: 0 0 15px 0; color: #1f2937;">确认一键结算</h3>
+            ${modalContent}
+        </div>
+    `);
+    
+    if (confirmResult) {
+        settleAllAudited();
+    }
+}
+
+// 结算所有已审核订单
+function settleAllAudited() {
+    const settleTime = new Date().toISOString();
+    const auditedTodos = App.todoList.filter(t => t.auditStatus === 'qualified' || t.auditStatus === 'nodata');
+    
+    auditedTodos.forEach(todo => {
+        App.settleHistory.unshift({
+            ...todo,
+            settledAt: settleTime
+        });
+        
+        const originalItem = App.data[todo.dataIndex];
+        if (originalItem) {
+            originalItem.status = 'settled';
+            originalItem.settleTime = settleTime;
+        }
+    });
+    
+    App.todoList = App.todoList.filter(t => t.auditStatus === 'pending');
+    
     App.saveData();
-    App.log('一键结算', `结算了 ${settledCount} 条待办`);
+    App.log('一键结算', `结算了 ${auditedTodos.length} 条已审核待办`);
     
     updateTodoStats();
     renderTodoList('all');
-    updateTodoButtons();
     
-    alert(`成功结算 ${settledCount} 条待办！已移动到历史记录。`);
-}
-
-// 更新待办统计
-function updateTodoStats() {
-    document.getElementById('todoTotal').textContent = App.todoList.length;
-    document.getElementById('todoSettle').textContent = App.todoList.length;
-    document.getElementById('todoHistory').textContent = App.settleHistory.length;
-}
-
-// 更新今日待办批量按钮状态
-function updateTodoBatchButton() {
-    const checkboxes = document.querySelectorAll('.todo-checkbox:checked');
-    const applyBtn = document.querySelector('#todoBatchActions .btn-primary');
-    if (applyBtn) {
-        applyBtn.textContent = checkboxes.length > 0 ? `应用 (${checkboxes.length})` : '应用';
-    }
-    
-    // 计算选中数据的推广费累计值
     let totalAmount = 0;
-    checkboxes.forEach(cb => {
-        const itemId = cb.value;
-        const item = App.data.find(item => item.id === itemId);
-        if (item) {
-            totalAmount += parseFloat(item.amount) || 0;
+    auditedTodos.forEach(todo => {
+        const amount = parseFloat(todo.data.amount) || 0;
+        const prepaid = parseFloat(todo.data.channelPrice) || 0;
+        if (todo.auditStatus === 'qualified') {
+            totalAmount += amount - prepaid;
+        } else {
+            totalAmount += 0 - prepaid;
         }
     });
     
-    // 显示推广费合计
-    const amountTotalEl = document.getElementById('todoAmountTotal');
-    if (amountTotalEl) {
-        amountTotalEl.textContent = `¥${totalAmount.toFixed(2)}`;
-    }
+    alert(`成功结算 ${auditedTodos.length} 条订单！\n待结算金额合计：¥${totalAmount.toFixed(2)}`);
 }
 
-// 应用今日待办批量审核
-function applyTodoBatchReview() {
-    const checkboxes = document.querySelectorAll('.todo-checkbox:checked');
-    if (checkboxes.length === 0) {
-        alert('请先选择要批量处理的订单');
-        return;
-    }
+// 带自定义内容的确认对话框
+function confirmWithContent(content) {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    `;
     
-    const status = document.getElementById('todoBatchStatus').value;
-    const qualified = document.getElementById('todoBatchQualified').value;
+    const dialog = document.createElement('div');
+    dialog.style.cssText = `
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        max-width: 600px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    `;
     
-    if (!status && !qualified) {
-        alert('请至少选择一项要修改的状态');
-        return;
-    }
+    dialog.innerHTML = `
+        ${content}
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+            <button id="btnCancel" style="padding: 8px 16px; border: 1px solid #d1d5db; border-radius: 4px; background: transparent; color: #374151; cursor: pointer;">取消</button>
+            <button id="btnConfirm" style="padding: 8px 16px; border: none; border-radius: 4px; background: #2563eb; color: white; cursor: pointer;">确认结算</button>
+        </div>
+    `;
     
-    if (confirm(`确定要批量修改选中的 ${checkboxes.length} 个订单吗？`)) {
-        const selectedIds = Array.from(checkboxes).map(cb => cb.value);
+    modal.appendChild(dialog);
+    document.body.appendChild(modal);
+    
+    return new Promise(resolve => {
+        const btnCancel = dialog.querySelector('#btnCancel');
+        const btnConfirm = dialog.querySelector('#btnConfirm');
         
-        selectedIds.forEach(id => {
-            const order = App.data.find(item => item.id === id);
-            if (order) {
-                if (status) order.status = status;
-                if (qualified) order.qualified = qualified;
-            }
+        const close = (result) => {
+            document.body.removeChild(modal);
+            resolve(result);
+        };
+        
+        btnCancel.addEventListener('click', () => close(false));
+        btnConfirm.addEventListener('click', () => close(true));
+        
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) close(false);
         });
-        
-        // 保存数据
-        App.saveData();
-        
-        // 记录操作
-        App.log('批量审核', `修改了 ${checkboxes.length} 个待办订单`);
-        
-        // 重新渲染列表
-        renderTodoList();
-        
-        // 更新仪表盘
-        updateStats();
-        
-        // 重置选择
-        clearTodoBatchSelection();
-        
-        alert(`✅ 成功批量修改 ${checkboxes.length} 个订单！`);
-    }
-}
-
-// 清除今日待办批量选择
-function clearTodoBatchSelection() {
-    const checkboxes = document.querySelectorAll('.todo-checkbox');
-    checkboxes.forEach(cb => cb.checked = false);
-    
-    // 重置下拉框
-    const todoBatchStatus = document.getElementById('todoBatchStatus');
-    const todoBatchQualified = document.getElementById('todoBatchQualified');
-    if (todoBatchStatus) todoBatchStatus.value = '';
-    if (todoBatchQualified) todoBatchQualified.value = '';
-    
-    // 重置推广费合计
-    const amountTotalEl = document.getElementById('todoAmountTotal');
-    if (amountTotalEl) {
-        amountTotalEl.textContent = '¥0.00';
-    }
-    
-    // 更新按钮文本
-    updateTodoBatchButton();
+    });
 }
 
 // 填充待办筛选复选框

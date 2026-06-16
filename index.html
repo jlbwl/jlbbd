@@ -1942,22 +1942,24 @@ th {
             <div class="header-stats">
                 <div class="stat-card todo-filter-card" id="todoCardAll" onclick="filterTodoList('all')" style="cursor: pointer; transition: all 0.3s ease;">
                     <div class="stat-label">全部待办</div>
-                    <div class="stat-value" id="todoTotal" style="color:var(--danger-color)">0</div>
+                    <div class="stat-value" id="todoTotal" style="color:var(--primary-color)">0</div>
                 </div>
-                <div class="stat-card todo-filter-card" id="todoCardNegative" onclick="filterTodoList('negative')" style="cursor: pointer; border-left: 4px solid var(--danger-color); transition: all 0.3s ease;">
-                    <div class="stat-label">负利润订单</div>
-                    <div class="stat-value" id="todoNegative" style="color:var(--danger-color)">0</div>
+                <div class="stat-card todo-filter-card" id="todoCardSettle" onclick="filterTodoList('settle')" style="cursor: pointer; border-left: 4px solid var(--success-color); transition: all 0.3s ease;">
+                    <div class="stat-label">一键结算</div>
+                    <div class="stat-value" id="todoSettle" style="color:var(--success-color)">0</div>
                 </div>
-                <div class="stat-card todo-filter-card" id="todoCardExcess" onclick="filterTodoList('excess')" style="cursor: pointer; border-left: 4px solid var(--warning-color); transition: all 0.3s ease;">
-                    <div class="stat-label">超额订单</div>
-                    <div class="stat-value" id="todoExcess" style="color:var(--warning-color)">0</div>
-                </div>
-                <div class="stat-card todo-filter-card" id="todoCardOverdue" onclick="filterTodoList('overdue')" style="cursor: pointer; border-left: 4px solid var(--danger-color); transition: all 0.3s ease;">
-                    <div class="stat-label">超时未结算</div>
-                    <div class="stat-value" id="todoOverdue" style="color:var(--danger-color)">0</div>
+                <div class="stat-card todo-filter-card" id="todoCardHistory" onclick="filterTodoList('history')" style="cursor: pointer; border-left: 4px solid var(--text-sub); transition: all 0.3s ease;">
+                    <div class="stat-label">历史结算</div>
+                    <div class="stat-value" id="todoHistory" style="color:var(--text-sub)">0</div>
                 </div>
             </div>
-            <div id="todoList" style="max-height: calc(100vh - 250px); overflow-y: auto;">
+            <div style="margin: 15px 0; padding: 12px; background: rgba(37, 99, 235, 0.08); border-radius: 8px; display: flex; gap: 10px; align-items: center;">
+                <span style="font-size: 13px; color: var(--text-main); font-weight: 500;">收单列表已选 <span id="todoImportCount" style="color: var(--primary-color); font-weight: 700;">0</span> 条 →</span>
+                <button class="btn btn-primary btn-sm" onclick="importToTodo()" id="btnImportTodo" disabled>📥 导入到待办</button>
+                <button class="btn btn-success btn-sm" onclick="settleAllTodos()" id="btnSettleAll" disabled>✅ 一键结算</button>
+                <span style="margin-left: auto; font-size: 12px; color: var(--text-sub);">提示：在收单列表勾选数据后点击"导入到待办"</span>
+            </div>
+            <div id="todoList" style="max-height: calc(100vh - 320px); overflow-y: auto;">
                 <!-- 待办列表将在这里动态生成 -->
             </div>
         </div>
@@ -3054,6 +3056,18 @@ const App = {
     workflows: [],
     
     /**
+     * 今日待办列表
+     * @type {Array}
+     */
+    todoList: [],
+    
+    /**
+     * 结算历史记录
+     * @type {Array}
+     */
+    settleHistory: [],
+    
+    /**
      * 应用配置
      * @type {Object}
      * @property {string} password - 登录密码
@@ -3179,6 +3193,8 @@ const App = {
                 this.smartMemory = json.smartMemory || {};
                 this.forms = json.forms || [];
                 this.workflows = json.workflows || [];
+                this.todoList = json.todoList || [];
+                this.settleHistory = json.settleHistory || [];
                 this.config = json.config || this.config;
                 this.pagination.pageSize = json.pagination?.pageSize || 20;
                 
@@ -3232,6 +3248,8 @@ const App = {
                 smartMemory: this.smartMemory,
                 forms: this.forms,
                 workflows: this.workflows,
+                todoList: this.todoList,
+                settleHistory: this.settleHistory,
                 config: { ...this.config, columnVisibility: this.userColumnVisibility },
                 pagination: this.pagination
             };
@@ -4055,41 +4073,78 @@ function renderTodoList(filter = 'all') {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    const todos = App.data.filter(item => {
-        const amount = parseFloat(item.amount) || 0;
-        const channelPrice = parseFloat(item.channelPrice) || 0;
-        const profit = channelPrice - amount;
-        
-        // 检查是否超时未结算
-        const isOverdue = () => {
-            const settleDate = item.settleTime ? new Date(item.settleTime) : null;
-            if (!settleDate) return false;
-            settleDate.setHours(0, 0, 0, 0);
-            const isSettleDatePassed = settleDate <= today;
-            const isUnsettled = item.status === 'unsettled';
-            const isUnreviewed = item.qualified === 'pending';
-            return isSettleDatePassed && (isUnsettled || isUnreviewed);
-        };
-        
-        if (filter === 'all') {
-            const isNegativeUnverified = profit < 0 && !item.verified;
-            return isNegativeUnverified || amount > (App.config.riskLimit || 10000) || isOverdue();
-        } else if (filter === 'negative') {
-            return profit < 0 && !item.verified;
-        } else if (filter === 'excess') {
-            return amount > (App.config.riskLimit || 10000);
-        } else if (filter === 'overdue') {
-            return isOverdue();
-        }
-        return false;
-    });
+    let todos = [];
+    
+    // 根据过滤条件获取对应的数据
+    if (filter === 'all' || filter === 'settle') {
+        // 全部待办/一键结算：显示已导入的待办列表 (App.todoList)
+        todos = App.todoList.map(t => ({
+            ...t.data,
+            dataIndex: t.dataIndex,
+            addedAt: t.addedAt,
+            isTodoItem: true
+        }));
+    } else if (filter === 'history') {
+        // 历史结算：显示已结算的历史记录 (App.settleHistory)
+        todos = App.settleHistory.map(t => ({
+            ...t.data,
+            dataIndex: t.dataIndex,
+            addedAt: t.addedAt,
+            settledAt: t.settledAt,
+            isHistoryItem: true
+        }));
+    } else {
+        // 兼容旧的其他过滤条件
+        App.data.filter(item => {
+            const amount = parseFloat(item.amount) || 0;
+            const channelPrice = parseFloat(item.channelPrice) || 0;
+            const profit = channelPrice - amount;
+            
+            // 检查是否超时未结算
+            const isOverdue = () => {
+                const settleDate = item.settleTime ? new Date(item.settleTime) : null;
+                if (!settleDate) return false;
+                settleDate.setHours(0, 0, 0, 0);
+                const isSettleDatePassed = settleDate <= today;
+                const isUnsettled = item.status === 'unsettled';
+                const isUnreviewed = item.qualified === 'pending';
+                return isSettleDatePassed && (isUnsettled || isUnreviewed);
+            };
+            
+            if (filter === 'all') {
+                const isNegativeUnverified = profit < 0 && !item.verified;
+                return isNegativeUnverified || amount > (App.config.riskLimit || 10000) || isOverdue();
+            } else if (filter === 'negative') {
+                return profit < 0 && !item.verified;
+            } else if (filter === 'excess') {
+                return amount > (App.config.riskLimit || 10000);
+            } else if (filter === 'overdue') {
+                return isOverdue();
+            }
+            return false;
+        });
+    }
     
     if (todos.length === 0) {
+        let emptyIcon = '📋';
+        let emptyTitle = '暂无待办事项';
+        let emptyDesc = '在收单列表勾选数据后，点击"导入到待办"添加';
+        
+        if (filter === 'history') {
+            emptyIcon = '📜';
+            emptyTitle = '暂无历史结算记录';
+            emptyDesc = '完成结算的订单将显示在这里';
+        } else if (filter === 'settle') {
+            emptyIcon = '✅';
+            emptyTitle = '全部待办已结算';
+            emptyDesc = '所有待办事项均已完成结算';
+        }
+        
         todoList.innerHTML = `
             <div style="text-align: center; padding: 60px; color: var(--text-sub);">
-                <div style="font-size: 48px; margin-bottom: 16px;">✅</div>
-                <p style="font-size: 16px;">暂无待办事项</p>
-                <p style="font-size: 14px; color: var(--text-sub); margin-top: 8px;">所有订单均正常，无需处理</p>
+                <div style="font-size: 48px; margin-bottom: 16px;">${emptyIcon}</div>
+                <p style="font-size: 16px;">${emptyTitle}</p>
+                <p style="font-size: 14px; color: var(--text-sub); margin-top: 8px;">${emptyDesc}</p>
             </div>
         `;
         return;
@@ -4102,6 +4157,7 @@ function renderTodoList(filter = 'all') {
         const profit = channelPrice - amount;
         const isNegative = profit < 0;
         const isExcess = amount > (App.config.riskLimit || 10000);
+        const isHistory = filter === 'history';
         
         // 检查是否超时未结算
         const settleDate = item.settleTime ? new Date(item.settleTime) : null;
@@ -4119,7 +4175,12 @@ function renderTodoList(filter = 'all') {
         let borderColor = '';
         let tagStyle = '';
         
-        if (isOverdue) {
+        if (isHistory) {
+            // 历史结算记录样式
+            anomalyType = '已结算';
+            borderColor = 'var(--success-color)';
+            tagStyle = 'background: rgba(34, 197, 94, 0.1); color: var(--success-color);';
+        } else if (isOverdue) {
             anomalyType = '超时未结算';
             borderColor = 'var(--danger-color)';
             tagStyle = 'background: rgba(239, 68, 68, 0.1); color: var(--danger-color);';
@@ -4133,11 +4194,16 @@ function renderTodoList(filter = 'all') {
             tagStyle = 'background: rgba(245, 158, 11, 0.1); color: var(--warning-color);';
         }
         
+        // 结算时间显示
+        const settleTimeDisplay = isHistory && item.settledAt 
+            ? new Date(item.settledAt).toLocaleString('zh-CN')
+            : (item.settleTime || '未设置');
+        
         return `
             <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 10px; border-left: 4px solid ${borderColor};" data-group="${item.group || ''}" data-project="${item.project || ''}">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
                     <div style="display: flex; align-items: center; gap: 8px;">
-                        <input type="checkbox" class="todo-checkbox" value="${item.id}" style="width: 16px; height: 16px; cursor: pointer;" onchange="updateTodoBatchButton()">
+                        ${!isHistory ? `<input type="checkbox" class="todo-checkbox" value="${item.dataIndex}" style="width: 16px; height: 16px; cursor: pointer;" onchange="updateTodoBatchButton()">` : ''}
                         <h4 style="font-size: 14px; font-weight: 600; color: var(--text-main); margin: 0;">${item.project || '未命名项目'}</h4>
                     </div>
                     <span style="font-size: 12px; padding: 2px 6px; border-radius: 10px; ${tagStyle}">
@@ -4146,17 +4212,13 @@ function renderTodoList(filter = 'all') {
                 </div>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; font-size: 13px;">
                     <div><span style="color: var(--text-sub);">推广费：</span><strong>¥${amount.toFixed(2)}</strong></div>
-                    ${!isOverdue ? `<div><span style="color: var(--text-sub);">预估利润：</span><strong style="color: ${isNegative ? 'var(--danger-color)' : 'var(--success-color);'}">¥${profit.toFixed(2)}</strong></div>` : ''}
+                    ${!isHistory && !isOverdue ? `<div><span style="color: var(--text-sub);">预估利润：</span><strong style="color: ${isNegative ? 'var(--danger-color)' : 'var(--success-color);'}">¥${profit.toFixed(2)}</strong></div>` : ''}
                     <div><span style="color: var(--text-sub);">做单时间：</span>${item.time || '未设置'}</div>
-                    ${isOverdue ? `<div><span style="color: var(--text-sub);">结算日期：</span>${item.settleTime || '未设置'}</div>` : ''}
-                    ${isOverdue ? `<div><span style="color: var(--text-sub);">结算状态：</span>${item.status === 'unsettled' ? '未结算' : (item.status === 'reviewed' ? '已审核待结算' : '已结算')}</div>` : ''}
-                    ${isOverdue ? `<div><span style="color: var(--text-sub);">审核状态：</span>${item.qualified === 'pending' ? '未审核' : item.qualified === 'qualified' ? '合格' : item.qualified === 'disqualified' ? '不合格' : '无数据'}</div>` : ''}
+                    <div><span style="color: var(--text-sub);">结算时间：</span>${settleTimeDisplay}</div>
+                    <div><span style="color: var(--text-sub);">结算状态：</span>${item.status === 'unsettled' ? '未结算' : (item.status === 'reviewed' ? '已审核待结算' : '已结算')}</div>
+                    ${!isHistory ? `<div><span style="color: var(--text-sub);">审核状态：</span>${item.qualified === 'pending' ? '未审核' : item.qualified === 'qualified' ? '合格' : item.qualified === 'disqualified' ? '不合格' : '无数据'}</div>` : ''}
                     <div><span style="color: var(--text-sub);">兼职姓名：</span>${item.customer || '未设置'}</div>
                     <div><span style="color: var(--text-sub);">群号简称：</span>${item.group || '未设置'}</div>
-                </div>
-                <div style="margin-top: 10px; display: flex; gap: 8px;">
-                    ${isOverdue ? `<button class="btn btn-primary btn-sm" onclick="reviewAndSettle('${item.id}')">审核结算</button>` : ''}
-                    ${isNegative ? `<button class="btn btn-primary btn-sm" onclick="verifyNegativeProfit('${item.id}')">数据核实</button>` : ''}
                 </div>
             </div>
         `;
@@ -4209,39 +4271,151 @@ function updateTodoStats() {
 // 过滤今日待办列表
 function filterTodoList(filter) {
     renderTodoList(filter);
-    
-    // 更新选中状态的UI
     updateTodoFilterCards(filter);
+    updateTodoButtons();
 }
 
 // 更新今日待办过滤卡片的选中状态
 function updateTodoFilterCards(selectedFilter) {
     const cards = {
         'all': document.getElementById('todoCardAll'),
-        'negative': document.getElementById('todoCardNegative'),
-        'excess': document.getElementById('todoCardExcess'),
-        'overdue': document.getElementById('todoCardOverdue')
+        'settle': document.getElementById('todoCardSettle'),
+        'history': document.getElementById('todoCardHistory')
     };
     
-    // 重置所有卡片样式
     Object.keys(cards).forEach(key => {
         const card = cards[key];
         if (card) {
             card.style.transform = 'translateY(0)';
             card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
-            card.style.background = 'var(--card-bg)';
             card.classList.remove('active');
         }
     });
     
-    // 高亮选中的卡片
     const selectedCard = cards[selectedFilter];
     if (selectedCard) {
         selectedCard.style.transform = 'translateY(-4px)';
         selectedCard.style.boxShadow = '0 8px 24px rgba(37, 99, 235, 0.25)';
-        selectedCard.style.background = 'rgba(37, 99, 235, 0.08)';
         selectedCard.classList.add('active');
     }
+}
+
+// 更新待办页面按钮状态
+function updateTodoButtons() {
+    const checkboxes = document.querySelectorAll('.todo-checkbox:checked');
+    const settleBtn = document.getElementById('btnSettleAll');
+    if (settleBtn) {
+        settleBtn.disabled = checkboxes.length === 0;
+    }
+}
+
+// 导入选中数据到待办列表
+function importToTodo() {
+    const checkboxes = document.querySelectorAll('#dataTableBody .row-cb:checked');
+    if (checkboxes.length === 0) {
+        alert('请先在收单列表中勾选要导入的数据');
+        return;
+    }
+    
+    let importedCount = 0;
+    checkboxes.forEach(cb => {
+        const idx = parseInt(cb.value);
+        const item = App.data[idx];
+        
+        // 检查是否已在待办列表中
+        const exists = App.todoList.some(t => t.dataIndex === idx);
+        if (!exists) {
+            App.todoList.push({
+                dataIndex: idx,
+                data: JSON.parse(JSON.stringify(item)),
+                addedAt: new Date().toISOString()
+            });
+            importedCount++;
+        }
+    });
+    
+    App.saveData();
+    updateTodoStats();
+    renderTodoList('all');
+    
+    // 取消收单列表中的勾选
+    checkboxes.forEach(cb => cb.checked = false);
+    updateBatchPanel();
+    updateTodoImportCount();
+    
+    alert(`成功导入 ${importedCount} 条数据到待办列表`);
+}
+
+// 更新待办导入计数
+function updateTodoImportCount() {
+    const count = document.querySelectorAll('#dataTableBody .row-cb:checked').length;
+    const countEl = document.getElementById('todoImportCount');
+    if (countEl) countEl.textContent = count;
+    
+    const importBtn = document.getElementById('btnImportTodo');
+    if (importBtn) importBtn.disabled = count === 0;
+}
+
+// 一键结算选中项
+function settleAllTodos() {
+    const checkboxes = document.querySelectorAll('.todo-checkbox:checked');
+    if (checkboxes.length === 0) {
+        alert('请先勾选要结算的待办项');
+        return;
+    }
+    
+    if (!confirm(`确定要结算选中的 ${checkboxes.length} 条待办吗？结算后将移动到历史记录。`)) {
+        return;
+    }
+    
+    const settleTime = new Date().toISOString();
+    let settledCount = 0;
+    
+    // 从后往前遍历，避免索引问题
+    const checkedItems = Array.from(checkboxes).reverse();
+    checkedItems.forEach(cb => {
+        const idx = parseInt(cb.value);
+        
+        // 查找对应的待办项
+        const todoItem = App.todoList.find(t => t.dataIndex === idx);
+        if (todoItem) {
+            // 添加到历史记录
+            App.settleHistory.unshift({
+                ...todoItem,
+                settledAt: settleTime
+            });
+            
+            // 更新原始数据状态为已结算
+            const originalItem = App.data[idx];
+            if (originalItem) {
+                originalItem.status = 'settled';
+                originalItem.settleTime = settleTime;
+            }
+            
+            // 从待办列表移除
+            const todoIdx = App.todoList.findIndex(t => t.dataIndex === idx);
+            if (todoIdx !== -1) {
+                App.todoList.splice(todoIdx, 1);
+            }
+            settledCount++;
+        }
+    });
+    
+    App.saveData();
+    App.log('一键结算', `结算了 ${settledCount} 条待办`);
+    
+    updateTodoStats();
+    renderTodoList('all');
+    updateTodoButtons();
+    
+    alert(`成功结算 ${settledCount} 条待办！已移动到历史记录。`);
+}
+
+// 更新待办统计
+function updateTodoStats() {
+    document.getElementById('todoTotal').textContent = App.todoList.length;
+    document.getElementById('todoSettle').textContent = App.todoList.length;
+    document.getElementById('todoHistory').textContent = App.settleHistory.length;
 }
 
 // 更新今日待办批量按钮状态

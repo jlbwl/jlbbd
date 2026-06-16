@@ -1605,8 +1605,8 @@ body { background-color: var(--bg-color); color: var(--text-main); line-height: 
 .view-section { display: none; animation: fadeIn 0.3s; }
 .view-section.active { display: block; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-#listBatchPanel { display: none; background: rgba(37, 99, 235, 0.1); border: 1px solid var(--primary-color); border-radius: 8px; padding: 12px; margin-bottom: 15px; align-items: center; flex-wrap: wrap; gap: 12px; animation: slideDown 0.3s ease-out; }
-#listBatchPanel.active { display: flex; }
+#listBatchPanel { display: none !important; background: rgba(37, 99, 235, 0.1); border: 1px solid var(--primary-color); border-radius: 8px; padding: 12px; margin-bottom: 15px; align-items: center; flex-wrap: wrap; gap: 12px; }
+#listBatchPanel.active { display: flex !important; }
 @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 .batch-control-group { display: flex; align-items: center; gap: 6px; background: var(--card-bg); padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-color); }
 .batch-control-group label { font-size: 12px; font-weight: 600; color: var(--primary-color); }

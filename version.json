@@ -2,6 +2,7 @@
   "version": "1.11.0",
   "releaseDate": "2026-06-16",
   "changes": [
+    "refactor: 重构今日待办审核结算功能\n\n- 移除\"收单列表已选 X 条 → 导入到待办/一键结算\"区域\n- 待办列表移除checkbox，改为左拉审核菜单（合格/无数据）\n- 审核逻辑：选择\"合格\"后，待结算金额=推广费-预付金额\n- 审核逻辑：选择\"无数据\"后，待结算金额=0-预付金额\n- 一键结算卡片只统计已审核的订单，并显示待结算金额合计\n- 点击一键结算卡片弹出确认弹窗，显示所有已审核订单及汇总金额\n- 结算后数据归档到历史结算列表",
     "fix: 修复一键导入到待办功能报错\n\n- 添加 getCurrentPageData() 辅助函数获取当前页数据\n- 修复 filteredData 未定义的问题",
     "feat: 收单列表新增一键导入到待办功能\n\n- 在收单列表操作栏添加\"一键导入到待办\"按钮\n- 点击后导入当前页所有数据到今日待办列表\n- 已存在的项目会自动跳过\n- 保留原有的按勾选导入功能",
     "refactor: 重构今日待办功能\n\n- 移除\"负利润订单\"、\"超额订单\"、\"超时未结算\"统计卡片\n- 新增\"一键结算\"和\"历史结算\"功能\n- 从收单列表批量选择导入数据到今日待办\n- 一键结算后数据归档到历史结算记录\n- 根据过滤条件显示不同的空数据提示",
@@ -20,8 +21,7 @@
     "fix: add .nojekyll to force static deployment",
     "revert: remove workflow files, use traditional gh-pages deployment",
     "fix: add explicit permissions for GitHub Pages deployment",
-    "chore: trigger redeploy",
-    "chore: 移除智能获客功能"
+    "chore: trigger redeploy"
   ],
   "author": "jlbbd team",
   "description": "金卢比智能表单系统",

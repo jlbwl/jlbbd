@@ -4313,9 +4313,7 @@ function updateTodoButtons() {
 // 一键导入当前页所有数据到待办列表
 function importAllToTodo() {
     // 获取当前页显示的数据
-    const startIdx = (currentPage - 1) * pageSize;
-    const endIdx = Math.min(startIdx + pageSize, filteredData.length);
-    const pageData = filteredData.slice(startIdx, endIdx);
+    const pageData = getCurrentPageData();
     
     if (pageData.length === 0) {
         alert('当前页没有数据可导入');
@@ -5250,6 +5248,51 @@ function stopResize() {
         document.removeEventListener('mouseup', stopResize);
         document.body.style.cursor = '';
     }
+}
+
+// 获取当前页显示的数据（用于批量操作）
+function getCurrentPageData() {
+    const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+    const startVal = document.getElementById('startDate').value;
+    const endVal = document.getElementById('endDate').value;
+    
+    let filtered = App.data.filter(item => {
+        const t = new Date(item.time);
+        let start = startVal, end = endVal;
+        if(startVal && startVal.includes(' to ')) { const parts = startVal.split(' to '); start = parts[0]; end = parts[1]; }
+        const matchD = (!start || t >= new Date(start)) && (!end || t <= new Date(end + 'T23:59:59'));
+        
+        const matchS = advancedFilters.status.length === 0 || advancedFilters.status.includes(item.status);
+        const matchQ = advancedFilters.qualified.length === 0 || advancedFilters.qualified.includes(item.qualified);
+        
+        let matchK = true;
+        if (keyword) {
+            const searchableFields = [item.project, item.customer, item.group, item.channelName, item.contact, item.method, item.card, item.broker, item.phone, item.fundAccount];
+            matchK = searchableFields.some(field => field && String(field).toLowerCase().includes(keyword));
+        }
+        
+        return matchK && matchD && matchS && matchQ;
+    });
+    
+    // 应用排序
+    if (App.sortConfig.key) {
+        const key = App.sortConfig.key, direction = App.sortConfig.ascending ? 1 : -1;
+        filtered.sort((a, b) => {
+            let valA = a[key], valB = b[key];
+            if(key === 'profit') { valA = a._profit; valB = b._profit; }
+            const isDateField = (key === 'time' || key === 'settleTime');
+            if (isDateField) { const tsA = key === 'time' ? a._timeTs : a._settleTs; const tsB = key === 'time' ? b._timeTs : b._settleTs; if (tsA === -1 && tsB === -1) return 0; if (tsA === -1) return 1 * direction; if (tsB === -1) return -1 * direction; return (tsA - tsB) * direction; }
+            const isExplicitNumber = (key === 'amount' || key === 'channelPrice' || key === 'profit');
+            if (isExplicitNumber) return ((parseFloat(valA)||0) - (parseFloat(valB)||0)) * direction;
+            const isEmptyA = !valA, isEmptyB = !valB;
+            if (isEmptyA && isEmptyB) return 0; if (isEmptyA) return 1 * direction; if (isEmptyB) return -1 * direction;
+            return String(valA).localeCompare(String(valB), 'zh-Hans-CN') * direction;
+        });
+    }
+    
+    const startIndex = (App.pagination.currentPage - 1) * App.pagination.pageSize;
+    const endIndex = startIndex + App.pagination.pageSize;
+    return filtered.slice(startIndex, endIndex);
 }
 
 function renderTable() {

@@ -4193,6 +4193,7 @@ function renderTodoList(filter = 'all') {
                     <div><span style="color: var(--text-sub);">推广费：</span><strong>¥${amount.toFixed(2)}</strong></div>
                     <div><span style="color: var(--text-sub);">预付金额：</span><strong>¥${prepaid.toFixed(2)}</strong></div>
                     ${auditStatus !== 'pending' ? `<div><span style="color: var(--text-sub);">待结算金额：</span><strong style="color: ${settleAmount >= 0 ? 'var(--success-color)' : 'var(--danger-color)'}">¥${settleAmount.toFixed(2)}</strong></div>` : ''}
+                    <div><span style="color: var(--text-sub);">券商：</span>${item.broker || '未设置'}</div>
                     <div><span style="color: var(--text-sub);">做单时间：</span>${item.time || '未设置'}</div>
                     <div><span style="color: var(--text-sub);">结算时间：</span>${settleTimeDisplay}</div>
                     <div><span style="color: var(--text-sub);">结算状态：</span>${item.status === 'unsettled' ? '未结算' : (item.status === 'reviewed' ? '已审核待结算' : '已结算')}</div>

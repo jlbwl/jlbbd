@@ -4251,34 +4251,32 @@ function updateTodoButtons() {
 
 // 一键导入当前页所有数据到待办列表
 function importAllToTodo() {
-    // 获取当前页显示的数据
-    const pageData = getCurrentPageData();
+    const checked = document.querySelectorAll('.row-cb:checked');
     
-    if (pageData.length === 0) {
-        alert('当前页没有数据可导入');
+    if (checked.length === 0) {
+        alert('请先勾选要导入的数据');
         return;
     }
     
-    if (!confirm(`确定要导入当前页全部 ${pageData.length} 条数据到待办列表吗？`)) {
+    if (!confirm(`确定要导入选中的 ${checked.length} 条数据到待办列表吗？`)) {
         return;
     }
     
     let importedCount = 0;
     let skippedCount = 0;
     
-    pageData.forEach(item => {
-        // 找到该数据在 App.data 中的索引
-        const idx = App.data.findIndex(d => d.id === item.id);
-        if (idx === -1) return;
+    checked.forEach(cb => {
+        const idx = parseInt(cb.value);
+        const item = App.data[idx];
+        if (!item) return;
         
-        // 检查是否已在待办列表中
         const exists = App.todoList.some(t => t.dataIndex === idx);
         if (!exists) {
             App.todoList.push({
                 dataIndex: idx,
                 data: JSON.parse(JSON.stringify(item)),
                 addedAt: new Date().toISOString(),
-                auditStatus: 'pending'  // 添加审核状态：pending-未审核，qualified-合格，nodata-无数据
+                auditStatus: 'pending'
             });
             importedCount++;
         } else {

@@ -4140,7 +4140,7 @@ function renderTodoList(filter = 'all') {
     
     todoList.innerHTML = todos.map(item => {
         const amount = parseFloat(item.amount) || 0;
-        const prepaid = parseFloat(item.channelPrice) || 0;
+        const prepaid = parseFloat(item.prepay) || 0;
         const isHistory = filter === 'history';
         const auditStatus = item.auditStatus || 'pending';
         
@@ -4347,7 +4347,7 @@ function updateTodoStats() {
     let totalSettleAmount = 0;
     App.todoList.filter(t => t.auditStatus === 'qualified' || t.auditStatus === 'nodata').forEach(todo => {
         const amount = parseFloat(todo.data.amount) || 0;
-        const prepaid = parseFloat(todo.data.channelPrice) || 0;
+        const prepaid = parseFloat(todo.data.prepay) || 0;
         if (todo.auditStatus === 'qualified') {
             totalSettleAmount += amount - prepaid;
         } else {
@@ -4425,7 +4425,7 @@ function showSettleModal() {
     
     auditedTodos.forEach(todo => {
         const amount = parseFloat(todo.data.amount) || 0;
-        const prepaid = parseFloat(todo.data.channelPrice) || 0;
+        const prepaid = parseFloat(todo.data.prepay) || 0;
         let settleAmount = 0;
         if (todo.auditStatus === 'qualified') {
             settleAmount = amount - prepaid;
@@ -4503,7 +4503,7 @@ function settleAllAudited() {
     let totalAmount = 0;
     auditedTodos.forEach(todo => {
         const amount = parseFloat(todo.data.amount) || 0;
-        const prepaid = parseFloat(todo.data.channelPrice) || 0;
+        const prepaid = parseFloat(todo.data.prepay) || 0;
         if (todo.auditStatus === 'qualified') {
             totalAmount += amount - prepaid;
         } else {

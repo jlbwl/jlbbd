@@ -1,7 +1,8 @@
 {
-  "version": "1.12.2",
-  "releaseDate": "2026-06-19",
+  "version": "1.13.0",
+  "releaseDate": "2026-07-01",
   "changes": [
+    "feat: 在待办列表中添加券商列显示",
     "fix: 修复视图切换问题 - 移除多余的div闭合标签",
     "fix: 修复左侧菜单内容显示异常问题",
     "fix: 修复收单列表页面批量修改面板显示异常\n\n- 为listBatchPanel添加!important确保正确隐藏\n- 移除slideDown动画避免性能问题",
@@ -20,8 +21,7 @@
     "trigger redeploy",
     "revert: remove workflow, use traditional deployment",
     "fix: null check for deleted elements",
-    "fix: add complete workflow with environment and permissions",
-    "fix: add .nojekyll to force static deployment"
+    "fix: add complete workflow with environment and permissions"
   ],
   "author": "jlbbd team",
   "description": "金卢比智能表单系统",

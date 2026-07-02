@@ -4074,6 +4074,10 @@ function renderTodoList(filter = 'all') {
             auditStatus: t.auditStatus || 'pending',
             isTodoItem: true
         }));
+        
+        todos = todos.filter((item, index, self) => 
+            index === self.findIndex(t => t.dataIndex === item.dataIndex)
+        );
     } else if (filter === 'history') {
         todos = App.settleHistory.map(t => ({
             ...t.data,
@@ -4083,6 +4087,10 @@ function renderTodoList(filter = 'all') {
             settledAt: t.settledAt,
             isHistoryItem: true
         }));
+        
+        todos = todos.filter((item, index, self) => 
+            index === self.findIndex(t => t.dataIndex === item.dataIndex)
+        );
     } else {
         App.data.filter(item => {
             const amount = parseFloat(item.amount) || 0;

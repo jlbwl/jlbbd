@@ -1,7 +1,8 @@
 {
-  "version": "1.13.4",
+  "version": "1.13.5",
   "releaseDate": "2026-07-02",
   "changes": [
+    "fix: 修复审核状态和结算状态同步问题",
     "fix: 一键导入到待办改为只导入选中的数据",
     "fix: 修复待办列表预付金额显示错误 - 将channelPrice改为prepay",
     "feat: 在待办列表中添加券商列显示",
@@ -20,8 +21,7 @@
     "feat: 控制✈️图标仅在AI智能助手页面显示",
     "cleanup: remove unnecessary workflow for branch deployment",
     "fix: update deploy workflow with explicit token",
-    "trigger redeploy",
-    "revert: remove workflow, use traditional deployment"
+    "trigger redeploy"
   ],
   "author": "jlbbd team",
   "description": "金卢比智能表单系统",

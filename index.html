@@ -4187,6 +4187,11 @@ function renderTodoList(filter = 'all') {
                                 </div>
                             </div>
                         ` : ''}
+                        ${isHistory ? `
+                            <button style="font-size: 12px; padding: 3px 8px; border-radius: 4px; border: 1px solid var(--warning-color); color: var(--warning-color); background: transparent; cursor: pointer;" onclick="reopenForAudit(${item.dataIndex})">
+                                重新审核
+                            </button>
+                        ` : ''}
                     </div>
                 </div>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; font-size: 13px;">
@@ -4258,41 +4263,54 @@ function importAllToTodo() {
         return;
     }
     
-    if (!confirm(`确定要导入选中的 ${checked.length} 条数据到待办列表吗？`)) {
-        return;
-    }
-    
-    let importedCount = 0;
-    let skippedCount = 0;
+    let alreadyExistsCount = 0;
+    const canImport = [];
     
     checked.forEach(cb => {
         const idx = parseInt(cb.value);
+        const existsInTodo = App.todoList.some(t => t.dataIndex === idx);
+        const existsInHistory = App.settleHistory.some(t => t.dataIndex === idx);
+        
+        if (existsInTodo) {
+            alreadyExistsCount++;
+        } else if (existsInHistory) {
+            alreadyExistsCount++;
+        } else {
+            canImport.push(idx);
+        }
+    });
+    
+    if (canImport.length === 0) {
+        alert('所选数据均已在待办列表或历史结算中，无法重复导入');
+        return;
+    }
+    
+    if (alreadyExistsCount > 0) {
+        if (!confirm(`检测到 ${alreadyExistsCount} 条数据已存在于待办列表或历史结算中，将跳过这些数据。\n确定要导入剩余 ${canImport.length} 条数据吗？`)) {
+            return;
+        }
+    }
+    
+    let importedCount = 0;
+    
+    canImport.forEach(idx => {
         const item = App.data[idx];
         if (!item) return;
         
-        const exists = App.todoList.some(t => t.dataIndex === idx);
-        if (!exists) {
-            App.todoList.push({
-                dataIndex: idx,
-                data: JSON.parse(JSON.stringify(item)),
-                addedAt: new Date().toISOString(),
-                auditStatus: 'pending'
-            });
-            importedCount++;
-        } else {
-            skippedCount++;
-        }
+        App.todoList.push({
+            dataIndex: idx,
+            data: JSON.parse(JSON.stringify(item)),
+            addedAt: new Date().toISOString(),
+            auditStatus: 'pending'
+        });
+        importedCount++;
     });
     
     App.saveData();
     updateTodoStats();
     renderTodoList('all');
     
-    let msg = `成功导入 ${importedCount} 条数据到待办列表`;
-    if (skippedCount > 0) {
-        msg += `\n（${skippedCount} 条已存在，忽略）`;
-    }
-    alert(msg);
+    alert(`成功导入 ${importedCount} 条数据到待办列表`);
 }
 
 // 导入选中数据到待办列表
@@ -4303,29 +4321,49 @@ function importToTodo() {
         return;
     }
     
-    let importedCount = 0;
+    let alreadyExistsCount = 0;
+    const canImport = [];
+    
     checkboxes.forEach(cb => {
         const idx = parseInt(cb.value);
+        const existsInTodo = App.todoList.some(t => t.dataIndex === idx);
+        const existsInHistory = App.settleHistory.some(t => t.dataIndex === idx);
+        
+        if (existsInTodo || existsInHistory) {
+            alreadyExistsCount++;
+        } else {
+            canImport.push(idx);
+        }
+    });
+    
+    if (canImport.length === 0) {
+        alert('所选数据均已在待办列表或历史结算中，无法重复导入');
+        return;
+    }
+    
+    if (alreadyExistsCount > 0) {
+        if (!confirm(`检测到 ${alreadyExistsCount} 条数据已存在于待办列表或历史结算中，将跳过这些数据。\n确定要导入剩余 ${canImport.length} 条数据吗？`)) {
+            return;
+        }
+    }
+    
+    let importedCount = 0;
+    canImport.forEach(idx => {
         const item = App.data[idx];
         
-        // 检查是否已在待办列表中
-        const exists = App.todoList.some(t => t.dataIndex === idx);
-        if (!exists) {
-            App.todoList.push({
-                dataIndex: idx,
-                data: JSON.parse(JSON.stringify(item)),
-                addedAt: new Date().toISOString(),
-                auditStatus: 'pending'  // 添加审核状态
-            });
-            importedCount++;
-        }
+        App.todoList.push({
+            dataIndex: idx,
+            data: JSON.parse(JSON.stringify(item)),
+            addedAt: new Date().toISOString(),
+            auditStatus: 'pending'
+        });
+        importedCount++;
     });
     
     App.saveData();
     updateTodoStats();
     renderTodoList('all');
     
-    // 取消收单列表中的勾选
     checkboxes.forEach(cb => cb.checked = false);
     updateBatchPanel();
     
@@ -4360,6 +4398,43 @@ function updateTodoStats() {
     
     document.getElementById('todoHistory').textContent = App.settleHistory.length;
 }
+
+function reopenForAudit(dataIndex) {
+    if (!confirm('确定要重新审核这条已结算的数据吗？\n重新审核后将从历史结算中移除，回到待办列表。')) {
+        return;
+    }
+    
+    const historyIndex = App.settleHistory.findIndex(t => t.dataIndex === dataIndex);
+    if (historyIndex === -1) {
+        alert('未找到该条历史结算记录');
+        return;
+    }
+    
+    const historyItem = App.settleHistory[historyIndex];
+    
+    App.todoList.push({
+        dataIndex: historyItem.dataIndex,
+        data: JSON.parse(JSON.stringify(historyItem.data)),
+        addedAt: new Date().toISOString(),
+        auditStatus: 'pending'
+    });
+    
+    App.settleHistory.splice(historyIndex, 1);
+    
+    const originalItem = App.data[dataIndex];
+    if (originalItem) {
+        originalItem.status = 'unsettled';
+        originalItem.qualified = 'pending';
+        delete originalItem.settleTime;
+    }
+    
+    App.saveData();
+    updateTodoStats();
+    renderTodoList('history');
+    
+    alert('已将该条数据重新加入待办列表，可重新审核结算');
+}
+
 // 切换审核菜单显示/隐藏
 function toggleAuditMenu(event, dataIndex) {
     event.stopPropagation();

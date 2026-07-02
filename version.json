@@ -1,7 +1,8 @@
 {
-  "version": "1.13.3",
-  "releaseDate": "2026-07-01",
+  "version": "1.13.4",
+  "releaseDate": "2026-07-02",
   "changes": [
+    "fix: 一键导入到待办改为只导入选中的数据",
     "fix: 修复待办列表预付金额显示错误 - 将channelPrice改为prepay",
     "feat: 在待办列表中添加券商列显示",
     "fix: 修复视图切换问题 - 移除多余的div闭合标签",
@@ -20,8 +21,7 @@
     "cleanup: remove unnecessary workflow for branch deployment",
     "fix: update deploy workflow with explicit token",
     "trigger redeploy",
-    "revert: remove workflow, use traditional deployment",
-    "fix: null check for deleted elements"
+    "revert: remove workflow, use traditional deployment"
   ],
   "author": "jlbbd team",
   "description": "金卢比智能表单系统",

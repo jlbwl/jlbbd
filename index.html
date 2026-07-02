@@ -4386,6 +4386,13 @@ function auditTodo(dataIndex, status) {
     const todoItem = App.todoList.find(t => t.dataIndex === dataIndex);
     if (todoItem) {
         todoItem.auditStatus = status;
+        todoItem.data.qualified = status === 'qualified' ? 'qualified' : (status === 'nodata' ? 'nodata' : 'pending');
+        
+        const originalItem = App.data[dataIndex];
+        if (originalItem) {
+            originalItem.qualified = status === 'qualified' ? 'qualified' : (status === 'nodata' ? 'nodata' : 'pending');
+        }
+        
         App.saveData();
         updateTodoStats();
         renderTodoList('all');
@@ -4478,6 +4485,9 @@ function settleAllAudited() {
     const auditedTodos = App.todoList.filter(t => t.auditStatus === 'qualified' || t.auditStatus === 'nodata');
     
     auditedTodos.forEach(todo => {
+        todo.data.status = 'settled';
+        todo.data.settleTime = settleTime;
+        
         App.settleHistory.unshift({
             ...todo,
             settledAt: settleTime
@@ -4487,6 +4497,7 @@ function settleAllAudited() {
         if (originalItem) {
             originalItem.status = 'settled';
             originalItem.settleTime = settleTime;
+            originalItem.qualified = todo.auditStatus;
         }
     });
     

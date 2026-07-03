@@ -1988,58 +1988,57 @@ th {
             <div class="customer-filter-bar">
                 <div class="search-input-wrapper" style="display: flex; gap: 5px; align-items: center; flex: 1;">
                     <button id="searchToggleBtn" onclick="toggleSearchPanel()" style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px 0 0 6px; font-size: 13px; background: var(--card-bg); color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 4px;">
-                        🔍 <span id="searchFieldLabel">全部字段</span> ▼
+                        🔍 <span id="searchFieldLabel">高级筛选</span> ▼
                     </button>
                     <input type="text" id="searchInput" placeholder="输入搜索关键词..." oninput="onSearchInput()" autocomplete="off" style="flex: 1; border-radius: 0 6px 6px 0; border-left: none;">
                     <div class="search-dropdown-list" id="searchDropdown"></div>
                 </div>
-                <div id="searchPanel" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--card-bg); border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 8px 8px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 100;">
-                    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-                        <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
-                            <input type="checkbox" class="search-field-cb" value="project" checked>
-                            <span style="font-size: 13px;">项目</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
-                            <input type="checkbox" class="search-field-cb" value="customer" checked>
-                            <span style="font-size: 13px;">兼职姓名</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
-                            <input type="checkbox" class="search-field-cb" value="group" checked>
-                            <span style="font-size: 13px;">群号简称</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
-                            <input type="checkbox" class="search-field-cb" value="channelName" checked>
-                            <span style="font-size: 13px;">渠道</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
-                            <input type="checkbox" class="search-field-cb" value="contact" checked>
-                            <span style="font-size: 13px;">对接人</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
-                            <input type="checkbox" class="search-field-cb" value="broker" checked>
-                            <span style="font-size: 13px;">券商</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
-                            <input type="checkbox" class="search-field-cb" value="phone" checked>
-                            <span style="font-size: 13px;">手机号</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
-                            <input type="checkbox" class="search-field-cb" value="fundAccount" checked>
-                            <span style="font-size: 13px;">资金号</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
-                            <input type="checkbox" class="search-field-cb" value="amount">
-                            <span style="font-size: 13px;">推广费</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
-                            <input type="checkbox" class="search-field-cb" value="channelPrice">
-                            <span style="font-size: 13px;">渠道价格</span>
-                        </label>
+                <div id="searchPanel" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--card-bg); border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 8px 8px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 100; max-height: 400px; overflow-y: auto;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                        <div>
+                            <label style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px; display: block;">项目</label>
+                            <input type="text" class="search-input-field" data-field="project" placeholder="输入项目关键词..." style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 12px; background: var(--bg-color); color: var(--text-main);">
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px; display: block;">兼职姓名</label>
+                            <input type="text" class="search-input-field" data-field="customer" placeholder="输入姓名关键词..." style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 12px; background: var(--bg-color); color: var(--text-main);">
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px; display: block;">群号简称</label>
+                            <input type="text" class="search-input-field" data-field="group" placeholder="输入群号关键词..." style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 12px; background: var(--bg-color); color: var(--text-main);">
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px; display: block;">渠道</label>
+                            <input type="text" class="search-input-field" data-field="channelName" placeholder="输入渠道关键词..." style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 12px; background: var(--bg-color); color: var(--text-main);">
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px; display: block;">对接人</label>
+                            <input type="text" class="search-input-field" data-field="contact" placeholder="输入对接人关键词..." style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 12px; background: var(--bg-color); color: var(--text-main);">
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px; display: block;">券商</label>
+                            <input type="text" class="search-input-field" data-field="broker" placeholder="输入券商关键词..." style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 12px; background: var(--bg-color); color: var(--text-main);">
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px; display: block;">手机号</label>
+                            <input type="text" class="search-input-field" data-field="phone" placeholder="输入手机号关键词..." style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 12px; background: var(--bg-color); color: var(--text-main);">
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px; display: block;">资金号</label>
+                            <input type="text" class="search-input-field" data-field="fundAccount" placeholder="输入资金号关键词..." style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 12px; background: var(--bg-color); color: var(--text-main);">
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px; display: block;">推广费</label>
+                            <input type="text" class="search-input-field" data-field="amount" placeholder="输入推广费..." style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 12px; background: var(--bg-color); color: var(--text-main);">
+                        </div>
+                        <div>
+                            <label style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px; display: block;">渠道价格</label>
+                            <input type="text" class="search-input-field" data-field="channelPrice" placeholder="输入渠道价格..." style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 12px; background: var(--bg-color); color: var(--text-main);">
+                        </div>
                     </div>
                     <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px; padding-top: 10px; border-top: 1px solid var(--border-color);">
-                        <button onclick="selectAllSearchFields()" style="padding: 6px 12px; font-size: 12px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); color: var(--text-main); cursor: pointer;">全选</button>
-                        <button onclick="clearAllSearchFields()" style="padding: 6px 12px; font-size: 12px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); color: var(--text-main); cursor: pointer;">清除</button>
-                        <button onclick="applySearchFields()" style="padding: 6px 12px; font-size: 12px; border: none; border-radius: 4px; background: var(--primary-color); color: white; cursor: pointer;">确定</button>
+                        <button onclick="clearAllSearchInputs()" style="padding: 6px 12px; font-size: 12px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); color: var(--text-main); cursor: pointer;">重置</button>
+                        <button onclick="applyMultiFieldSearch()" style="padding: 6px 12px; font-size: 12px; border: none; border-radius: 4px; background: var(--primary-color); color: white; cursor: pointer;">确定</button>
                     </div>
                 </div>
                 <div class="date-range-picker">
@@ -3498,25 +3497,30 @@ function toggleSearchPanel() {
     panel.style.display = searchPanelOpen ? 'block' : 'none';
 }
 
-function selectAllSearchFields() {
-    document.querySelectorAll('.search-field-cb').forEach(cb => cb.checked = true);
+function clearAllSearchInputs() {
+    document.querySelectorAll('.search-input-field').forEach(input => input.value = '');
+    document.getElementById('searchInput').value = '';
+    document.getElementById('searchFieldLabel').textContent = '高级筛选';
 }
 
-function clearAllSearchFields() {
-    document.querySelectorAll('.search-field-cb').forEach(cb => cb.checked = false);
-}
-
-function applySearchFields() {
-    const checked = document.querySelectorAll('.search-field-cb:checked');
-    const fields = Array.from(checked).map(cb => cb.value);
+function applyMultiFieldSearch() {
+    const searchFields = {};
+    document.querySelectorAll('.search-input-field').forEach(input => {
+        const field = input.dataset.field;
+        const value = input.value.trim();
+        if (value) {
+            searchFields[field] = value.toLowerCase();
+        }
+    });
     
+    const hasFilters = Object.keys(searchFields).length > 0;
     const label = document.getElementById('searchFieldLabel');
-    if (fields.length === 0) {
-        label.textContent = '未选字段';
-    } else if (fields.length === 10) {
-        label.textContent = '全部字段';
+    if (!hasFilters) {
+        label.textContent = '高级筛选';
+        document.getElementById('searchInput').value = '';
     } else {
-        label.textContent = `${fields.length}个字段`;
+        label.textContent = `筛选: ${Object.keys(searchFields).length}个条件`;
+        document.getElementById('searchInput').value = JSON.stringify(searchFields);
     }
     
     const panel = document.getElementById('searchPanel');
@@ -3526,9 +3530,16 @@ function applySearchFields() {
     onSearchInput();
 }
 
-function getSelectedSearchFields() {
-    const checked = document.querySelectorAll('.search-field-cb:checked');
-    return Array.from(checked).map(cb => cb.value);
+function getMultiFieldSearchFilters() {
+    const searchFields = {};
+    document.querySelectorAll('.search-input-field').forEach(input => {
+        const field = input.dataset.field;
+        const value = input.value.trim();
+        if (value) {
+            searchFields[field] = value.toLowerCase();
+        }
+    });
+    return searchFields;
 }
 
 function toggleStatusAll() {
@@ -5606,8 +5617,7 @@ function stopResize() {
 
 // 获取当前页显示的数据（用于批量操作）
 function getCurrentPageData() {
-    const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
-    const selectedFields = getSelectedSearchFields();
+    const searchFilters = getMultiFieldSearchFilters();
     const startVal = document.getElementById('startDate').value;
     const endVal = document.getElementById('endDate').value;
     
@@ -5621,20 +5631,17 @@ function getCurrentPageData() {
         const matchQ = advancedFilters.qualified.length === 0 || advancedFilters.qualified.includes(item.qualified);
         
         let matchK = true;
-        if (keyword) {
-            if (selectedFields.length === 0) {
-                matchK = false;
-            } else {
-                matchK = selectedFields.some(field => {
-                    if (field === 'amount' || field === 'channelPrice') {
-                        const value = parseFloat(item[field]) || 0;
-                        return String(value).includes(keyword);
-                    } else {
-                        const fieldValue = item[field];
-                        return fieldValue && String(fieldValue).toLowerCase().includes(keyword);
-                    }
-                });
-            }
+        if (Object.keys(searchFilters).length > 0) {
+            matchK = Object.keys(searchFilters).every(field => {
+                const keyword = searchFilters[field];
+                if (field === 'amount' || field === 'channelPrice') {
+                    const value = parseFloat(item[field]) || 0;
+                    return String(value).includes(keyword);
+                } else {
+                    const fieldValue = item[field];
+                    return fieldValue && String(fieldValue).toLowerCase().includes(keyword);
+                }
+            });
         }
         
         return matchK && matchD && matchS && matchQ;
@@ -5685,8 +5692,7 @@ function renderTable() {
     });
 
     theadRow.innerHTML = headerHtml;
-    const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
-    const selectedFields = getSelectedSearchFields();
+    const searchFilters = getMultiFieldSearchFilters();
     const startVal = document.getElementById('startDate').value;
     const endVal = document.getElementById('endDate').value;
     let filtered = App.data.filter(item => {
@@ -5700,20 +5706,17 @@ function renderTable() {
         const matchQ = advancedFilters.qualified.length === 0 || advancedFilters.qualified.includes(item.qualified);
         
         let matchK = true;
-        if (keyword) {
-            if (selectedFields.length === 0) {
-                matchK = false;
-            } else {
-                matchK = selectedFields.some(field => {
-                    if (field === 'amount' || field === 'channelPrice') {
-                        const value = parseFloat(item[field]) || 0;
-                        return String(value).includes(keyword);
-                    } else {
-                        const fieldValue = item[field];
-                        return fieldValue && String(fieldValue).toLowerCase().includes(keyword);
-                    }
-                });
-            }
+        if (Object.keys(searchFilters).length > 0) {
+            matchK = Object.keys(searchFilters).every(field => {
+                const keyword = searchFilters[field];
+                if (field === 'amount' || field === 'channelPrice') {
+                    const value = parseFloat(item[field]) || 0;
+                    return String(value).includes(keyword);
+                } else {
+                    const fieldValue = item[field];
+                    return fieldValue && String(fieldValue).toLowerCase().includes(keyword);
+                }
+            });
         }
         const profit = (parseFloat(item.channelPrice)||0) - (parseFloat(item.amount)||0);
         item._isAnomaly = profit < 0 || (parseFloat(item.amount) > App.config.riskLimit);

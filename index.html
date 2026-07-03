@@ -4262,6 +4262,15 @@ function updateTodoButtons() {
     }
 }
 
+function isSameData(item1, item2) {
+    return item1.time === item2.time &&
+           item1.project === item2.project &&
+           item1.customer === item2.customer &&
+           item1.phone === item2.phone &&
+           item1.channel === item2.channel &&
+           item1.group === item2.group;
+}
+
 // 一键导入当前页所有数据到待办列表
 function importAllToTodo() {
     const checked = document.querySelectorAll('.row-cb:checked');
@@ -4276,8 +4285,11 @@ function importAllToTodo() {
     
     checked.forEach(cb => {
         const idx = parseInt(cb.value);
-        const existsInTodo = App.todoList.some(t => t.dataIndex === idx);
-        const existsInHistory = App.settleHistory.some(t => t.dataIndex === idx);
+        const item = App.data[idx];
+        if (!item) return;
+        
+        const existsInTodo = App.todoList.some(t => isSameData(t.data, item));
+        const existsInHistory = App.settleHistory.some(t => isSameData(t.data, item));
         
         if (existsInTodo) {
             alreadyExistsCount++;
@@ -4334,8 +4346,11 @@ function importToTodo() {
     
     checkboxes.forEach(cb => {
         const idx = parseInt(cb.value);
-        const existsInTodo = App.todoList.some(t => t.dataIndex === idx);
-        const existsInHistory = App.settleHistory.some(t => t.dataIndex === idx);
+        const item = App.data[idx];
+        if (!item) return;
+        
+        const existsInTodo = App.todoList.some(t => isSameData(t.data, item));
+        const existsInHistory = App.settleHistory.some(t => isSameData(t.data, item));
         
         if (existsInTodo || existsInHistory) {
             alreadyExistsCount++;

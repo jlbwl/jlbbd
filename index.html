@@ -4200,6 +4200,11 @@ function renderTodoList(filter = 'all') {
                                 重新审核
                             </button>
                         ` : ''}
+                        ${!isHistory ? `
+                            <button style="font-size: 12px; padding: 3px 8px; border-radius: 4px; border: 1px solid var(--danger-color); color: var(--danger-color); background: transparent; cursor: pointer;" onclick="removeFromTodo(${item.dataIndex})">
+                                移出
+                            </button>
+                        ` : ''}
                     </div>
                 </div>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; font-size: 13px;">
@@ -4456,6 +4461,26 @@ function reopenForAudit(dataIndex) {
     renderTodoList('history');
     
     alert('已将该条数据重新加入待办列表，可重新审核结算');
+}
+
+function removeFromTodo(dataIndex) {
+    if (!confirm('确定要将该条数据移出待办列表吗？')) {
+        return;
+    }
+    
+    const todoIndex = App.todoList.findIndex(t => t.dataIndex === dataIndex);
+    if (todoIndex === -1) {
+        alert('未找到该条待办记录');
+        return;
+    }
+    
+    App.todoList.splice(todoIndex, 1);
+    
+    App.saveData();
+    updateTodoStats();
+    renderTodoList('all');
+    
+    alert('已将该条数据移出待办列表');
 }
 
 // 切换审核菜单显示/隐藏

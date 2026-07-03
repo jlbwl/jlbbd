@@ -1986,8 +1986,21 @@ th {
                 </div>
             </div>
             <div class="customer-filter-bar">
-                <div class="search-input-wrapper">
-                    <input type="text" id="searchInput" placeholder="搜索项目/兼职姓名/群号/渠道/券商... (Ctrl+F)" oninput="onSearchInput()" autocomplete="off">
+                <div class="search-input-wrapper" style="display: flex; gap: 5px; align-items: center;">
+                    <select id="searchField" onchange="onSearchInput()" style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; background: var(--card-bg); color: var(--text-main);">
+                        <option value="all">全部字段</option>
+                        <option value="project">项目</option>
+                        <option value="customer">兼职姓名</option>
+                        <option value="group">群号简称</option>
+                        <option value="channelName">渠道</option>
+                        <option value="contact">对接人</option>
+                        <option value="broker">券商</option>
+                        <option value="phone">手机号</option>
+                        <option value="fundAccount">资金号</option>
+                        <option value="amount">推广费</option>
+                        <option value="channelPrice">渠道价格</option>
+                    </select>
+                    <input type="text" id="searchInput" placeholder="输入搜索关键词..." oninput="onSearchInput()" autocomplete="off" style="flex: 1;">
                     <div class="search-dropdown-list" id="searchDropdown"></div>
                 </div>
                 <div class="date-range-picker">
@@ -5514,6 +5527,7 @@ function stopResize() {
 // 获取当前页显示的数据（用于批量操作）
 function getCurrentPageData() {
     const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+    const searchField = document.getElementById('searchField').value;
     const startVal = document.getElementById('startDate').value;
     const endVal = document.getElementById('endDate').value;
     
@@ -5528,8 +5542,16 @@ function getCurrentPageData() {
         
         let matchK = true;
         if (keyword) {
-            const searchableFields = [item.project, item.customer, item.group, item.channelName, item.contact, item.method, item.card, item.broker, item.phone, item.fundAccount];
-            matchK = searchableFields.some(field => field && String(field).toLowerCase().includes(keyword));
+            if (searchField === 'all') {
+                const searchableFields = [item.project, item.customer, item.group, item.channelName, item.contact, item.method, item.card, item.broker, item.phone, item.fundAccount];
+                matchK = searchableFields.some(field => field && String(field).toLowerCase().includes(keyword));
+            } else if (searchField === 'amount' || searchField === 'channelPrice') {
+                const value = parseFloat(item[searchField]) || 0;
+                matchK = String(value).includes(keyword);
+            } else {
+                const fieldValue = item[searchField];
+                matchK = fieldValue && String(fieldValue).toLowerCase().includes(keyword);
+            }
         }
         
         return matchK && matchD && matchS && matchQ;
@@ -5581,6 +5603,7 @@ function renderTable() {
 
     theadRow.innerHTML = headerHtml;
     const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+    const searchField = document.getElementById('searchField').value;
     const startVal = document.getElementById('startDate').value;
     const endVal = document.getElementById('endDate').value;
     let filtered = App.data.filter(item => {
@@ -5595,8 +5618,16 @@ function renderTable() {
         
         let matchK = true;
         if (keyword) {
-            const searchableFields = [item.project, item.customer, item.group, item.channelName, item.contact, item.method, item.card, item.broker, item.phone, item.fundAccount];
-            matchK = searchableFields.some(field => field && String(field).toLowerCase().includes(keyword));
+            if (searchField === 'all') {
+                const searchableFields = [item.project, item.customer, item.group, item.channelName, item.contact, item.method, item.card, item.broker, item.phone, item.fundAccount];
+                matchK = searchableFields.some(field => field && String(field).toLowerCase().includes(keyword));
+            } else if (searchField === 'amount' || searchField === 'channelPrice') {
+                const value = parseFloat(item[searchField]) || 0;
+                matchK = String(value).includes(keyword);
+            } else {
+                const fieldValue = item[searchField];
+                matchK = fieldValue && String(fieldValue).toLowerCase().includes(keyword);
+            }
         }
         const profit = (parseFloat(item.channelPrice)||0) - (parseFloat(item.amount)||0);
         item._isAnomaly = profit < 0 || (parseFloat(item.amount) > App.config.riskLimit);

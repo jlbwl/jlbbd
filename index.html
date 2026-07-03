@@ -1952,6 +1952,9 @@ th {
                 <div class="stat-card todo-filter-card" id="todoCardHistory" onclick="filterTodoList('history')" style="cursor: pointer; border-left: 4px solid var(--text-sub); transition: all 0.3s ease;">
                     <div class="stat-label">历史结算</div>
                     <div class="stat-value" id="todoHistory" style="color:var(--text-sub)">0</div>
+                    <button onclick="event.stopPropagation(); exportHistorySettlement()" style="margin-top: 8px; font-size: 12px; padding: 4px 10px; border-radius: 4px; border: 1px solid var(--text-sub); color: var(--text-sub); background: transparent; cursor: pointer;">
+                        📤 导出
+                    </button>
                 </div>
             </div>
             <span style="margin-left: auto; font-size: 12px; color: var(--text-sub);">提示：在收单列表勾选数据后点击"导入到待办"</span>
@@ -4180,6 +4183,7 @@ function renderTodoList(filter = 'all') {
             <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; margin-bottom: 10px;" data-group="${item.group || ''}" data-project="${item.project || ''}">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
                     <div style="display: flex; align-items: center; gap: 8px;">
+                        ${isHistory ? `<input type="checkbox" class="history-cb" value="${item.dataIndex}" style="margin-right: 8px;">` : ''}
                         <h4 style="font-size: 14px; font-weight: 600; color: var(--text-main); margin: 0;">${item.project || '未命名项目'}</h4>
                     </div>
                     <div style="display: flex; gap: 10px; align-items: center;">
@@ -4481,6 +4485,65 @@ function removeFromTodo(dataIndex) {
     renderTodoList('all');
     
     alert('已将该条数据移出待办列表');
+}
+
+function exportHistorySettlement() {
+    const checkedBoxes = document.querySelectorAll('.history-cb:checked');
+    let dataToExport = [];
+    
+    if (checkedBoxes.length > 0) {
+        const selectedIndices = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
+        dataToExport = selectedIndices.map(idx => {
+            const item = App.settleHistory.find(h => h.dataIndex === idx);
+            return item ? item.data : null;
+        }).filter(item => item !== null);
+    } else {
+        dataToExport = App.settleHistory.map(h => h.data);
+    }
+    
+    if (dataToExport.length === 0) {
+        alert('暂无历史结算记录可导出');
+        return;
+    }
+    
+    const headers = ['做单时间', '项目', '推广费', '渠道价格', '预估利润', '预付资格', '预付金额', '预付时间', '渠道', '券商', '资金号', '姓名', '手机号', '群号简称', '对接人', '收款方式', '支付宝卡', '结算金额', '结算时间', '状态', '审核情况'];
+    
+    const rows = dataToExport.map(item => [
+        item.time || '',
+        item.project || '',
+        (parseFloat(item.amount) || 0).toFixed(2),
+        (parseFloat(item.channelPrice) || 0).toFixed(2),
+        ((parseFloat(item.channelPrice) || 0) - (parseFloat(item.amount) || 0)).toFixed(2),
+        item.prepayQualification || '',
+        (parseFloat(item.prepay) || 0).toFixed(2),
+        item.prepayTime || '',
+        item.channel || '',
+        item.broker || '',
+        item.fundAccount || '',
+        item.customer || '',
+        item.phone || '',
+        item.group || '',
+        item.contact || '',
+        item.method || '',
+        item.card || '',
+        (parseFloat(item.amount) || 0).toFixed(2),
+        item.settleTime || '',
+        item.status === 'settled' ? '已结算' : '未结算',
+        item.qualified === 'qualified' ? '合格' : (item.qualified === 'nodata' ? '无数据' : '未审核')
+    ]);
+    
+    const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `历史结算记录_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    alert(`成功导出 ${dataToExport.length} 条历史结算记录`);
 }
 
 // 切换审核菜单显示/隐藏

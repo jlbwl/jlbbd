@@ -1993,7 +1993,7 @@ th {
                     <input type="text" id="searchInput" placeholder="输入搜索关键词..." oninput="onSearchInput()" autocomplete="off" style="flex: 1; border-radius: 0 6px 6px 0; border-left: none;">
                     <div class="search-dropdown-list" id="searchDropdown"></div>
                 </div>
-                <div id="searchPanel" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--card-bg); border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 8px 8px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 100; max-height: 400px; overflow-y: auto;">
+                <div id="searchPanel" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--card-bg); border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 8px 8px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 100; max-height: 500px; overflow-y: auto;">
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
                         <div>
                             <label style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px; display: block;">项目</label>
@@ -2036,6 +2036,48 @@ th {
                             <input type="text" class="search-input-field" data-field="channelPrice" placeholder="输入渠道价格..." style="width: 100%; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 12px; background: var(--bg-color); color: var(--text-main);">
                         </div>
                     </div>
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+                        <h3 style="margin-bottom: 10px; font-size: 13px; color: var(--primary-color);">结算状态</h3>
+                        <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+                            <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                                <input type="checkbox" class="filterStatus" value="all" checked>
+                                <span style="font-size: 12px;">全部</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                                <input type="checkbox" class="filterStatus" value="settled">
+                                <span style="font-size: 12px;">已结算</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                                <input type="checkbox" class="filterStatus" value="reviewed">
+                                <span style="font-size: 12px;">已审核待结算</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                                <input type="checkbox" class="filterStatus" value="unsettled">
+                                <span style="font-size: 12px;">未结算</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+                        <h3 style="margin-bottom: 10px; font-size: 13px; color: var(--primary-color);">审核状态</h3>
+                        <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+                            <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                                <input type="checkbox" class="filterQual" value="all" checked>
+                                <span style="font-size: 12px;">全部</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                                <input type="checkbox" class="filterQual" value="qualified">
+                                <span style="font-size: 12px;">合格</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                                <input type="checkbox" class="filterQual" value="unqualified">
+                                <span style="font-size: 12px;">无数据</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                                <input type="checkbox" class="filterQual" value="pending">
+                                <span style="font-size: 12px;">未审核</span>
+                            </label>
+                        </div>
+                    </div>
                     <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px; padding-top: 10px; border-top: 1px solid var(--border-color);">
                         <button onclick="clearAllSearchInputs()" style="padding: 6px 12px; font-size: 12px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); color: var(--text-main); cursor: pointer;">重置</button>
                         <button onclick="applyMultiFieldSearch()" style="padding: 6px 12px; font-size: 12px; border: none; border-radius: 4px; background: var(--primary-color); color: white; cursor: pointer;">确定</button>
@@ -2046,7 +2088,6 @@ th {
                     <span>→</span>
                     <input type="text" id="endDate" placeholder="结束日期" readonly>
                 </div>
-                <button class="btn btn-outline" onclick="openAdvancedFilterModal()">⚙️ 高级筛选</button>
                 <div class="page-size-container"><span>每页:</span><select id="pageSize" onchange="onPageSizeChange()"><option value="20">20</option><option value="50">50</option><option value="100">100</option></select></div>
             </div>
             <div class="table-container">
@@ -2300,60 +2341,6 @@ th {
             <p style="font-size:12px; color:var(--text-sub); margin-bottom:15px;">勾选需要在列表和导出 Excel 中显示的列：<br><span style="color:var(--primary-color)">* 设置保存后，列表刷新且导出功能将仅包含勾选的列</span></p>
             <div id="columnCheckList" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-height: 400px; overflow-y: auto; padding: 5px;"></div>
             <div style="margin-top: 20px; text-align: right; border-top: 1px solid var(--border-color); padding-top: 15px;"><button class="btn btn-outline" onclick="resetColumnSettings()">重置默认</button><button class="btn btn-primary" onclick="saveColumnSettings()">保存设置</button></div>
-        </div>
-    </div>
-</div>
-
-<div class="modal-overlay" id="advancedFilterModal">
-    <div class="modal" style="max-width: 500px; min-width: 400px;">
-        <div class="modal-header"><h2>⚙️ 高级筛选</h2><button class="close-btn" onclick="closeModal('advancedFilterModal')">&times;</button></div>
-        <div class="modal-body">
-            <div style="margin-bottom: 20px;">
-                <h3 style="margin-bottom: 10px; font-size: 14px; color: var(--primary-color);">结算状态</h3>
-                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                        <input type="checkbox" id="filterStatusAll" onchange="toggleStatusAll()">
-                        <span>全部</span>
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                        <input type="checkbox" class="filterStatus" value="settled">
-                        <span>已结算</span>
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                        <input type="checkbox" class="filterStatus" value="reviewed">
-                        <span>已审核待结算</span>
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                        <input type="checkbox" class="filterStatus" value="unsettled">
-                        <span>未结算</span>
-                    </label>
-                </div>
-            </div>
-            <div style="margin-bottom: 20px;">
-                <h3 style="margin-bottom: 10px; font-size: 14px; color: var(--primary-color);">审核状态</h3>
-                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                        <input type="checkbox" id="filterQualAll" onchange="toggleQualAll()">
-                        <span>全部</span>
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                        <input type="checkbox" class="filterQual" value="qualified">
-                        <span>合格</span>
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                        <input type="checkbox" class="filterQual" value="unqualified">
-                        <span>无数据</span>
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                        <input type="checkbox" class="filterQual" value="pending">
-                        <span>未审核</span>
-                    </label>
-                </div>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-outline" onclick="resetAdvancedFilter()">重置</button>
-            <button class="btn btn-primary" onclick="applyAdvancedFilter()">应用筛选</button>
         </div>
     </div>
 </div>
@@ -3472,22 +3459,9 @@ let advancedFilters = {
 document.addEventListener('keydown', function(e) {
     if((e.ctrlKey || e.metaKey) && e.key === 'n') { e.preventDefault(); if(document.getElementById('mainApp').style.display !== 'none') openBatchModal(); }
     if((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); if(document.getElementById('batchModal').classList.contains('active')) saveBatch(); if(document.getElementById('editModal').classList.contains('active')) saveEdit(); }
-    if(e.key === 'Escape') { ['batchModal','editModal','imgModal','presetModal','columnSettingsModal','advancedFilterModal'].forEach(id => { const el = document.getElementById(id); if(el && el.classList.contains('active')) el.classList.remove('active'); }); }
+    if(e.key === 'Escape') { ['batchModal','editModal','imgModal','presetModal','columnSettingsModal'].forEach(id => { const el = document.getElementById(id); if(el && el.classList.contains('active')) el.classList.remove('active'); }); }
     if((e.ctrlKey || e.metaKey) && e.key === 'f') { if(document.getElementById('view-list').classList.contains('active')) { e.preventDefault(); document.getElementById('searchInput').focus(); } }
 });
-
-function openAdvancedFilterModal() {
-    // 重置复选框状态
-    document.getElementById('filterStatusAll').checked = advancedFilters.status.length === 0;
-    document.querySelectorAll('.filterStatus').forEach(cb => {
-        cb.checked = advancedFilters.status.includes(cb.value);
-    });
-    document.getElementById('filterQualAll').checked = advancedFilters.qualified.length === 0;
-    document.querySelectorAll('.filterQual').forEach(cb => {
-        cb.checked = advancedFilters.qualified.includes(cb.value);
-    });
-    document.getElementById('advancedFilterModal').classList.add('active');
-}
 
 let searchPanelOpen = false;
 
@@ -3501,6 +3475,9 @@ function clearAllSearchInputs() {
     document.querySelectorAll('.search-input-field').forEach(input => input.value = '');
     document.getElementById('searchInput').value = '';
     document.getElementById('searchFieldLabel').textContent = '高级筛选';
+    
+    document.querySelectorAll('.filterStatus').forEach(cb => cb.checked = cb.value === 'all');
+    document.querySelectorAll('.filterQual').forEach(cb => cb.checked = cb.value === 'all');
 }
 
 function applyMultiFieldSearch() {
@@ -3513,13 +3490,22 @@ function applyMultiFieldSearch() {
         }
     });
     
-    const hasFilters = Object.keys(searchFields).length > 0;
+    const statusFilters = Array.from(document.querySelectorAll('.filterStatus:checked'))
+        .map(cb => cb.value)
+        .filter(v => v !== 'all');
+    
+    const qualFilters = Array.from(document.querySelectorAll('.filterQual:checked'))
+        .map(cb => cb.value)
+        .filter(v => v !== 'all');
+    
+    const hasFilters = Object.keys(searchFields).length > 0 || statusFilters.length > 0 || qualFilters.length > 0;
     const label = document.getElementById('searchFieldLabel');
     if (!hasFilters) {
         label.textContent = '高级筛选';
         document.getElementById('searchInput').value = '';
     } else {
-        label.textContent = `筛选: ${Object.keys(searchFields).length}个条件`;
+        const count = Object.keys(searchFields).length + statusFilters.length + qualFilters.length;
+        label.textContent = `筛选: ${count}个条件`;
         document.getElementById('searchInput').value = JSON.stringify(searchFields);
     }
     
@@ -3531,68 +3517,27 @@ function applyMultiFieldSearch() {
 }
 
 function getMultiFieldSearchFilters() {
-    const searchFields = {};
+    const filters = {};
+    filters.fields = {};
     document.querySelectorAll('.search-input-field').forEach(input => {
         const field = input.dataset.field;
         const value = input.value.trim();
         if (value) {
-            searchFields[field] = value.toLowerCase();
+            filters.fields[field] = value.toLowerCase();
         }
     });
-    return searchFields;
-}
-
-function toggleStatusAll() {
-    const isAllChecked = document.getElementById('filterStatusAll').checked;
-    document.querySelectorAll('.filterStatus').forEach(cb => {
-        cb.checked = false;
-    });
-    if (isAllChecked) {
-        advancedFilters.status = [];
-    }
-}
-
-function toggleQualAll() {
-    const isAllChecked = document.getElementById('filterQualAll').checked;
-    document.querySelectorAll('.filterQual').forEach(cb => {
-        cb.checked = false;
-    });
-    if (isAllChecked) {
-        advancedFilters.qualified = [];
-    }
-}
-
-function resetAdvancedFilter() {
-    document.getElementById('filterStatusAll').checked = true;
-    document.querySelectorAll('.filterStatus').forEach(cb => {
-        cb.checked = false;
-    });
-    document.getElementById('filterQualAll').checked = true;
-    document.querySelectorAll('.filterQual').forEach(cb => {
-        cb.checked = false;
-    });
-    advancedFilters = {
-        status: [],
-        qualified: []
-    };
-}
-
-function applyAdvancedFilter() {
-    // 收集选中的状态
-    advancedFilters.status = Array.from(document.querySelectorAll('.filterStatus:checked')).map(cb => cb.value);
-    advancedFilters.qualified = Array.from(document.querySelectorAll('.filterQual:checked')).map(cb => cb.value);
     
-    // 检查是否全选
-    if (advancedFilters.status.length === 0) {
-        document.getElementById('filterStatusAll').checked = true;
-    }
-    if (advancedFilters.qualified.length === 0) {
-        document.getElementById('filterQualAll').checked = true;
-    }
+    filters.status = Array.from(document.querySelectorAll('.filterStatus:checked'))
+        .map(cb => cb.value)
+        .filter(v => v !== 'all');
     
-    closeModal('advancedFilterModal');
-    onSearchInput();
+    filters.qualified = Array.from(document.querySelectorAll('.filterQual:checked'))
+        .map(cb => cb.value)
+        .filter(v => v !== 'all');
+    
+    return filters;
 }
+
 let searchDropdownActive = false;
 let searchSelectedIndex = -1;
 // 原始搜索函数
@@ -5627,13 +5572,13 @@ function getCurrentPageData() {
         if(startVal && startVal.includes(' to ')) { const parts = startVal.split(' to '); start = parts[0]; end = parts[1]; }
         const matchD = (!start || t >= new Date(start)) && (!end || t <= new Date(end + 'T23:59:59'));
         
-        const matchS = advancedFilters.status.length === 0 || advancedFilters.status.includes(item.status);
-        const matchQ = advancedFilters.qualified.length === 0 || advancedFilters.qualified.includes(item.qualified);
+        const matchS = searchFilters.status.length === 0 || searchFilters.status.includes(item.status);
+        const matchQ = searchFilters.qualified.length === 0 || searchFilters.qualified.includes(item.qualified);
         
         let matchK = true;
-        if (Object.keys(searchFilters).length > 0) {
-            matchK = Object.keys(searchFilters).every(field => {
-                const keyword = searchFilters[field];
+        if (Object.keys(searchFilters.fields).length > 0) {
+            matchK = Object.keys(searchFilters.fields).every(field => {
+                const keyword = searchFilters.fields[field];
                 if (field === 'amount' || field === 'channelPrice') {
                     const value = parseFloat(item[field]) || 0;
                     return String(value).includes(keyword);
@@ -5701,14 +5646,13 @@ function renderTable() {
         if(startVal && startVal.includes(' to ')) { const parts = startVal.split(' to '); start = parts[0]; end = parts[1]; }
         const matchD = (!start || t >= new Date(start)) && (!end || t <= new Date(end + 'T23:59:59'));
         
-        // 使用高级筛选逻辑
-        const matchS = advancedFilters.status.length === 0 || advancedFilters.status.includes(item.status);
-        const matchQ = advancedFilters.qualified.length === 0 || advancedFilters.qualified.includes(item.qualified);
+        const matchS = searchFilters.status.length === 0 || searchFilters.status.includes(item.status);
+        const matchQ = searchFilters.qualified.length === 0 || searchFilters.qualified.includes(item.qualified);
         
         let matchK = true;
-        if (Object.keys(searchFilters).length > 0) {
-            matchK = Object.keys(searchFilters).every(field => {
-                const keyword = searchFilters[field];
+        if (Object.keys(searchFilters.fields).length > 0) {
+            matchK = Object.keys(searchFilters.fields).every(field => {
+                const keyword = searchFilters.fields[field];
                 if (field === 'amount' || field === 'channelPrice') {
                     const value = parseFloat(item[field]) || 0;
                     return String(value).includes(keyword);

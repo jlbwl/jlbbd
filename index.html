@@ -1709,7 +1709,7 @@ tbody tr.settled-row { background: rgba(34, 197, 94, 0.1); color: #065f46; }
 .qr-placeholder { color: var(--text-sub); font-size: 12px; display: flex; flex-direction: column; align-items: center; gap: 5px; }
 .qr-hint { font-size: 11px; color: var(--primary-color); margin-top: 5px; font-weight: 600; }
 .card-footer { padding: 12px 15px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 8px; background: var(--header-bg); }
-.customer-filter-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; background: var(--card-bg); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+.customer-filter-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; background: var(--card-bg); padding: 12px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: relative; }
 .customer-filter-bar input[type="text"], .customer-filter-bar select, .customer-filter-bar input[type="date"] { padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; outline: none; background: var(--card-bg); color: var(--text-main); height: 38px; box-sizing: border-box; }
 .customer-filter-bar input[type="text"]:focus, .customer-filter-bar select:focus, .customer-filter-bar input[type="date"]:focus { border-color: var(--primary-color); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1); }
 .date-range-picker { display: flex; align-items: center; gap: 5px; background: var(--bg-color); padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-color); }
@@ -1986,22 +1986,61 @@ th {
                 </div>
             </div>
             <div class="customer-filter-bar">
-                <div class="search-input-wrapper" style="display: flex; gap: 5px; align-items: center;">
-                    <select id="searchField" onchange="onSearchInput()" style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; background: var(--card-bg); color: var(--text-main);">
-                        <option value="all">全部字段</option>
-                        <option value="project">项目</option>
-                        <option value="customer">兼职姓名</option>
-                        <option value="group">群号简称</option>
-                        <option value="channelName">渠道</option>
-                        <option value="contact">对接人</option>
-                        <option value="broker">券商</option>
-                        <option value="phone">手机号</option>
-                        <option value="fundAccount">资金号</option>
-                        <option value="amount">推广费</option>
-                        <option value="channelPrice">渠道价格</option>
-                    </select>
-                    <input type="text" id="searchInput" placeholder="输入搜索关键词..." oninput="onSearchInput()" autocomplete="off" style="flex: 1;">
+                <div class="search-input-wrapper" style="display: flex; gap: 5px; align-items: center; flex: 1;">
+                    <button id="searchToggleBtn" onclick="toggleSearchPanel()" style="padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px 0 0 6px; font-size: 13px; background: var(--card-bg); color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                        🔍 <span id="searchFieldLabel">全部字段</span> ▼
+                    </button>
+                    <input type="text" id="searchInput" placeholder="输入搜索关键词..." oninput="onSearchInput()" autocomplete="off" style="flex: 1; border-radius: 0 6px 6px 0; border-left: none;">
                     <div class="search-dropdown-list" id="searchDropdown"></div>
+                </div>
+                <div id="searchPanel" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: var(--card-bg); border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 8px 8px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 100;">
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                        <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                            <input type="checkbox" class="search-field-cb" value="project" checked>
+                            <span style="font-size: 13px;">项目</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                            <input type="checkbox" class="search-field-cb" value="customer" checked>
+                            <span style="font-size: 13px;">兼职姓名</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                            <input type="checkbox" class="search-field-cb" value="group" checked>
+                            <span style="font-size: 13px;">群号简称</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                            <input type="checkbox" class="search-field-cb" value="channelName" checked>
+                            <span style="font-size: 13px;">渠道</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                            <input type="checkbox" class="search-field-cb" value="contact" checked>
+                            <span style="font-size: 13px;">对接人</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                            <input type="checkbox" class="search-field-cb" value="broker" checked>
+                            <span style="font-size: 13px;">券商</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                            <input type="checkbox" class="search-field-cb" value="phone" checked>
+                            <span style="font-size: 13px;">手机号</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                            <input type="checkbox" class="search-field-cb" value="fundAccount" checked>
+                            <span style="font-size: 13px;">资金号</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                            <input type="checkbox" class="search-field-cb" value="amount">
+                            <span style="font-size: 13px;">推广费</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                            <input type="checkbox" class="search-field-cb" value="channelPrice">
+                            <span style="font-size: 13px;">渠道价格</span>
+                        </label>
+                    </div>
+                    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px; padding-top: 10px; border-top: 1px solid var(--border-color);">
+                        <button onclick="selectAllSearchFields()" style="padding: 6px 12px; font-size: 12px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); color: var(--text-main); cursor: pointer;">全选</button>
+                        <button onclick="clearAllSearchFields()" style="padding: 6px 12px; font-size: 12px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); color: var(--text-main); cursor: pointer;">清除</button>
+                        <button onclick="applySearchFields()" style="padding: 6px 12px; font-size: 12px; border: none; border-radius: 4px; background: var(--primary-color); color: white; cursor: pointer;">确定</button>
+                    </div>
                 </div>
                 <div class="date-range-picker">
                     <input type="text" id="startDate" placeholder="开始日期" readonly>
@@ -3449,6 +3488,47 @@ function openAdvancedFilterModal() {
         cb.checked = advancedFilters.qualified.includes(cb.value);
     });
     document.getElementById('advancedFilterModal').classList.add('active');
+}
+
+let searchPanelOpen = false;
+
+function toggleSearchPanel() {
+    const panel = document.getElementById('searchPanel');
+    searchPanelOpen = !searchPanelOpen;
+    panel.style.display = searchPanelOpen ? 'block' : 'none';
+}
+
+function selectAllSearchFields() {
+    document.querySelectorAll('.search-field-cb').forEach(cb => cb.checked = true);
+}
+
+function clearAllSearchFields() {
+    document.querySelectorAll('.search-field-cb').forEach(cb => cb.checked = false);
+}
+
+function applySearchFields() {
+    const checked = document.querySelectorAll('.search-field-cb:checked');
+    const fields = Array.from(checked).map(cb => cb.value);
+    
+    const label = document.getElementById('searchFieldLabel');
+    if (fields.length === 0) {
+        label.textContent = '未选字段';
+    } else if (fields.length === 10) {
+        label.textContent = '全部字段';
+    } else {
+        label.textContent = `${fields.length}个字段`;
+    }
+    
+    const panel = document.getElementById('searchPanel');
+    panel.style.display = 'none';
+    searchPanelOpen = false;
+    
+    onSearchInput();
+}
+
+function getSelectedSearchFields() {
+    const checked = document.querySelectorAll('.search-field-cb:checked');
+    return Array.from(checked).map(cb => cb.value);
 }
 
 function toggleStatusAll() {
@@ -5527,7 +5607,7 @@ function stopResize() {
 // 获取当前页显示的数据（用于批量操作）
 function getCurrentPageData() {
     const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
-    const searchField = document.getElementById('searchField').value;
+    const selectedFields = getSelectedSearchFields();
     const startVal = document.getElementById('startDate').value;
     const endVal = document.getElementById('endDate').value;
     
@@ -5542,15 +5622,18 @@ function getCurrentPageData() {
         
         let matchK = true;
         if (keyword) {
-            if (searchField === 'all') {
-                const searchableFields = [item.project, item.customer, item.group, item.channelName, item.contact, item.method, item.card, item.broker, item.phone, item.fundAccount];
-                matchK = searchableFields.some(field => field && String(field).toLowerCase().includes(keyword));
-            } else if (searchField === 'amount' || searchField === 'channelPrice') {
-                const value = parseFloat(item[searchField]) || 0;
-                matchK = String(value).includes(keyword);
+            if (selectedFields.length === 0) {
+                matchK = false;
             } else {
-                const fieldValue = item[searchField];
-                matchK = fieldValue && String(fieldValue).toLowerCase().includes(keyword);
+                matchK = selectedFields.some(field => {
+                    if (field === 'amount' || field === 'channelPrice') {
+                        const value = parseFloat(item[field]) || 0;
+                        return String(value).includes(keyword);
+                    } else {
+                        const fieldValue = item[field];
+                        return fieldValue && String(fieldValue).toLowerCase().includes(keyword);
+                    }
+                });
             }
         }
         
@@ -5603,7 +5686,7 @@ function renderTable() {
 
     theadRow.innerHTML = headerHtml;
     const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
-    const searchField = document.getElementById('searchField').value;
+    const selectedFields = getSelectedSearchFields();
     const startVal = document.getElementById('startDate').value;
     const endVal = document.getElementById('endDate').value;
     let filtered = App.data.filter(item => {
@@ -5618,15 +5701,18 @@ function renderTable() {
         
         let matchK = true;
         if (keyword) {
-            if (searchField === 'all') {
-                const searchableFields = [item.project, item.customer, item.group, item.channelName, item.contact, item.method, item.card, item.broker, item.phone, item.fundAccount];
-                matchK = searchableFields.some(field => field && String(field).toLowerCase().includes(keyword));
-            } else if (searchField === 'amount' || searchField === 'channelPrice') {
-                const value = parseFloat(item[searchField]) || 0;
-                matchK = String(value).includes(keyword);
+            if (selectedFields.length === 0) {
+                matchK = false;
             } else {
-                const fieldValue = item[searchField];
-                matchK = fieldValue && String(fieldValue).toLowerCase().includes(keyword);
+                matchK = selectedFields.some(field => {
+                    if (field === 'amount' || field === 'channelPrice') {
+                        const value = parseFloat(item[field]) || 0;
+                        return String(value).includes(keyword);
+                    } else {
+                        const fieldValue = item[field];
+                        return fieldValue && String(fieldValue).toLowerCase().includes(keyword);
+                    }
+                });
             }
         }
         const profit = (parseFloat(item.channelPrice)||0) - (parseFloat(item.amount)||0);

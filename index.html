@@ -4707,6 +4707,58 @@ function settleAllAudited() {
     });
     
     alert(`成功结算 ${auditedTodos.length} 条订单！\n待结算金额合计：¥${totalAmount.toFixed(2)}`);
+    
+    if (auditedTodos.length > 0) {
+        exportSettlementData(auditedTodos);
+    }
+}
+
+function exportSettlementData(todos) {
+    const headers = ['做单时间', '项目', '推广费', '渠道价格', '预估利润', '预付资格', '预付金额', '预付时间', '渠道', '券商', '资金号', '姓名', '手机号', '群号简称', '对接人', '收款方式', '支付宝卡', '结算金额', '结算时间', '状态', '审核情况', '待结算金额'];
+    
+    const rows = todos.map(todo => {
+        const amount = parseFloat(todo.data.amount) || 0;
+        const prepaid = parseFloat(todo.data.prepay) || 0;
+        const channelPrice = parseFloat(todo.data.channelPrice) || 0;
+        const settleAmount = todo.auditStatus === 'qualified' ? amount - prepaid : 0 - prepaid;
+        
+        return [
+            todo.data.time || '',
+            todo.data.project || '',
+            amount.toFixed(2),
+            channelPrice.toFixed(2),
+            (channelPrice - amount).toFixed(2),
+            todo.data.prepayQualification || '',
+            prepaid.toFixed(2),
+            todo.data.prepayTime || '',
+            todo.data.channel || '',
+            todo.data.broker || '',
+            todo.data.fundAccount || '',
+            todo.data.customer || '',
+            todo.data.phone || '',
+            todo.data.group || '',
+            todo.data.contact || '',
+            todo.data.method || '',
+            todo.data.card || '',
+            amount.toFixed(2),
+            todo.data.settleTime ? new Date(todo.data.settleTime).toLocaleString('zh-CN') : '',
+            '已结算',
+            todo.auditStatus === 'qualified' ? '合格' : '无数据',
+            settleAmount.toFixed(2)
+        ];
+    });
+    
+    const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    const timestamp = new Date().toISOString().replace(/[-T:.]/g, '').slice(0, 14);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `结算数据_${timestamp}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
 // 带自定义内容的确认对话框

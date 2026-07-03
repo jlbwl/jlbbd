@@ -2078,15 +2078,24 @@ th {
                             </label>
                         </div>
                     </div>
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+                        <h3 style="margin-bottom: 10px; font-size: 13px; color: var(--primary-color);">日期范围</h3>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <div>
+                                <label style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px; display: block;">开始日期</label>
+                                <input type="text" id="panelStartDate" placeholder="选择开始日期" readonly style="width: 120px; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 12px; background: var(--bg-color); color: var(--text-main);">
+                            </div>
+                            <span style="color: var(--text-sub);">→</span>
+                            <div>
+                                <label style="font-size: 12px; color: var(--text-sub); margin-bottom: 4px; display: block;">结束日期</label>
+                                <input type="text" id="panelEndDate" placeholder="选择结束日期" readonly style="width: 120px; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 12px; background: var(--bg-color); color: var(--text-main);">
+                            </div>
+                        </div>
+                    </div>
                     <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px; padding-top: 10px; border-top: 1px solid var(--border-color);">
                         <button onclick="clearAllSearchInputs()" style="padding: 6px 12px; font-size: 12px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--card-bg); color: var(--text-main); cursor: pointer;">重置</button>
                         <button onclick="applyMultiFieldSearch()" style="padding: 6px 12px; font-size: 12px; border: none; border-radius: 4px; background: var(--primary-color); color: white; cursor: pointer;">确定</button>
                     </div>
-                </div>
-                <div class="date-range-picker">
-                    <input type="text" id="startDate" placeholder="开始日期" readonly>
-                    <span>→</span>
-                    <input type="text" id="endDate" placeholder="结束日期" readonly>
                 </div>
                 <div class="page-size-container"><span>每页:</span><select id="pageSize" onchange="onPageSizeChange()"><option value="20">20</option><option value="50">50</option><option value="100">100</option></select></div>
             </div>
@@ -3478,6 +3487,9 @@ function clearAllSearchInputs() {
     
     document.querySelectorAll('.filterStatus').forEach(cb => cb.checked = cb.value === 'all');
     document.querySelectorAll('.filterQual').forEach(cb => cb.checked = cb.value === 'all');
+    
+    document.getElementById('panelStartDate').value = '';
+    document.getElementById('panelEndDate').value = '';
 }
 
 function applyMultiFieldSearch() {
@@ -3498,13 +3510,16 @@ function applyMultiFieldSearch() {
         .map(cb => cb.value)
         .filter(v => v !== 'all');
     
-    const hasFilters = Object.keys(searchFields).length > 0 || statusFilters.length > 0 || qualFilters.length > 0;
+    const startDate = document.getElementById('panelStartDate').value.trim();
+    const endDate = document.getElementById('panelEndDate').value.trim();
+    
+    const hasFilters = Object.keys(searchFields).length > 0 || statusFilters.length > 0 || qualFilters.length > 0 || startDate || endDate;
     const label = document.getElementById('searchFieldLabel');
     if (!hasFilters) {
         label.textContent = '高级筛选';
         document.getElementById('searchInput').value = '';
     } else {
-        const count = Object.keys(searchFields).length + statusFilters.length + qualFilters.length;
+        const count = Object.keys(searchFields).length + statusFilters.length + qualFilters.length + (startDate ? 1 : 0) + (endDate ? 1 : 0);
         label.textContent = `筛选: ${count}个条件`;
         document.getElementById('searchInput').value = JSON.stringify(searchFields);
     }
@@ -3534,6 +3549,9 @@ function getMultiFieldSearchFilters() {
     filters.qualified = Array.from(document.querySelectorAll('.filterQual:checked'))
         .map(cb => cb.value)
         .filter(v => v !== 'all');
+    
+    filters.startDate = document.getElementById('panelStartDate').value.trim();
+    filters.endDate = document.getElementById('panelEndDate').value.trim();
     
     return filters;
 }
@@ -5563,13 +5581,11 @@ function stopResize() {
 // 获取当前页显示的数据（用于批量操作）
 function getCurrentPageData() {
     const searchFilters = getMultiFieldSearchFilters();
-    const startVal = document.getElementById('startDate').value;
-    const endVal = document.getElementById('endDate').value;
     
     let filtered = App.data.filter(item => {
         const t = new Date(item.time);
-        let start = startVal, end = endVal;
-        if(startVal && startVal.includes(' to ')) { const parts = startVal.split(' to '); start = parts[0]; end = parts[1]; }
+        let start = searchFilters.startDate, end = searchFilters.endDate;
+        if(start && start.includes(' to ')) { const parts = start.split(' to '); start = parts[0]; end = parts[1]; }
         const matchD = (!start || t >= new Date(start)) && (!end || t <= new Date(end + 'T23:59:59'));
         
         const matchS = searchFilters.status.length === 0 || searchFilters.status.includes(item.status);
@@ -5638,12 +5654,10 @@ function renderTable() {
 
     theadRow.innerHTML = headerHtml;
     const searchFilters = getMultiFieldSearchFilters();
-    const startVal = document.getElementById('startDate').value;
-    const endVal = document.getElementById('endDate').value;
     let filtered = App.data.filter(item => {
         const t = new Date(item.time);
-        let start = startVal, end = endVal;
-        if(startVal && startVal.includes(' to ')) { const parts = startVal.split(' to '); start = parts[0]; end = parts[1]; }
+        let start = searchFilters.startDate, end = searchFilters.endDate;
+        if(start && start.includes(' to ')) { const parts = start.split(' to '); start = parts[0]; end = parts[1]; }
         const matchD = (!start || t >= new Date(start)) && (!end || t <= new Date(end + 'T23:59:59'));
         
         const matchS = searchFilters.status.length === 0 || searchFilters.status.includes(item.status);
@@ -8090,8 +8104,8 @@ window.addEventListener('DOMContentLoaded', () => {
     // 初始化数据同步
     initDataSync();
     
-    const flatpickrOptions = { locale: "zh", dateFormat: "Y-m-d", allowInput: true, disableMobile: "true", onChange: function(selectedDates, dateStr, instance) { if(instance.element.id === 'startDate' || instance.element.id === 'endDate') { onSearchInput(); } } };
-    flatpickr("#startDate", { ...flatpickrOptions, plugins: [ new rangePlugin({ input: "#endDate"}) ] });
+    const flatpickrOptions = { locale: "zh", dateFormat: "Y-m-d", allowInput: true, disableMobile: "true" };
+    flatpickr("#panelStartDate", { ...flatpickrOptions, plugins: [ new rangePlugin({ input: "#panelEndDate"}) ] });
 });
 
 // 表单创建功能

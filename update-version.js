@@ -70,26 +70,14 @@ try {
     // 保存版本号文件
     fs.writeFileSync(versionFile, JSON.stringify(versionData, null, 2));
 
-    // 同步更新 index.html 中的版本号
+    // 更新 index.html 中的 meta 标签版本号（页面显示版本号通过fetch动态加载）
     const indexFile = path.join(__dirname, 'index.html');
     let indexContent = fs.readFileSync(indexFile, 'utf8');
-    
-    // 更新硬编码的版本号
-    indexContent = indexContent.replace(
-        /<span id="appVersion"[^>]*>v[\d.]+\s*<\/span>/g,
-        `<span id="appVersion" style="font-size:12px; color:var(--text-sub); font-weight:normal; margin-left:10px;">v${newVersion}</span>`
-    );
     
     // 更新 meta 标签中的版本号
     indexContent = indexContent.replace(
         /<meta name="version" content="[\d.]+"\/?>/g,
         `<meta name="version" content="${newVersion}">`
-    );
-    
-    // 更新 App.version 初始值
-    indexContent = indexContent.replace(
-        /version:\s*'[\d.]+'/,
-        `version: '${newVersion}'`
     );
     
     fs.writeFileSync(indexFile, indexContent);

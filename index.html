@@ -9,7 +9,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="version" content="1.27.6">
+<meta name="version" content="1.27.7">
 <script>
     // 在window对象上直接定义showCompassCommands函数，确保它在任何时候都可用
     window.showCompassCommands = function() {
@@ -7542,6 +7542,8 @@ function confirmImportExcel(jsonDataStr) {
     if (count > 0) {
         App.log('导入Excel', `${count}条`);
         App.saveData();
+        updateStats();
+        renderTable();
     }
     
     let message = '';

@@ -1,7 +1,8 @@
 {
-  "version": "1.27.7",
+  "version": "1.28.0",
   "releaseDate": "2026-07-04",
   "changes": [
+    "修复导入后列表不刷新问题：添加renderTable()调用",
     "修复版本号加载时机问题：等待DOM加载完成后再执行fetch",
     "移除页面版本号硬编码，采用fetch动态加载version.json",
     "修复版本号同步问题：更新update-version.js自动同步index.html版本号",
@@ -20,8 +21,7 @@
     "feat: 收单列表新增多字段搜索功能",
     "feat: 收单列表已结算数据行显示绿色背景",
     "feat: 一键结算后自动导出本次结算数据",
-    "feat: 历史结算记录支持批量选择和导出功能",
-    "feat: 在待办列表中添加移出按钮"
+    "feat: 历史结算记录支持批量选择和导出功能"
   ],
   "author": "jlbbd team",
   "description": "金卢比智能表单系统",

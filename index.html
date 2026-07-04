@@ -3666,7 +3666,15 @@ function onPresetSearchInputOriginal() {
             const regex = new RegExp(`(${keyword})`, 'gi');
             const highlightedText = String(cand.text).replace(regex, '<span class="highlight">$1</span>');
             div.innerHTML = `<div><span>${highlightedText}</span><small>${cand.type} (${cand.fullItem.method})</small></div>`;
-            div.onclick = () => { input.value = cand.original; dropdown.style.display = 'none'; renderPresetTable(); };
+            div.onclick = () => { 
+                input.value = cand.original; 
+                dropdown.style.display = 'none'; 
+                if (cand.fullItem) {
+                    cand.fullItem.searchCount = (cand.fullItem.searchCount || 0) + 1;
+                    App.saveData();
+                }
+                renderPresetTable(); 
+            };
             dropdown.appendChild(div);
         });
         dropdown.style.display = 'block';
@@ -5904,25 +5912,16 @@ function renderPresetTable() {
     const container = document.getElementById('customerGridContainer'); container.innerHTML = '';
     const searchVal = document.getElementById('presetSearchInput').value.toLowerCase(), methodFilter = document.getElementById('presetMethodFilter').value;
     
-    // 过滤预设并增加搜索计数
     let filtered = App.presets.filter(p => {
-        // 确保每个预设都有 searchCount 字段
         if (!p.searchCount) p.searchCount = 0;
         
         const matchSearch = !searchVal || p.group.toLowerCase().includes(searchVal) || p.contact.toLowerCase().includes(searchVal) || (p.card && p.card.toLowerCase().includes(searchVal));
         const matchMethod = !methodFilter || p.method === methodFilter;
         
-        // 如果匹配，增加搜索计数
-        if (matchSearch && matchMethod) {
-            p.searchCount++;
-        }
-        
         return matchSearch && matchMethod;
     });
     
-    // 按搜索计数降序排序
     filtered.sort((a, b) => {
-        // 确保两个预设都有 searchCount 字段
         if (!a.searchCount) a.searchCount = 0;
         if (!b.searchCount) b.searchCount = 0;
         return b.searchCount - a.searchCount;

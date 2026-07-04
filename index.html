@@ -2134,7 +2134,22 @@ th {
             </div>
         </div>
         <div id="view-logs" class="view-section">
-            <div class="action-bar"><button class="btn btn-outline" onclick="clearLogs()">清空日志</button></div>
+            <div class="action-bar">
+                <input type="text" id="logSearchInput" placeholder="搜索日志内容、操作人、变更字段..." style="flex:1; max-width:350px; padding:6px 10px; border:1px solid var(--border-color); border-radius:6px; font-size:13px;" oninput="renderLogs()">
+                <select id="logTypeFilter" style="padding:6px 10px; border:1px solid var(--border-color); border-radius:6px; font-size:13px; margin-right:8px;" onchange="renderLogs()">
+                    <option value="">全部类型</option>
+                    <option value="create">新增</option>
+                    <option value="update">修改</option>
+                    <option value="delete">删除</option>
+                    <option value="audit">审核</option>
+                    <option value="settle">结算</option>
+                    <option value="batch">批量</option>
+                </select>
+                <input type="date" id="logStartDate" placeholder="开始日期" style="padding:6px 10px; border:1px solid var(--border-color); border-radius:6px; font-size:13px; margin-right:8px;" onchange="renderLogs()">
+                <input type="date" id="logEndDate" placeholder="结束日期" style="padding:6px 10px; border:1px solid var(--border-color); border-radius:6px; font-size:13px; margin-right:8px;" onchange="renderLogs()">
+                <button class="btn btn-outline" onclick="exportLogs()">📤 导出日志</button>
+                <button class="btn btn-outline" onclick="clearLogs()">🗑️ 清空日志</button>
+            </div>
             <div style="background:var(--card-bg); border-radius:12px; padding:15px; border:1px solid var(--border-color);" id="logContainer"></div>
         </div>
         <div id="view-settings" class="view-section">
@@ -3330,9 +3345,12 @@ const App = {
      * @param {string} detail - 操作详情
      * @description 记录用户操作日志并保存
      */
-    log(action, detail) {
+    log(action, detail, changes = {}) {
         const user = this.currentUser ? this.currentUser.role : 'unknown';
         const entry = { time: new Date().toISOString(), user, action, detail };
+        if (Object.keys(changes).length > 0) {
+            entry.changes = changes;
+        }
         this.logs.unshift(entry);
         if(this.logs.length > 200) this.logs.pop();
         this.saveData();
@@ -4647,6 +4665,9 @@ function toggleAuditMenu(event, dataIndex) {
 function auditTodo(dataIndex, status) {
     const todoItem = App.todoList.find(t => t.dataIndex === dataIndex);
     if (todoItem) {
+        const oldAuditStatus = todoItem.auditStatus || '未审核';
+        const newAuditStatus = status === 'qualified' ? '合格' : (status === 'nodata' ? '无数据' : '未审核');
+        
         todoItem.auditStatus = status;
         todoItem.data.qualified = status === 'qualified' ? 'qualified' : (status === 'nodata' ? 'nodata' : 'pending');
         
@@ -4655,6 +4676,18 @@ function auditTodo(dataIndex, status) {
             originalItem.qualified = status === 'qualified' ? 'qualified' : (status === 'nodata' ? 'nodata' : 'pending');
         }
         
+        const changes = {
+            '审核状态': { old: oldAuditStatus, new: newAuditStatus }
+        };
+        
+        const settleAmount = status === 'qualified' 
+            ? (parseFloat(todoItem.data.amount) || 0) - (parseFloat(todoItem.data.prepay) || 0)
+            : 0 - (parseFloat(todoItem.data.prepay) || 0);
+        
+        changes['待结算金额'] = { old: todoItem.settleAmount || 0, new: settleAmount };
+        todoItem.settleAmount = settleAmount;
+        
+        App.log('审核订单', `${todoItem.data.project}`, changes);
         App.saveData();
         updateTodoStats();
         renderTodoList('all');
@@ -4746,7 +4779,24 @@ function settleAllAudited() {
     const settleTime = new Date().toISOString();
     const auditedTodos = App.todoList.filter(t => t.auditStatus === 'qualified' || t.auditStatus === 'nodata');
     
+    let totalAmount = 0;
+    const changesList = [];
+    
     auditedTodos.forEach(todo => {
+        const amount = parseFloat(todo.data.amount) || 0;
+        const prepaid = parseFloat(todo.data.prepay) || 0;
+        const settleAmount = todo.auditStatus === 'qualified' ? amount - prepaid : 0 - prepaid;
+        totalAmount += settleAmount;
+        
+        const changes = {
+            '结算状态': { old: todo.data.status || '未结算', new: '已结算' },
+            '审核状态': { old: getQualLabel(todo.data.qualified), new: todo.auditStatus === 'qualified' ? '合格' : '无数据' },
+            '推广费': { old: amount, new: amount },
+            '预付金额': { old: prepaid, new: prepaid },
+            '待结算金额': { old: todo.settleAmount || 0, new: settleAmount }
+        };
+        changesList.push({ project: todo.data.project, changes: changes });
+        
         todo.data.status = 'settled';
         todo.data.settleTime = settleTime;
         
@@ -4765,22 +4815,17 @@ function settleAllAudited() {
     
     App.todoList = App.todoList.filter(t => t.auditStatus === 'pending');
     
+    const detail = `结算了 ${auditedTodos.length} 条已审核待办，合计金额：¥${totalAmount.toFixed(2)}`;
+    const changes = {};
+    changesList.forEach((item, idx) => {
+        changes[`订单${idx + 1}: ${item.project}`] = item.changes;
+    });
+    
+    App.log('一键结算', detail, changes);
     App.saveData();
-    App.log('一键结算', `结算了 ${auditedTodos.length} 条已审核待办`);
     
     updateTodoStats();
     renderTodoList('all');
-    
-    let totalAmount = 0;
-    auditedTodos.forEach(todo => {
-        const amount = parseFloat(todo.data.amount) || 0;
-        const prepaid = parseFloat(todo.data.prepay) || 0;
-        if (todo.auditStatus === 'qualified') {
-            totalAmount += amount - prepaid;
-        } else {
-            totalAmount += 0 - prepaid;
-        }
-    });
     
     alert(`成功结算 ${auditedTodos.length} 条订单！\n待结算金额合计：¥${totalAmount.toFixed(2)}`);
     
@@ -5483,16 +5528,53 @@ function saveColumnSettings() {
     App.saveData(); closeModal('columnSettingsModal'); alert('✅ 列设置已保存！\n列表视图和 Excel 导出将立即更新。');
 }
 function resetColumnSettings() { if(!confirm('确定重置为默认显示设置吗？')) return; for (let key in App.columnConfig) App.userColumnVisibility[key] = App.columnConfig[key].default; openColumnSettings(); }
+
+const EXCEL_FIELD_MAP = {
+    'time': { exportLabel: '做单时间', importAliases: ['做单时间', '时间'] },
+    'project': { exportLabel: '项目', importAliases: ['项目'] },
+    'amount': { exportLabel: '推广费', importAliases: ['推广费', '金额'] },
+    'prepayEligible': { exportLabel: '预付资格', importAliases: ['预付资格'] },
+    'prepay': { exportLabel: '预付金额', importAliases: ['预付金额'] },
+    'prepayTime': { exportLabel: '预付时间', importAliases: ['预付时间'] },
+    'channelName': { exportLabel: '渠道', importAliases: ['渠道'] },
+    'channelPrice': { exportLabel: '渠道价格', importAliases: ['渠道价格'] },
+    'broker': { exportLabel: '券商', importAliases: ['券商'] },
+    'fundAccount': { exportLabel: '资金号', importAliases: ['资金号'] },
+    'customer': { exportLabel: '姓名', importAliases: ['姓名', '兼职姓名'] },
+    'phone': { exportLabel: '手机号', importAliases: ['手机号', '兼职手机号'] },
+    'group': { exportLabel: '群号简称', importAliases: ['群号简称', '群号'] },
+    'contact': { exportLabel: '对接人', importAliases: ['对接人', '对接'] },
+    'method': { exportLabel: '收款方式', importAliases: ['收款方式', '收款'] },
+    'card': { exportLabel: '支付宝卡', importAliases: ['支付宝卡', '卡号'] },
+    'settleAmount': { exportLabel: '结算金额', importAliases: ['结算金额'] },
+    'settleTime': { exportLabel: '结算时间', importAliases: ['结算时间'] },
+    'status': { exportLabel: '状态', importAliases: ['状态'] },
+    'qualified': { exportLabel: '审核', importAliases: ['审核'] }
+};
+
 function getColumnDefs() {
     return [
-        { key: 'time', label: '做单时间', sort: 'time' }, { key: 'project', label: '项目', sort: 'project' },
-        { key: 'amount', label: '推广费', sort: 'amount', isNum: true }, { key: 'prepayEligible', label: '预付资格', sort: 'prepayEligible' }, { key: 'prepay', label: '预付金额', sort: 'prepay', isNum: true }, { key: 'prepayTime', label: '预付时间', sort: 'prepayTime' }, { key: 'channelName', label: '渠道', sort: 'channelName' },
-        { key: 'channelPrice', label: '渠道价格', sort: 'channelPrice', isNum: true }, { key: 'profit', label: '利润', sort: 'profit', isNum: true },
-        { key: 'broker', label: '券商', sort: 'broker' }, { key: 'fundAccount', label: '资金号', sort: 'fundAccount' },
-        { key: 'customer', label: '姓名', sort: 'customer' }, { key: 'phone', label: '手机号', sort: 'phone' },
-        { key: 'group', label: '群号简称', sort: 'group' }, { key: 'contact', label: '对接人', sort: 'contact' },
-        { key: 'settleAmount', label: '结算金额', sort: 'settleAmount', isNum: true }, { key: 'settleTime', label: '结算时间', sort: 'settleTime' }, { key: 'status', label: '状态', sort: 'status' },
-        { key: 'qualified', label: '审核', sort: 'qualified' }
+        { key: 'time', label: EXCEL_FIELD_MAP['time'].exportLabel, sort: 'time' }, 
+        { key: 'project', label: EXCEL_FIELD_MAP['project'].exportLabel, sort: 'project' },
+        { key: 'amount', label: EXCEL_FIELD_MAP['amount'].exportLabel, sort: 'amount', isNum: true }, 
+        { key: 'prepayEligible', label: EXCEL_FIELD_MAP['prepayEligible'].exportLabel, sort: 'prepayEligible' }, 
+        { key: 'prepay', label: EXCEL_FIELD_MAP['prepay'].exportLabel, sort: 'prepay', isNum: true }, 
+        { key: 'prepayTime', label: EXCEL_FIELD_MAP['prepayTime'].exportLabel, sort: 'prepayTime' }, 
+        { key: 'channelName', label: EXCEL_FIELD_MAP['channelName'].exportLabel, sort: 'channelName' },
+        { key: 'channelPrice', label: EXCEL_FIELD_MAP['channelPrice'].exportLabel, sort: 'channelPrice', isNum: true }, 
+        { key: 'profit', label: '利润', sort: 'profit', isNum: true },
+        { key: 'broker', label: EXCEL_FIELD_MAP['broker'].exportLabel, sort: 'broker' }, 
+        { key: 'fundAccount', label: EXCEL_FIELD_MAP['fundAccount'].exportLabel, sort: 'fundAccount' },
+        { key: 'customer', label: EXCEL_FIELD_MAP['customer'].exportLabel, sort: 'customer' }, 
+        { key: 'phone', label: EXCEL_FIELD_MAP['phone'].exportLabel, sort: 'phone' },
+        { key: 'group', label: EXCEL_FIELD_MAP['group'].exportLabel, sort: 'group' }, 
+        { key: 'contact', label: EXCEL_FIELD_MAP['contact'].exportLabel, sort: 'contact' },
+        { key: 'method', label: EXCEL_FIELD_MAP['method'].exportLabel, sort: 'method' },
+        { key: 'card', label: EXCEL_FIELD_MAP['card'].exportLabel, sort: 'card' },
+        { key: 'settleAmount', label: EXCEL_FIELD_MAP['settleAmount'].exportLabel, sort: 'settleAmount', isNum: true }, 
+        { key: 'settleTime', label: EXCEL_FIELD_MAP['settleTime'].exportLabel, sort: 'settleTime' }, 
+        { key: 'status', label: EXCEL_FIELD_MAP['status'].exportLabel, sort: 'status' },
+        { key: 'qualified', label: EXCEL_FIELD_MAP['qualified'].exportLabel, sort: 'qualified' }
     ];
 }
 // 列宽调整相关变量
@@ -5767,34 +5849,49 @@ function applyListBatchChange() {
     const settleTimeVal = document.getElementById('listBatchSettle').value;
     
     const changedFields = [];
+    const changesList = [];
     
     checked.forEach(cb => {
         const idx = parseInt(cb.value);
+        const item = App.data[idx];
+        const itemChanges = {};
         
         if(groupVal) {
-            App.data[idx].group = groupVal;
+            itemChanges['群号简称'] = { old: item.group || '', new: groupVal };
+            item.group = groupVal;
             const matchedPreset = App.presets.find(p => p.group === groupVal);
             if(matchedPreset) {
-                App.data[idx].method = matchedPreset.method;
-                App.data[idx].contact = matchedPreset.contact;
-                App.data[idx].card = matchedPreset.card || '';
+                itemChanges['收款方式'] = { old: item.method || '', new: matchedPreset.method };
+                itemChanges['对接人'] = { old: item.contact || '', new: matchedPreset.contact };
+                item.method = matchedPreset.method;
+                item.contact = matchedPreset.contact;
+                item.card = matchedPreset.card || '';
             }
             if(!changedFields.includes('群号简称')) changedFields.push('群号简称');
         }
         
         if(qualVal) {
-            App.data[idx].qualified = qualVal;
+            const qualLabels = { pending: '未审核', qualified: '合格', disqualified: '不合格', unqualified: '无数据' };
+            itemChanges['审核状态'] = { old: qualLabels[item.qualified] || '未审核', new: qualLabels[qualVal] || qualVal };
+            item.qualified = qualVal;
             if(!changedFields.includes('审核状态')) changedFields.push('审核状态');
         }
         
         if(statusVal) {
-            App.data[idx].status = statusVal;
+            const statusLabels = { unsettled: '未结算', reviewed: '已审核待结算', settled: '已结算' };
+            itemChanges['结算状态'] = { old: statusLabels[item.status] || '未结算', new: statusLabels[statusVal] || statusVal };
+            item.status = statusVal;
             if(!changedFields.includes('结算状态')) changedFields.push('结算状态');
         }
         
         if(settleTimeVal) {
-            App.data[idx].settleTime = settleTimeVal;
+            itemChanges['结算时间'] = { old: item.settleTime || '', new: settleTimeVal };
+            item.settleTime = settleTimeVal;
             if(!changedFields.includes('结算时间')) changedFields.push('结算时间');
+        }
+        
+        if (Object.keys(itemChanges).length > 0) {
+            changesList.push({ project: item.project, changes: itemChanges });
         }
     });
     
@@ -5802,7 +5899,13 @@ function applyListBatchChange() {
         return alert('请至少选择一个要修改的字段');
     }
     
-    App.log('批量修改', `修改了 ${checked.length} 条数据的 ${changedFields.join('、')}`);
+    const detail = `修改了 ${checked.length} 条数据的 ${changedFields.join('、')}`;
+    const changes = {};
+    changesList.forEach((item, idx) => {
+        changes[`订单${idx + 1}: ${item.project}`] = item.changes;
+    });
+    
+    App.log('批量修改', detail, changes);
     App.saveData();
     alert(`✅ 成功修改 ${checked.length} 条数据的以下字段：\n${changedFields.join('\n')}`);
     document.querySelectorAll('.row-cb').forEach(cb => cb.checked = false);
@@ -5824,25 +5927,105 @@ function restoreAll() { if(!App.recycleBin.length) return; App.data = [...App.re
 function clearRecycle() { if(!confirm('彻底清空回收站？不可恢复！')) return; App.recycleBin = []; App.saveData(); }
 function renderLogs() { 
     const div = document.getElementById('logContainer'); 
+    const searchVal = document.getElementById('logSearchInput').value.toLowerCase();
+    const typeFilter = document.getElementById('logTypeFilter').value;
+    const startDate = document.getElementById('logStartDate').value;
+    const endDate = document.getElementById('logEndDate').value;
+    
+    let filteredLogs = App.logs;
+    
+    if (searchVal) {
+        filteredLogs = filteredLogs.filter(l => 
+            l.action.toLowerCase().includes(searchVal) || 
+            l.detail.toLowerCase().includes(searchVal) ||
+            (l.user && l.user.toLowerCase().includes(searchVal)) ||
+            (l.changes && JSON.stringify(l.changes).toLowerCase().includes(searchVal))
+        );
+    }
+    
+    if (typeFilter) {
+        filteredLogs = filteredLogs.filter(l => {
+            const type = getLogType(l.action);
+            return type.class === typeFilter;
+        });
+    }
+    
+    if (startDate) {
+        filteredLogs = filteredLogs.filter(l => l.time >= startDate);
+    }
+    
+    if (endDate) {
+        const endDateTime = new Date(endDate);
+        endDateTime.setDate(endDateTime.getDate() + 1);
+        filteredLogs = filteredLogs.filter(l => l.time < endDateTime.toISOString().split('T')[0]);
+    }
+    
+    function renderChanges(changes, level = 0) {
+        if (!changes || Object.keys(changes).length === 0) return '';
+        
+        const indent = level * 12;
+        const isNested = level > 0;
+        
+        return '<div class="log-changes" style="margin-top: 8px; padding: 8px; background: var(--bg-color); border-radius: 6px; font-size: 12px; margin-left: ' + indent + 'px;">' + 
+            Object.entries(changes).map(([field, values]) => {
+                if (values && typeof values === 'object' && !values.old && !values.new) {
+                    return '<div style="margin-bottom: 4px;"><strong style="color: var(--primary-color);">' + field + '</strong>' + 
+                           renderChanges(values, level + 1) + '</div>';
+                }
+                return '<div class="log-change-item" style="display: flex; gap: 8px; margin: 4px 0; align-items: center;">' + 
+                    '<span class="log-change-field" style="font-weight: 600; color: var(--text-sub); min-width: 80px;">' + field + ':</span>' + 
+                    '<span class="log-change-old" style="color: #ef4444; text-decoration: line-through; flex-shrink: 0;">' + 
+                        (values.old !== undefined ? values.old : '-') + '</span>' + 
+                    '<span class="log-change-arrow" style="color: var(--text-sub); font-size: 10px; flex-shrink: 0;">→</span>' + 
+                    '<span class="log-change-new" style="color: #22c55e; font-weight: 500;">' + 
+                        (values.new !== undefined ? values.new : '-') + '</span>' + 
+                    '</div>';
+            }).join('') + 
+        '</div>';
+    }
+    
+    function getChangeSummary(changes) {
+        if (!changes) return '';
+        let count = 0;
+        function countChanges(obj) {
+            Object.values(obj).forEach(v => {
+                if (v && typeof v === 'object') {
+                    if (v.old !== undefined || v.new !== undefined) {
+                        count++;
+                    } else {
+                        countChanges(v);
+                    }
+                }
+            });
+        }
+        countChanges(changes);
+        return count > 0 ? ` <span style="color: var(--primary-color); font-size: 12px;">(${count}项变更)</span>` : '';
+    }
+    
     div.innerHTML = `
         <style>
             .logs-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-            .logs-table th, .logs-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border-color); }
-            .logs-table th { background: var(--card-bg); font-weight: 600; color: var(--text-sub); }
+            .logs-table th, .logs-table td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--border-color); }
+            .logs-table th { background: var(--card-bg); font-weight: 600; color: var(--text-sub); font-size: 12px; }
             .logs-table tr:hover { background: var(--hover-bg); }
-            .log-type { padding: 3px 8px; border-radius: 8px; font-size: 11px; font-weight: 600; }
+            .log-type { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; display: inline-block; }
             .log-type.create { background: #dcfce7; color: #166534; }
             .log-type.update { background: #fef3c7; color: #92400e; }
             .log-type.delete { background: #fee2e2; color: #991b1b; }
             .log-type.audit { background: #e0e7ff; color: #4338ca; }
+            .log-type.settle { background: #bfdbfe; color: #1e40af; }
             .log-type.batch { background: #d1fae5; color: #059669; }
             .log-time-detailed { color: var(--text-sub); font-size: 12px; }
             .log-user { font-weight: 600; color: var(--primary-color); }
+            .log-action-title { font-weight: 600; color: var(--text-main); margin-right: 8px; }
+            .log-detail { color: var(--text-sub); }
+            .log-has-changes { cursor: pointer; }
+            .log-has-changes:hover { text-decoration: underline; }
         </style>
         <table class="logs-table">
             <thead>
                 <tr>
-                    <th style="width: 100px;">操作时间</th>
+                    <th style="width: 170px;">操作时间</th>
                     <th style="width: 80px;">操作人</th>
                     <th style="width: 80px;">操作类型</th>
                     <th style="width: 120px;">操作模块</th>
@@ -5850,16 +6033,22 @@ function renderLogs() {
                 </tr>
             </thead>
             <tbody>
-                ${App.logs.length === 0 ? '<tr><td colspan="5" style="text-align:center; color:var(--text-sub); padding:30px;">暂无操作日志</td></tr>' : App.logs.map(l => {
+                ${filteredLogs.length === 0 ? '<tr><td colspan="5" style="text-align:center; color:var(--text-sub); padding:40px;">暂无操作日志</td></tr>' : filteredLogs.map((l, logIdx) => {
                     const type = getLogType(l.action);
                     const module = getLogModule(l.action);
+                    const hasChanges = l.changes && Object.keys(l.changes).length > 0;
+                    const changeSummary = getChangeSummary(l.changes);
+                    
                     return `
                         <tr>
                             <td><div class="log-time-detailed">${formatDateTime(l.time)}</div></td>
-                            <td><span class="log-user">[${l.user}]</span></td>
+                            <td><span class="log-user">[${l.user || 'unknown'}]</span></td>
                             <td><span class="log-type ${type.class}">${type.label}</span></td>
                             <td>${module}</td>
-                            <td><strong>${l.action}</strong>: ${l.detail}</td>
+                            <td>
+                                <div><span class="log-action-title">${l.action}</span><span class="log-detail">${l.detail}</span>${changeSummary}</div>
+                                ${hasChanges ? renderChanges(l.changes) : ''}
+                            </td>
                         </tr>
                     `;
                 }).join('')}
@@ -5883,6 +6072,8 @@ function getLogType(action) {
         return { class: 'delete', label: '删除' };
     } else if (action.includes('审核') || action.includes('核实')) {
         return { class: 'audit', label: '审核' };
+    } else if (action.includes('结算') || action.includes('一键结算')) {
+        return { class: 'settle', label: '结算' };
     } else if (action.includes('批量')) {
         return { class: 'batch', label: '批量' };
     } else {
@@ -5906,6 +6097,55 @@ function getLogModule(action) {
     }
 }
 function clearLogs() { App.logs = []; App.saveData(); }
+function exportLogs() {
+    if (App.logs.length === 0) {
+        alert('暂无日志可导出');
+        return;
+    }
+    
+    const headers = ['操作时间', '操作人', '操作类型', '操作模块', '操作详情', '变更详情'];
+    const rows = App.logs.map(log => {
+        const type = getLogType(log.action);
+        const module = getLogModule(log.action);
+        let changesDetail = '';
+        
+        if (log.changes && Object.keys(log.changes).length > 0) {
+            function formatChanges(changes, indent = '') {
+                return Object.entries(changes).map(([field, values]) => {
+                    if (values && typeof values === 'object' && !values.old && !values.new) {
+                        return indent + field + '\n' + formatChanges(values, indent + '  ');
+                    }
+                    return indent + field + ': ' + (values.old !== undefined ? values.old : '-') + ' → ' + (values.new !== undefined ? values.new : '-');
+                }).join('\n');
+            }
+            changesDetail = formatChanges(log.changes);
+        }
+        
+        return [
+            formatDateTime(log.time),
+            log.user || 'unknown',
+            type.label,
+            module,
+            log.action + ': ' + log.detail,
+            changesDetail
+        ];
+    });
+    
+    const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => {
+        const escaped = String(cell).replace(/"/g, '""');
+        return `"${escaped}"`;
+    }).join(','))].join('\n');
+    
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `审计日志_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
 function clearChannelHistory() { if(!confirm('确定清空所有渠道记忆历史？')) return; App.channelHistory = []; App.saveData(); alert('渠道历史已清空'); }
 let currentPresetQr = null;
 function renderPresetTable() {
@@ -6681,6 +6921,46 @@ function saveEdit() {
     const old = App.data[idx];
     const channelName = document.getElementById('eChannel').value.trim();
     
+    const newData = { 
+        time: document.getElementById('eTime').value, 
+        project: document.getElementById('eProject').value.trim(), 
+        amount: parseFloat(document.getElementById('eAmount').value), 
+        prepayEligible: document.getElementById('ePrepayEligible').value, 
+        prepay: parseFloat(document.getElementById('ePrepay').value) || 0, 
+        prepayTime: document.getElementById('ePrepayTime').value, 
+        channelName, 
+        channelPrice: parseFloat(document.getElementById('ePrice').value), 
+        broker: document.getElementById('eBroker').value.trim(), 
+        fundAccount: document.getElementById('eFundAccount').value.trim(), 
+        phone: document.getElementById('ePhone').value.trim(), 
+        settleTime: document.getElementById('eSettle').value, 
+        settleAmount: parseFloat(document.getElementById('eSettleAmount').value) || 0, 
+        customer: document.getElementById('eCustomer').value.trim(), 
+        group: document.getElementById('eGroup').value.trim(), 
+        contact: document.getElementById('eContact').value.trim(), 
+        method: document.getElementById('eMethod').value, 
+        card: document.getElementById('eCard').value.trim(), 
+        status: document.getElementById('eStatus').value, 
+        qualified: document.getElementById('eQual').value 
+    };
+    
+    const changes = {};
+    const fieldLabels = {
+        time: '做单时间', project: '项目', amount: '推广费', prepayEligible: '预付资格',
+        prepay: '预付金额', prepayTime: '预付时间', channelName: '渠道', channelPrice: '渠道价格',
+        broker: '券商', fundAccount: '资金号', phone: '手机号', settleTime: '结算时间',
+        settleAmount: '结算金额', customer: '兼职姓名', group: '群号简称', contact: '对接人',
+        method: '收款方式', card: '支付宝卡', status: '结算状态', qualified: '审核状态'
+    };
+    
+    Object.keys(newData).forEach(key => {
+        const oldVal = old[key];
+        const newVal = newData[key];
+        if (String(oldVal) !== String(newVal)) {
+            changes[fieldLabels[key] || key] = { old: oldVal, new: newVal };
+        }
+    });
+    
     saveDataWithValidation({
         permission: 'edit',
         dataProcessing: () => {
@@ -6688,35 +6968,11 @@ function saveEdit() {
                 App.addChannelHistory(channelName);
                 App.updateSmartMemory(channelName, document.getElementById('eProject').value, parseFloat(document.getElementById('ePrice').value)||0);
             }
-            
-            const updated = { 
-                ...old, 
-                time: document.getElementById('eTime').value, 
-                project: document.getElementById('eProject').value.trim(), 
-                amount: parseFloat(document.getElementById('eAmount').value), 
-                prepayEligible: document.getElementById('ePrepayEligible').value, 
-                prepay: parseFloat(document.getElementById('ePrepay').value) || 0, 
-                prepayTime: document.getElementById('ePrepayTime').value, 
-                channelName, 
-                channelPrice: parseFloat(document.getElementById('ePrice').value), 
-                broker: document.getElementById('eBroker').value.trim(), 
-                fundAccount: document.getElementById('eFundAccount').value.trim(), 
-                phone: document.getElementById('ePhone').value.trim(), 
-                settleTime: document.getElementById('eSettle').value, 
-                settleAmount: parseFloat(document.getElementById('eSettleAmount').value) || 0, 
-                customer: document.getElementById('eCustomer').value.trim(), 
-                group: document.getElementById('eGroup').value.trim(), 
-                contact: document.getElementById('eContact').value.trim(), 
-                method: document.getElementById('eMethod').value, 
-                card: document.getElementById('eCard').value.trim(), 
-                status: document.getElementById('eStatus').value, 
-                qualified: document.getElementById('eQual').value 
-            };
-            
-            App.data[idx] = updated;
+            App.data[idx] = { ...old, ...newData };
         },
         logAction: '修改记录',
-        logMessage: `${document.getElementById('eProject').value.trim()} 推广费:${parseFloat(document.getElementById('eAmount').value)}`,
+        logMessage: `${newData.project || old.project}`,
+        changes: changes,
         successMessage: '保存成功',
         modalId: 'editModal'
     });
@@ -7004,9 +7260,11 @@ function confirmExportExcel() {
                         if (col.key === 'profit') val = (parseFloat(item.channelPrice)||0) - (parseFloat(item.amount)||0);
                         else if (col.key === 'status') val = item.status === 'settled' ? '已结' : (item.status === 'reviewed' ? '已审核待结算' : '未结');
                         else if (col.key === 'qualified') val = item.qualified === 'qualified' ? '合格' : (item.qualified === 'disqualified' ? '不合格' : (item.qualified === 'unqualified' ? '无数据' : '未审'));
-                        else if (['amount', 'channelPrice', 'profit'].includes(col.key)) val = parseFloat(val) || 0;
-                        else if (['time', 'settleTime'].includes(col.key)) val = formatDate(item[col.key]);
-                        row[col.label] = val;
+                        else if (['amount', 'channelPrice', 'prepay', 'settleAmount', 'profit'].includes(col.key)) val = parseFloat(val) || 0;
+                        else if (['time', 'settleTime', 'prepayTime'].includes(col.key)) val = formatDate(item[col.key]);
+                        
+                        const exportLabel = EXCEL_FIELD_MAP[col.key] ? EXCEL_FIELD_MAP[col.key].exportLabel : col.label;
+                        row[exportLabel] = val;
                     }
                 });
                 return row;
@@ -7020,46 +7278,209 @@ function confirmExportExcel() {
     pendingExportFileName = '';
 }
 async function importFromExcel(input) {
-    importFromExcelGeneric({
-        input: input,
-        dataProcessing: (jsonData) => {
-            let count = 0;
-            
-            jsonData.forEach(row => {
-                if (!row["项目"] && !row["推广费"]) return;
+    const file = input.files[0];
+    if (!file) return;
+    
+    if (typeof XLSX === 'undefined') {
+        alert('❌ Excel 库加载失败，请检查网络连接');
+        return;
+    }
+    
+    try {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
                 
-                const newItem = {
-                    id: Date.now().toString()+Math.random(),
-                    time: row["做单时间"] || new Date().toISOString().split('T')[0],
-                    project: row["项目"]||'',
-                    amount: parseFloat(row["推广费"])||0,
-                    channelName: row["渠道"]||'',
-                    channelPrice: parseFloat(row["渠道价格"])||0,
-                    broker: row["券商"]||'',
-                    fundAccount: row["资金号"]||'',
-                    phone: row["兼职手机号"]||'',
-                    customer: row["兼职姓名"]||'',
-                    group: row["群号"]||'',
-                    contact: row["对接"]||'',
-                    method: row["收款"]||'支付宝',
-                    settleTime: row["结算时间"]||'',
-                    status: row["状态"]==='已结'?'settled':'unsettled',
-                    qualified: row["审核"]==='合格'?'qualified':(row["审核"]==='不合格'?'disqualified':(row["审核"]==='无数据'?'unqualified':'pending'))
-                };
-                
-                if(newItem.channelName) {
-                    App.addChannelHistory(newItem.channelName);
+                if (jsonData.length === 0) {
+                    alert('❌ Excel文件中没有数据');
+                    input.value = '';
+                    return;
                 }
                 
-                App.data.unshift(newItem);
-                count++;
-            });
+                const previewData = jsonData.slice(0, 5);
+                showImportPreviewModal(jsonData, previewData);
+                
+            } catch (error) {
+                alert('❌ 导入失败：' + error.message);
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    } catch (error) {
+        alert('❌ 导入失败：' + error.message);
+    }
+}
+
+function showImportPreviewModal(fullData, previewData) {
+    const totalCount = fullData.length;
+    
+    const previewHtml = previewData.map((row, idx) => {
+        return `<tr>
+            <td>${idx + 1}</td>
+            <td>${getImportValue(row, 'time') || '-'}</td>
+            <td>${getImportValue(row, 'project') || '-'}</td>
+            <td>${getImportValue(row, 'amount') || '-'}</td>
+            <td>${getImportValue(row, 'channelName') || '-'}</td>
+            <td>${getImportValue(row, 'customer') || '-'}</td>
+            <td>${getImportValue(row, 'phone') || '-'}</td>
+        </tr>`;
+    }).join('');
+    
+    const fieldInfoHtml = Object.entries(EXCEL_FIELD_MAP).map(([key, info]) => {
+        if (info.importAliases.length > 1) {
+            return `<li>${info.exportLabel}: 支持"${info.importAliases.join('"、"')}"</li>`;
+        }
+        return '';
+    }).filter(Boolean).join('');
+    
+    const modalHtml = `
+        <div class="modal-overlay active" id="importPreviewModal" style="display: flex;">
+            <div class="modal" style="max-width: 800px; width: 90%; max-height: 90vh;">
+                <div class="modal-header">
+                    <h2>📥 导入预览确认</h2>
+                    <button class="close-btn" onclick="closeModal('importPreviewModal')">&times;</button>
+                </div>
+                <div class="modal-body" style="overflow-y: auto; padding: 20px;">
+                    <div style="margin-bottom: 20px; padding: 15px; background: var(--header-bg); border-radius: 8px; border-left: 4px solid var(--primary-color);">
+                        <div style="font-size: 16px; font-weight: 600; color: var(--primary-color); margin-bottom: 8px;">
+                            📊 待导入数据: ${totalCount} 条记录
+                        </div>
+                        <div style="font-size: 13px; color: var(--text-sub);">
+                            以下是前5条数据的预览，请确认数据格式正确后再导入
+                        </div>
+                    </div>
+                    <div class="table-container" style="max-height: 300px; overflow-y: auto;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr>
+                                    <th style="width: 50px;">序号</th>
+                                    <th>做单时间</th>
+                                    <th>项目</th>
+                                    <th>推广费</th>
+                                    <th>渠道</th>
+                                    <th>姓名</th>
+                                    <th>手机号</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${previewHtml}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="margin-top: 15px; padding: 10px; background: #fef3c7; border-radius: 6px; font-size: 13px; color: #92400e;">
+                        ⚠️ 字段兼容说明：以下字段支持多种名称格式：
+                        <ul style="margin-top: 8px; padding-left: 20px;">
+                            ${fieldInfoHtml}
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeModal('importPreviewModal')">取消</button>
+                    <button class="btn btn-success" onclick="confirmImportExcel(${JSON.stringify(fullData).replace(/"/g, '&quot;')})">✅ 确认导入 ${totalCount} 条</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const existingModal = document.getElementById('importPreviewModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function getImportValue(row, fieldKey) {
+    const fieldMap = EXCEL_FIELD_MAP[fieldKey];
+    if (!fieldMap) return '';
+    
+    for (const alias of fieldMap.importAliases) {
+        if (row[alias] !== undefined && row[alias] !== null && row[alias] !== '') {
+            return row[alias];
+        }
+    }
+    return '';
+}
+
+function confirmImportExcel(jsonDataStr) {
+    const jsonData = JSON.parse(jsonDataStr);
+    let count = 0;
+    let failedCount = 0;
+    const errors = [];
+    
+    jsonData.forEach((row, idx) => {
+        const project = getImportValue(row, 'project');
+        const amount = getImportValue(row, 'amount');
+        
+        if (!project && !amount) {
+            return;
+        }
+        
+        try {
+            const newItem = {
+                id: Date.now().toString() + Math.random() + idx,
+                time: getImportValue(row, 'time') || new Date().toISOString().split('T')[0],
+                project: project,
+                amount: parseFloat(amount) || 0,
+                prepayEligible: getImportValue(row, 'prepayEligible') || 'no',
+                prepay: parseFloat(getImportValue(row, 'prepay')) || 0,
+                prepayTime: getImportValue(row, 'prepayTime') || '',
+                channelName: getImportValue(row, 'channelName') || '',
+                channelPrice: parseFloat(getImportValue(row, 'channelPrice')) || 0,
+                broker: getImportValue(row, 'broker') || '',
+                fundAccount: getImportValue(row, 'fundAccount') || '',
+                phone: getImportValue(row, 'phone') || '',
+                customer: getImportValue(row, 'customer') || '',
+                group: getImportValue(row, 'group') || '',
+                contact: getImportValue(row, 'contact') || '',
+                method: getImportValue(row, 'method') || '支付宝',
+                card: getImportValue(row, 'card') || '',
+                settleTime: getImportValue(row, 'settleTime') || '',
+                settleAmount: parseFloat(getImportValue(row, 'settleAmount')) || 0,
+                status: getImportValue(row, 'status') === '已结' || getImportValue(row, 'status') === '已结算' ? 'settled' : (getImportValue(row, 'status') === '已审核待结算' ? 'reviewed' : 'unsettled'),
+                qualified: getImportValue(row, 'qualified') === '合格' ? 'qualified' : (getImportValue(row, 'qualified') === '不合格' ? 'disqualified' : (getImportValue(row, 'qualified') === '无数据' ? 'unqualified' : 'pending'))
+            };
             
-            return count;
-        },
-        successMessage: '导入',
-        logAction: '导入Excel'
+            if (newItem.channelName) {
+                App.addChannelHistory(newItem.channelName);
+            }
+            
+            App.data.unshift(newItem);
+            count++;
+        } catch (error) {
+            failedCount++;
+            errors.push(`第${idx + 1}行: ${error.message}`);
+        }
     });
+    
+    if (count > 0) {
+        App.log('导入Excel', `${count}条`);
+        App.saveData();
+    }
+    
+    let message = '';
+    if (count > 0) {
+        message += `✅ 成功导入 ${count} 条数据`;
+    }
+    if (failedCount > 0) {
+        message += `\n❌ 导入失败 ${failedCount} 条数据`;
+        if (errors.length > 0) {
+            message += `\n错误详情:\n${errors.slice(0, 5).join('\n')}`;
+            if (errors.length > 5) {
+                message += `\n...还有${errors.length - 5}条错误`;
+            }
+        }
+    }
+    
+    alert(message);
+    closeModal('importPreviewModal');
+    
+    const fileInput = document.getElementById('fileInput');
+    if (fileInput) {
+        fileInput.value = '';
+    }
 }
 
 function updatePassword() { const p = document.getElementById('newPassword').value; if(p) { App.config.password = p; App.saveData(); alert('密码已更新'); } }
@@ -7083,7 +7504,14 @@ function saveSettings() {
 function toBase64(f) { return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(f);}); }
 // 通用模态框关闭函数
 function closeModal(id) {
-    document.getElementById(id).classList.remove('active');
+    const modal = document.getElementById(id);
+    if (modal) {
+        if (modal.classList.contains('active')) {
+            modal.classList.remove('active');
+        } else if (modal.style.display === 'flex') {
+            modal.style.display = 'none';
+        }
+    }
 }
 
 // 通用模态框打开函数
@@ -7132,7 +7560,8 @@ function saveDataWithValidation(options = {}) {
         modalId = null, 
         reRender = null, 
         logAction = null,
-        logMessage = ''
+        logMessage = '',
+        changes = {}
     } = options;
     
     // 权限检查
@@ -7152,7 +7581,7 @@ function saveDataWithValidation(options = {}) {
     
     // 日志记录
     if (logAction && logMessage) {
-        App.log(logAction, logMessage);
+        App.log(logAction, logMessage, changes);
     }
     
     // 保存数据

@@ -7277,6 +7277,66 @@ function confirmExportExcel() {
     pendingExportMode = '';
     pendingExportFileName = '';
 }
+function parseExcelDate(value) {
+    if (value === null || value === undefined || value === '') {
+        return '';
+    }
+    
+    if (value instanceof Date) {
+        const year = value.getFullYear();
+        const month = String(value.getMonth() + 1).padStart(2, '0');
+        const day = String(value.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+    
+    if (typeof value === 'number') {
+        const date = XLSX.SSF.parse_date_code(value);
+        if (date) {
+            const year = date.y || 1900;
+            const month = String((date.m || 1) + 1).padStart(2, '0');
+            const day = String(date.d || 1).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        return String(value);
+    }
+    
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (!trimmed) return '';
+        
+        const datePatterns = [
+            /^(\d{4})[/-](\d{1,2})[/-](\d{1,2})/,
+            /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/,
+            /^(\d{4})(\d{2})(\d{2})/
+        ];
+        
+        for (const pattern of datePatterns) {
+            const match = trimmed.match(pattern);
+            if (match) {
+                let year, month, day;
+                if (pattern === datePatterns[0]) {
+                    year = match[1];
+                    month = String(parseInt(match[2])).padStart(2, '0');
+                    day = String(parseInt(match[3])).padStart(2, '0');
+                } else if (pattern === datePatterns[1]) {
+                    year = match[3];
+                    month = String(parseInt(match[1])).padStart(2, '0');
+                    day = String(parseInt(match[2])).padStart(2, '0');
+                } else {
+                    year = match[1];
+                    month = match[2];
+                    day = match[3];
+                }
+                return `${year}-${month}-${day}`;
+            }
+        }
+        
+        return trimmed;
+    }
+    
+    return String(value);
+}
+
 async function importFromExcel(input) {
     const file = input.files[0];
     if (!file) return;
@@ -7291,14 +7351,30 @@ async function importFromExcel(input) {
         reader.onload = function(e) {
             try {
                 const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                const workbook = XLSX.read(data, { 
+                    type: 'array',
+                    cellDates: true,
+                    cellNF: false,
+                    cellText: false
+                });
+                const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {
+                    dateNF: 'yyyy-mm-dd',
+                    rawNumbers: false
+                });
                 
                 if (jsonData.length === 0) {
                     alert('❌ Excel文件中没有数据');
                     input.value = '';
                     return;
                 }
+                
+                jsonData.forEach(row => {
+                    for (const [key, value] of Object.entries(row)) {
+                        if (key.includes('时间') || key.includes('日期')) {
+                            row[key] = parseExcelDate(value);
+                        }
+                    }
+                });
                 
                 const previewData = jsonData.slice(0, 5);
                 showImportPreviewModal(jsonData, previewData);

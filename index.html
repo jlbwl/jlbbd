@@ -9,7 +9,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="version" content="1.28.2">
+<meta name="version" content="1.28.3">
 <script>
     // 在window对象上直接定义showCompassCommands函数，确保它在任何时候都可用
     window.showCompassCommands = function() {
@@ -16375,30 +16375,30 @@ class AIChatWindow {
     
     // 提示词指令库（按类别分组）
     static commandsByCategory = {
-        '报告生成': [
-            '生成盈利分析报告',
-            '生成盈利分析报告 今天',
-            '生成盈利分析报告 本周',
-            '生成盈利分析报告 本月',
-            '生成今日经营日报',
-            '查询历史经营日报 2024-01-01 到 2024-01-31'
+        '报告': [
+            '盈利分析报告',
+            '盈利报告(今天)',
+            '盈利报告(本周)',
+            '盈利报告(本月)',
+            '今日经营日报',
+            '历史日报查询'
         ],
-        '图表生成': [
-            '生成近7日收单趋势图表',
-            '生成渠道利润TOP5图表',
-            '生成团队交单排行榜图表',
-            '生成审核状态分布图表',
-            '生成结算状态分布图表',
-            '生成项目状态分布图表'
+        '图表': [
+            '7日收单趋势',
+            '渠道利润TOP5',
+            '团队交单排行',
+            '审核状态分布',
+            '结算状态分布',
+            '项目状态分布'
         ],
         '导航': [
-            '打开今日待办',
-            '打开收单列表',
-            '打开客户管理',
-            '打开回收站',
-            '打开审计日志',
-            '打开AI智能助手',
-            '打开设置'
+            '今日待办',
+            '收单列表',
+            '客户管理',
+            '回收站',
+            '审计日志',
+            'AI助手',
+            '设置'
         ],
         '其他': [
             '帮助'
@@ -17912,7 +17912,7 @@ function createCommandLibrary() {
         // 创建菜单项容器
         const menuItem = document.createElement('div');
         menuItem.style.position = 'absolute';
-        menuItem.style.width = '70px';
+        menuItem.style.width = '100px';
         menuItem.style.height = '80px';
         menuItem.style.display = 'flex';
         menuItem.style.flexDirection = 'column';
@@ -17952,16 +17952,16 @@ function createCommandLibrary() {
         
         // 创建文字标签
         const label = document.createElement('div');
-        label.style.fontSize = '10px';
+        label.style.fontSize = '11px';
         label.style.color = '#333';
         label.style.textAlign = 'center';
-        label.style.wordBreak = 'break-word';
-        label.style.maxWidth = '60px';
-        label.style.lineHeight = '1.2';
+        label.style.whiteSpace = 'nowrap';
+        label.style.maxWidth = '90px';
+        label.style.overflow = 'hidden';
+        label.style.textOverflow = 'ellipsis';
+        label.style.lineHeight = '1.3';
         
-        // 显示命令缩写
-        const shortLabel = item.command.length > 8 ? item.command.substring(0, 8) + '...' : item.command;
-        label.textContent = shortLabel;
+        label.textContent = item.command;
         
         // 组装菜单项
         menuItem.appendChild(circleBg);

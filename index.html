@@ -9,7 +9,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="version" content="1.28.1">
+<meta name="version" content="1.28.2">
 <script>
     // 在window对象上直接定义showCompassCommands函数，确保它在任何时候都可用
     window.showCompassCommands = function() {
@@ -16375,12 +16375,6 @@ class AIChatWindow {
     
     // 提示词指令库（按类别分组）
     static commandsByCategory = {
-        '客户管理': [
-            '添加新客户，姓名张三，公司ABC',
-            '查找所有高意向客户',
-            '将张三的状态改为已成交',
-            '删除客户李四'
-        ],
         '报告生成': [
             '生成盈利分析报告',
             '生成盈利分析报告 今天',
@@ -16982,21 +16976,11 @@ class AIChatWindow {
     }
     
     async processMessage(message) {
-        // 模拟 AI 思考
         const thinkingMessage = '正在处理您的请求...';
         this.addMessage('ai', thinkingMessage);
         
-        // 简单的命令解析
         try {
-            if (message.includes('添加') && message.includes('客户')) {
-                await this.handleAddCustomer(message);
-            } else if (message.includes('查找') || message.includes('搜索')) {
-                await this.handleSearchCustomers(message);
-            } else if (message.includes('修改') || message.includes('更新')) {
-                await this.handleUpdateCustomer(message);
-            } else if (message.includes('删除') && message.includes('客户')) {
-                await this.handleDeleteCustomer(message);
-            } else if (message.includes('分析') || message.includes('报告')) {
+            if (message.includes('分析') || message.includes('报告')) {
                 await this.handleGenerateReport(message);
             } else if (message.includes('图表') || message.includes('趋势') || message.includes('排行榜') || message.includes('分布')) {
                 await this.handleGenerateChart(message);
@@ -17007,7 +16991,7 @@ class AIChatWindow {
             } else if (message.includes('帮助') || message.includes('指令')) {
                 this.sendWelcomeMessage();
             } else {
-                this.addMessage('ai', '抱歉，我不太理解您的指令。您可以尝试说："添加客户"、"查找数据"、"修改信息"、"删除记录"、"生成分析"、"生成图表"、"生成经营日报"或"打开数据看板"。');
+                this.addMessage('ai', '抱歉，我不太理解您的指令。您可以尝试说："生成分析"、"生成图表"、"生成经营日报"或"打开数据看板"。');
             }
         } catch (error) {
             console.error('处理消息出错:', error);
@@ -17022,94 +17006,6 @@ class AIChatWindow {
                 messagesContainer.removeChild(messages[i]);
                 break;
             }
-        }
-    }
-    
-    async handleAddCustomer(message) {
-        // 简单的客户信息提取
-        const nameMatch = message.match(/姓名([^，,]+)/);
-        const companyMatch = message.match(/公司([^，,]+)/);
-        const wechatMatch = message.match(/微信([^，,]+)/);
-        const sourceMatch = message.match(/来源([^，,]+)/);
-        
-        const customer = {
-            name: nameMatch ? nameMatch[1].trim() : '未知',
-            company: companyMatch ? companyMatch[1].trim() : '',
-            wechat: wechatMatch ? wechatMatch[1].trim() : '',
-            source: sourceMatch ? sourceMatch[1].trim() : '其他',
-            status: 'lead',
-            score: 50
-        };
-        
-        await LeadgenManager.addCustomer(customer);
-        this.addMessage('ai', `成功添加客户：${customer.name} (${customer.company || '无公司'})`);
-    }
-    
-    async handleSearchCustomers(message) {
-        const customers = await LeadgenManager.getCustomers();
-        let filteredCustomers = customers;
-        
-        if (message.includes('高意向')) {
-            filteredCustomers = customers.filter(c => c.status === 'high-intent');
-        } else if (message.includes('已成交')) {
-            filteredCustomers = customers.filter(c => c.status === 'closed');
-        } else if (message.includes('跟进')) {
-            filteredCustomers = customers.filter(c => c.status === 'following');
-        }
-        
-        if (filteredCustomers.length === 0) {
-            this.addMessage('ai', '没有找到符合条件的客户。');
-        } else {
-            let response = `找到 ${filteredCustomers.length} 个客户：\n`;
-            filteredCustomers.forEach((customer, index) => {
-                response += `${index + 1}. ${customer.name} - ${getStatusText(customer.status)} - ${customer.score}分\n`;
-            });
-            this.addMessage('ai', response);
-        }
-    }
-    
-    async handleUpdateCustomer(message) {
-        const nameMatch = message.match(/([^，,]+)的状态改为([^，,]+)/);
-        if (nameMatch) {
-            const [, name, status] = nameMatch;
-            const customers = await LeadgenManager.getCustomers();
-            const customer = customers.find(c => c.name === name.trim());
-            
-            if (customer) {
-                const statusMap = {
-                    '线索': 'lead',
-                    '跟进': 'following',
-                    '高意向': 'high-intent',
-                    '已成交': 'closed',
-                    '已流失': 'lost'
-                };
-                
-                const newStatus = statusMap[status.trim()] || status.trim();
-                await LeadgenManager.updateCustomer(customer.id, { status: newStatus });
-                this.addMessage('ai', `成功将 ${name.trim()} 的状态更新为 ${status.trim()}。`);
-            } else {
-                this.addMessage('ai', `未找到客户 ${name.trim()}。`);
-            }
-        } else {
-            this.addMessage('ai', '请使用正确的格式修改客户信息，例如："将张三的状态改为已成交"。');
-        }
-    }
-    
-    async handleDeleteCustomer(message) {
-        const nameMatch = message.match(/删除客户([^，,]+)/);
-        if (nameMatch) {
-            const name = nameMatch[1].trim();
-            const customers = await LeadgenManager.getCustomers();
-            const customer = customers.find(c => c.name === name);
-            
-            if (customer) {
-                await LeadgenManager.deleteCustomer(customer.id);
-                this.addMessage('ai', `成功删除客户 ${name}。`);
-            } else {
-                this.addMessage('ai', `未找到客户 ${name}。`);
-            }
-        } else {
-            this.addMessage('ai', '请使用正确的格式删除客户，例如："删除客户李四"。');
         }
     }
     

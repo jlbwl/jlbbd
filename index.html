@@ -9,7 +9,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="version" content="1.28.4">
+<meta name="version" content="1.28.5">
 <script>
     // 在window对象上直接定义showCompassCommands函数，确保它在任何时候都可用
     window.showCompassCommands = function() {
@@ -16986,12 +16986,12 @@ class AIChatWindow {
                 await this.handleGenerateChart(message);
             } else if (message.includes('经营日报') || message.includes('日报')) {
                 await this.handleDailyReport(message);
-            } else if (message.includes('打开') && (message.includes('看板') || message.includes('待办') || message.includes('列表') || message.includes('管理') || message.includes('回收站') || message.includes('日志') || message.includes('设置'))) {
+            } else if (message.includes('待办') || message.includes('列表') || message.includes('管理') || message.includes('回收站') || message.includes('日志') || message.includes('设置') || message.includes('助手')) {
                 this.handleMenuNavigation(message);
             } else if (message.includes('帮助') || message.includes('指令')) {
                 this.sendWelcomeMessage();
             } else {
-                this.addMessage('ai', '抱歉，我不太理解您的指令。您可以尝试说："生成分析"、"生成图表"、"生成经营日报"或"打开数据看板"。');
+                this.addMessage('ai', '抱歉，我不太理解您的指令。您可以尝试说："盈利分析报告"、"7日收单趋势"、"今日经营日报"或"客户管理"。');
             }
         } catch (error) {
             console.error('处理消息出错:', error);
@@ -18123,27 +18123,26 @@ window.addEventListener('DOMContentLoaded', () => {
     AIChatWindow.prototype.handleMenuNavigation = function(message) {
         let viewId = '';
         
-        if (message.includes('今日待办')) {
+        if (message.includes('待办')) {
             viewId = 'todo';
-        } else if (message.includes('收单列表')) {
+        } else if (message.includes('收单') || (message.includes('列表') && !message.includes('收单'))) {
             viewId = 'list';
-        } else if (message.includes('客户管理')) {
+        } else if (message.includes('客户') || (message.includes('管理') && !message.includes('客户'))) {
             viewId = 'customer';
         } else if (message.includes('回收站')) {
             viewId = 'recycle';
-        } else if (message.includes('审计日志')) {
+        } else if (message.includes('审计') || (message.includes('日志') && !message.includes('审计'))) {
             viewId = 'logs';
-        } else if (message.includes('AI智能助手')) {
+        } else if (message.includes('AI') || message.includes('助手')) {
             viewId = 'ai';
         } else if (message.includes('设置')) {
             viewId = 'settings';
         }
         
         if (viewId) {
-            // 切换到对应视图
             switchView(viewId);
         } else {
-            this.addMessage('ai', '抱歉，无法识别您要打开的菜单。请尝试使用更明确的指令，例如：\'打开数据看板\'、\'打开今日待办\'等。');
+            this.addMessage('ai', '抱歉，无法识别您要打开的菜单。请尝试使用更明确的指令，例如：\'今日待办\'、\'收单列表\'等。');
         }
     };
     

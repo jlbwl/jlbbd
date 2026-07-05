@@ -9,7 +9,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="version" content="1.28.0">
+<meta name="version" content="1.28.1">
 <script>
     // 在window对象上直接定义showCompassCommands函数，确保它在任何时候都可用
     window.showCompassCommands = function() {
@@ -17868,47 +17868,6 @@ function createCommandLibrary() {
         }, 300);
     }
     
-    // 创建蝴蝶轨迹装饰
-    function createFootprint(x, y) {
-        const footprint = document.createElement('div');
-        footprint.style.position = 'fixed';
-        footprint.style.left = x + '%';
-        footprint.style.top = y + '%';
-        footprint.style.fontSize = '16px';
-        footprint.style.color = 'rgba(255, 105, 180, 0.8)';
-        footprint.style.zIndex = '1';
-        footprint.style.cursor = 'pointer';
-        footprint.style.transition = 'opacity 5s ease, transform 5s ease';
-        footprint.style.transform = 'scale(0.5)';
-        
-        // 只使用星星图标作为轨迹装饰
-        footprint.textContent = '✨';
-        
-        // 添加点击事件，点击轨迹星星打开罗盘菜单
-        footprint.addEventListener('click', function() {
-            toggleCompassMenu();
-        });
-        
-        document.body.appendChild(footprint);
-        
-        // 动画效果
-        setTimeout(() => {
-            footprint.style.opacity = '0.8';
-            footprint.style.transform = 'scale(1)';
-        }, 100);
-        
-        // 淡出效果
-        setTimeout(() => {
-            footprint.style.opacity = '0';
-            footprint.style.transform = 'scale(0.5)';
-            setTimeout(() => {
-                if (footprint.parentNode) {
-                    footprint.parentNode.removeChild(footprint);
-                }
-            }, 5000);
-        }, 3000);
-    }
-    
     // 随机移动
     function startRandomMove() {
         if (isHovered) return;
@@ -17944,37 +17903,7 @@ function createCommandLibrary() {
             // 更新位置
             compassMenu.style.left = newLeft + '%';
             compassMenu.style.top = newTop + '%';
-        }, 100); // 每0.1秒移动一次，实现平滑滑行效果
-        
-        // 持续产生轨迹装饰
-        setInterval(() => {
-            if (isHovered) return;
-            
-            const currentLeft = parseFloat(compassMenu.style.left) || 50;
-            const currentTop = parseFloat(compassMenu.style.top) || 50;
-            
-            // 计算中心位置（蝴蝶身体中心）
-            const centerX = currentLeft;
-            const centerY = currentTop;
-            
-            // 计算飞行反方向的单位向量
-            const length = Math.sqrt(directionX * directionX + directionY * directionY);
-            const reverseDirX = length > 0 ? -directionX / length : 0;
-            const reverseDirY = length > 0 ? -directionY / length : 0;
-            
-            // 创建多个轨迹装饰
-            for (let i = 0; i < 1; i++) {
-                // 沿着飞行反方向偏移
-                const distance = Math.random() * 3;
-                const trailX = centerX + reverseDirX * distance;
-                const trailY = centerY + reverseDirY * distance;
-                
-                // 稍微随机偏移，产生多个装饰
-                const offsetX = (Math.random() - 0.5) * 1;
-                const offsetY = (Math.random() - 0.5) * 1;
-                createFootprint(trailX + offsetX, trailY + offsetY);
-            }
-        }, 1500); // 每1.5秒产生一次轨迹
+        }, 100);
     }
     
     // 停止移动

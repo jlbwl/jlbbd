@@ -9,7 +9,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="version" content="1.28.7">
+<meta name="version" content="1.28.8">
 <script>
     // 在window对象上直接定义showCompassCommands函数，确保它在任何时候都可用
     window.showCompassCommands = function() {
@@ -4631,7 +4631,7 @@ function exportHistorySettlement() {
         (parseFloat(item.amount) || 0).toFixed(2),
         item.settleTime || '',
         item.status === 'settled' ? '已结算' : '未结算',
-        item.qualified === 'qualified' ? '合格' : (item.qualified === 'nodata' ? '无数据' : '未审核')
+        item.qualified === 'qualified' ? '合格' : ((item.qualified === 'unqualified' || item.qualified === 'nodata') ? '无数据' : '未审核')
     ]);
     
     const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
@@ -4677,11 +4677,11 @@ function auditTodo(dataIndex, status) {
         const newAuditStatus = status === 'qualified' ? '合格' : (status === 'nodata' ? '无数据' : '未审核');
         
         todoItem.auditStatus = status;
-        todoItem.data.qualified = status === 'qualified' ? 'qualified' : (status === 'nodata' ? 'nodata' : 'pending');
+        todoItem.data.qualified = status === 'qualified' ? 'qualified' : (status === 'nodata' ? 'unqualified' : 'pending');
         
         const originalItem = App.data[dataIndex];
         if (originalItem) {
-            originalItem.qualified = status === 'qualified' ? 'qualified' : (status === 'nodata' ? 'nodata' : 'pending');
+            originalItem.qualified = status === 'qualified' ? 'qualified' : (status === 'nodata' ? 'unqualified' : 'pending');
         }
         
         const changes = {
@@ -4817,7 +4817,7 @@ function settleAllAudited() {
         if (originalItem) {
             originalItem.status = 'settled';
             originalItem.settleTime = settleTime;
-            originalItem.qualified = todo.auditStatus;
+            originalItem.qualified = todo.auditStatus === 'nodata' ? 'unqualified' : todo.auditStatus;
         }
     });
     
@@ -5121,7 +5121,7 @@ function deselectAllFilteredTodos() {
 
 function formatDate(s) { if(!s) return '-'; const d = new Date(s); if(isNaN(d.getTime())) return s; return d.toISOString().split('T')[0]; }
 function getTimestamp(dateStr) { if (!dateStr) return -1; let ts = Date.parse(dateStr); if (!isNaN(ts)) return ts; ts = Date.parse(String(dateStr).replace(/\//g, '-')); return isNaN(ts) ? -1 : ts; }
-function getQualLabel(val) { if(val === 'qualified') return '<span class="status-tag qual-ok">合格</span>'; if(val === 'disqualified') return '<span class="status-tag qual-disqualified">不合格</span>'; if(val === 'unqualified') return '<span class="status-tag qual-no">无数据</span>'; return '<span class="status-tag qual-pending">未审核</span>'; }
+function getQualLabel(val) { if(val === 'qualified') return '<span class="status-tag qual-ok">合格</span>'; if(val === 'disqualified') return '<span class="status-tag qual-disqualified">不合格</span>'; if(val === 'unqualified' || val === 'nodata') return '<span class="status-tag qual-no">无数据</span>'; return '<span class="status-tag qual-pending">未审核</span>'; }
 function generateDailyReport() {
     console.log('generateDailyReport function called');
     const today = new Date().toISOString().split('T')[0];
@@ -5687,7 +5687,8 @@ function getCurrentPageData() {
         const matchD = (!start || t >= new Date(start)) && (!end || t <= new Date(end + 'T23:59:59'));
         
         const matchS = searchFilters.status.length === 0 || searchFilters.status.includes(item.status);
-        const matchQ = searchFilters.qualified.length === 0 || searchFilters.qualified.includes(item.qualified);
+        let matchQ = searchFilters.qualified.length === 0 || searchFilters.qualified.includes(item.qualified);
+        if (!matchQ && searchFilters.qualified.includes('unqualified') && (item.qualified === 'nodata')) { matchQ = true; }
         
         let matchK = true;
         if (Object.keys(searchFilters.fields).length > 0) {
@@ -5759,7 +5760,8 @@ function renderTable() {
         const matchD = (!start || t >= new Date(start)) && (!end || t <= new Date(end + 'T23:59:59'));
         
         const matchS = searchFilters.status.length === 0 || searchFilters.status.includes(item.status);
-        const matchQ = searchFilters.qualified.length === 0 || searchFilters.qualified.includes(item.qualified);
+        let matchQ = searchFilters.qualified.length === 0 || searchFilters.qualified.includes(item.qualified);
+        if (!matchQ && searchFilters.qualified.includes('unqualified') && (item.qualified === 'nodata')) { matchQ = true; }
         
         let matchK = true;
         if (Object.keys(searchFilters.fields).length > 0) {
@@ -7267,7 +7269,7 @@ function confirmExportExcel() {
                         let val = item[col.key];
                         if (col.key === 'profit') val = (parseFloat(item.channelPrice)||0) - (parseFloat(item.amount)||0);
                         else if (col.key === 'status') val = item.status === 'settled' ? '已结' : (item.status === 'reviewed' ? '已审核待结算' : '未结');
-                        else if (col.key === 'qualified') val = item.qualified === 'qualified' ? '合格' : (item.qualified === 'disqualified' ? '不合格' : (item.qualified === 'unqualified' ? '无数据' : '未审'));
+                        else if (col.key === 'qualified') val = item.qualified === 'qualified' ? '合格' : (item.qualified === 'disqualified' ? '不合格' : ((item.qualified === 'unqualified' || item.qualified === 'nodata') ? '无数据' : '未审'));
                         else if (['amount', 'channelPrice', 'prepay', 'settleAmount', 'profit'].includes(col.key)) val = parseFloat(val) || 0;
                         else if (['time', 'settleTime', 'prepayTime'].includes(col.key)) val = formatDate(item[col.key]);
                         
@@ -7902,7 +7904,7 @@ const ChartUtils = {
     getQualificationData() {
         const qCount = App.data.filter(x=>x.qualified==='qualified').length;
         const dCount = App.data.filter(x=>x.qualified==='disqualified').length;
-        const uCount = App.data.filter(x=>x.qualified==='unqualified').length;
+        const uCount = App.data.filter(x=>x.qualified==='unqualified'||x.qualified==='nodata').length;
         const pCount = App.data.filter(x=>x.qualified==='pending'||!x.qualified).length;
         
         return { qCount, dCount, uCount, pCount };

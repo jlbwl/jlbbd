@@ -9,7 +9,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="version" content="1.29.2">
+<meta name="version" content="1.29.3">
 <script>
     // 在window对象上直接定义showCompassCommands函数，确保它在任何时候都可用
     window.showCompassCommands = function() {
@@ -4379,7 +4379,10 @@ function isSameData(item1, item2) {
            item1.customer === item2.customer &&
            item1.phone === item2.phone &&
            item1.channel === item2.channel &&
-           item1.group === item2.group;
+           item1.group === item2.group &&
+           (item1.broker || '') === (item2.broker || '') &&
+           (item1.amount || '') === (item2.amount || '') &&
+           (item1.fundAccount || '') === (item2.fundAccount || '');
 }
 
 // 一键导入当前页所有数据到待办列表
@@ -4392,28 +4395,35 @@ function importAllToTodo() {
     }
     
     let alreadyExistsCount = 0;
+    let blockedByTodo = 0;
+    let blockedByHistory = 0;
     const canImport = [];
-    
+
     checked.forEach(cb => {
         const idx = parseInt(cb.value);
         const item = App.data[idx];
         if (!item) return;
 
-        // 用 dataIndex 精确判断是否已存在，避免同批次雷同数据被字段模糊匹配误判
-        const existsInTodo = App.todoList.some(t => t.dataIndex === idx || (t.dataIndex == null && isSameData(t.data, item)));
-        const existsInHistory = App.settleHistory.some(t => t.dataIndex === idx || (t.dataIndex == null && isSameData(t.data, item)));
+        // 索引+内容双重匹配：删除/还原能导致 App.data 索引错位，仅靠 dataIndex 会误拦其他数据
+        const existsInTodo = App.todoList.some(t => (t.dataIndex == null || t.dataIndex === idx) && isSameData(t.data, item));
+        const existsInHistory = App.settleHistory.some(t => (t.dataIndex == null || t.dataIndex === idx) && isSameData(t.data, item));
 
         if (existsInTodo) {
             alreadyExistsCount++;
+            blockedByTodo++;
         } else if (existsInHistory) {
             alreadyExistsCount++;
+            blockedByHistory++;
         } else {
             canImport.push(idx);
         }
     });
 
     if (canImport.length === 0) {
-        alert('所选数据均已在待办列表或历史结算中，无法重复导入');
+        const detail = [];
+        if (blockedByTodo > 0) detail.push(`待办列表 ${blockedByTodo} 条`);
+        if (blockedByHistory > 0) detail.push(`历史结算 ${blockedByHistory} 条`);
+        alert(`所选数据均无法导入：已在${detail.join('、')}中，无法重复导入`);
         return;
     }
 
@@ -4454,26 +4464,33 @@ function importToTodo() {
     }
     
     let alreadyExistsCount = 0;
+    let blockedByTodo = 0;
+    let blockedByHistory = 0;
     const canImport = [];
-    
+
     checkboxes.forEach(cb => {
         const idx = parseInt(cb.value);
         const item = App.data[idx];
         if (!item) return;
 
-        // 用 dataIndex 精确判断是否已存在，避免同批次雷同数据被字段模糊匹配误判
-        const existsInTodo = App.todoList.some(t => t.dataIndex === idx || (t.dataIndex == null && isSameData(t.data, item)));
-        const existsInHistory = App.settleHistory.some(t => t.dataIndex === idx || (t.dataIndex == null && isSameData(t.data, item)));
+        // 索引+内容双重匹配：删除/还原能导致 App.data 索引错位，仅靠 dataIndex 会误拦其他数据
+        const existsInTodo = App.todoList.some(t => (t.dataIndex == null || t.dataIndex === idx) && isSameData(t.data, item));
+        const existsInHistory = App.settleHistory.some(t => (t.dataIndex == null || t.dataIndex === idx) && isSameData(t.data, item));
 
         if (existsInTodo || existsInHistory) {
             alreadyExistsCount++;
+            if (existsInTodo) blockedByTodo++;
+            if (existsInHistory) blockedByHistory++;
         } else {
             canImport.push(idx);
         }
     });
-    
+
     if (canImport.length === 0) {
-        alert('所选数据均已在待办列表或历史结算中，无法重复导入');
+        const detail = [];
+        if (blockedByTodo > 0) detail.push(`待办列表 ${blockedByTodo} 条`);
+        if (blockedByHistory > 0) detail.push(`历史结算 ${blockedByHistory} 条`);
+        alert(`所选数据均无法导入：已在${detail.join('、')}中，无法重复导入`);
         return;
     }
     

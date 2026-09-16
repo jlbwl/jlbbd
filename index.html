@@ -9,7 +9,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="version" content="1.28.9">
+<meta name="version" content="1.29.0">
 <script>
     // 在window对象上直接定义showCompassCommands函数，确保它在任何时候都可用
     window.showCompassCommands = function() {
@@ -4398,10 +4398,11 @@ function importAllToTodo() {
         const idx = parseInt(cb.value);
         const item = App.data[idx];
         if (!item) return;
-        
-        const existsInTodo = App.todoList.some(t => isSameData(t.data, item));
-        const existsInHistory = App.settleHistory.some(t => isSameData(t.data, item));
-        
+
+        // 用 dataIndex 精确判断是否已存在，避免同批次雷同数据被字段模糊匹配误判
+        const existsInTodo = App.todoList.some(t => t.dataIndex === idx || (t.dataIndex == null && isSameData(t.data, item)));
+        const existsInHistory = App.settleHistory.some(t => t.dataIndex === idx || (t.dataIndex == null && isSameData(t.data, item)));
+
         if (existsInTodo) {
             alreadyExistsCount++;
         } else if (existsInHistory) {
@@ -4410,20 +4411,20 @@ function importAllToTodo() {
             canImport.push(idx);
         }
     });
-    
+
     if (canImport.length === 0) {
         alert('所选数据均已在待办列表或历史结算中，无法重复导入');
         return;
     }
-    
+
     if (alreadyExistsCount > 0) {
         if (!confirm(`检测到 ${alreadyExistsCount} 条数据已存在于待办列表或历史结算中，将跳过这些数据。\n确定要导入剩余 ${canImport.length} 条数据吗？`)) {
             return;
         }
     }
-    
+
     let importedCount = 0;
-    
+
     canImport.forEach(idx => {
         const item = App.data[idx];
         if (!item) return;
@@ -4459,10 +4460,11 @@ function importToTodo() {
         const idx = parseInt(cb.value);
         const item = App.data[idx];
         if (!item) return;
-        
-        const existsInTodo = App.todoList.some(t => isSameData(t.data, item));
-        const existsInHistory = App.settleHistory.some(t => isSameData(t.data, item));
-        
+
+        // 用 dataIndex 精确判断是否已存在，避免同批次雷同数据被字段模糊匹配误判
+        const existsInTodo = App.todoList.some(t => t.dataIndex === idx || (t.dataIndex == null && isSameData(t.data, item)));
+        const existsInHistory = App.settleHistory.some(t => t.dataIndex === idx || (t.dataIndex == null && isSameData(t.data, item)));
+
         if (existsInTodo || existsInHistory) {
             alreadyExistsCount++;
         } else {

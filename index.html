@@ -59,6 +59,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/l10n/zh.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/plugins/rangePlugin.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" crossorigin="anonymous"></script>
 <script>
 // 客户来源管理系统
 class SourceManager {
@@ -2127,6 +2128,7 @@ th {
                 <button class="btn btn-success" onclick="exportPresetsToExcel()">📤 导出预设到Excel</button>
                 <button class="btn btn-outline" onclick="document.getElementById('presetFileInput').click()">📥 从Excel导入预设</button>
                 <input type="file" id="presetFileInput" accept=".xlsx,.xls" style="display:none" onchange="importPresetsFromExcel(this)">
+                <button class="btn btn-outline" onclick="exportPresetQrCodes()">📤 一键导出收款码</button>
             </div>
             <div class="customer-filter-bar">
                 <div class="search-input-wrapper">
@@ -6380,6 +6382,39 @@ function exportCustomerData() {
             };
         })
     });
+}
+// 一键导出收款码：把客户预设中的 base64 收款码图片打包成 ZIP
+async function exportPresetQrCodes() {
+    if (!App.checkPerm('manage_presets')) return alert('无权限操作');
+    if (typeof JSZip === 'undefined') return alert('❌ 压缩库加载失败，请检查网络后重试');
+
+    const list = App.presets.filter(p => p.qrCode);
+    if (list.length === 0) return alert('⚠️ 暂无收款码图片可导出');
+
+    const zip = new JSZip();
+    const usedNames = {};
+    list.forEach(p => {
+        const mime = (p.qrCode.match(/^data:image\/([a-z0-9+]+);base64,/i) || [])[1] || 'png';
+        const ext = mime === 'jpeg' ? 'jpg' : mime;
+        const baseName = [p.group, p.contact].filter(Boolean).join('_').replace(/[\\/:*?"<>|\s]/g, '_');
+        let fileName = `${baseName}.${ext}`;
+        let i = 2;
+        while (usedNames[fileName]) fileName = `${baseName}(${i++}).${ext}`;
+        usedNames[fileName] = true;
+        zip.file(fileName, p.qrCode.split(',')[1] || '', { base64: true });
+    });
+
+    try {
+        const blob = await zip.generateAsync({ type: 'blob' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `客户收款码_${new Date().toISOString().slice(0, 10)}.zip`;
+        link.click();
+        URL.revokeObjectURL(url);
+    } catch (error) {
+        alert('❌ 导出失败：' + error.message);
+    }
 }
 function importPresetsFromExcel(input) {
     importFromExcelGeneric({

@@ -9,7 +9,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="version" content="1.29.3">
+<meta name="version" content="1.29.4">
 <script>
     // 在window对象上直接定义showCompassCommands函数，确保它在任何时候都可用
     window.showCompassCommands = function() {
@@ -2123,6 +2123,7 @@ th {
         <div id="view-customer" class="view-section">
             <div class="action-bar">
                 <button class="btn btn-primary" onclick="openPresetModal()">➕ 新增客户预设</button>
+                <button class="btn btn-info" onclick="exportCustomerData()" title="一键导出全部客户档案及收单汇总">📤 一键导出客户数据</button>
                 <button class="btn btn-success" onclick="exportPresetsToExcel()">📤 导出预设到Excel</button>
                 <button class="btn btn-outline" onclick="document.getElementById('presetFileInput').click()">📥 从Excel导入预设</button>
                 <input type="file" id="presetFileInput" accept=".xlsx,.xls" style="display:none" onchange="importPresetsFromExcel(this)">
@@ -6335,6 +6336,49 @@ function exportPresetsToExcel() {
                 "是否有收款码": p.qrCode ? '是' : '否'
             }));
         }
+    });
+}
+// 一键导出客户数据：客户档案 + 按群号简称汇总的收单数据
+function exportCustomerData() {
+    if (!App.checkPerm('manage_presets')) return alert('无权限操作');
+
+    // 汇总每个客户的收单情况
+    const stats = {};
+    App.data.forEach(item => {
+        const group = item.group;
+        if (!group) return;
+        if (!stats[group]) stats[group] = { count: 0, amount: 0, channelPrice: 0, lastTime: '' };
+        const s = stats[group];
+        s.count++;
+        s.amount += parseFloat(item.amount) || 0;
+        s.channelPrice += parseFloat(item.channelPrice) || 0;
+        if (!s.lastTime || new Date(item.time) > new Date(s.lastTime)) s.lastTime = item.time;
+    });
+
+    // 与客户管理列表保持一致：按使用次数倒序
+    const customers = [...App.presets].sort((a, b) => (b.searchCount || 0) - (a.searchCount || 0));
+
+    exportToExcelGeneric({
+        permission: 'manage_presets',
+        data: customers,
+        sheetName: '客户数据',
+        fileName: '客户数据',
+        dataTransform: (data) => data.map(p => {
+            const s = stats[p.group] || { count: 0, amount: 0, channelPrice: 0, lastTime: '' };
+            return {
+                "群号简称": p.group,
+                "对接人": p.contact,
+                "收款方式": p.method,
+                "卡号/备注": p.card || '',
+                "是否有收款码": p.qrCode ? '是' : '否',
+                "使用次数": p.searchCount || 0,
+                "收单笔数": s.count,
+                "推广费合计": +s.amount.toFixed(2),
+                "渠道价合计": +s.channelPrice.toFixed(2),
+                "利润合计": +(s.channelPrice - s.amount).toFixed(2),
+                "最近收单时间": s.lastTime ? formatDate(s.lastTime) : ''
+            };
+        })
     });
 }
 function importPresetsFromExcel(input) {
